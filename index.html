@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>计算机专业为何学习应用随机过程</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide::before { display: none; }
+
+        .title-slide h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 72px;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .title-slide p {
+            color: #94a3b8;
+            font-size: 32px;
+            font-weight: 300;
+        }
+
+        .title-slide .badge {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #60a5fa;
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-size: 20px;
+            margin-bottom: 40px;
+            display: inline-block;
+        }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 42px;
+            color: #1e293b;
+            margin: 50px 80px 20px 80px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        .slide-title i { color: #3b82f6; }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 35px 80px 75px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        p {
+            font-size: 24px;
+            color: #334155;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .bullet-list {
+            list-style: none;
+            margin-left: 10px;
+        }
+
+        .bullet-list li {
+            font-size: 22px;
+            color: #475569;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 35px;
+            line-height: 1.5;
+        }
+
+        .bullet-list li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 5px;
+            color: #3b82f6;
+            font-size: 22px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .two-column-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: flex-start;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tiled-content {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            width: 100%;
+        }
+
+        .tile {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            border-top: 5px solid #3b82f6;
+        }
+
+        .tile h3 {
+            font-size: 26px;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .tile p {
+            font-size: 18px;
+            margin-bottom: 0;
+            color: #64748b;
+        }
+
+        .image-wrapper {
+            width: 100%;
+            height: 380px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .math-box {
+            background: #1e293b;
+            color: #a5b4fc;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 22px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            text-align: center;
+            border: none;
+        }
+
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+
+        .btn-corner {
+            position: absolute;
+            right: 40px;
+            bottom: 28px;
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.2;
+            z-index: 20;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-corner:hover {
+            background-color: #2563eb;
+        }
+
+        .footer {
+            position: absolute;
+            right: 38px;
+            bottom: 20px;
+            font-size: 18px;
+            color: #94a3b8;
+            z-index: 12;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 120px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #60a5fa, #c084fc);
+            margin: 28px auto 24px auto;
+        }
+
+        .example-box {
+            background: #eff6ff;
+            border-left: 6px solid #3b82f6;
+            padding: 24px 28px;
+            border-radius: 12px;
+            margin-top: 24px;
+        }
+
+        .example-box p {
+            margin-bottom: 12px;
+        }
+
+        .example-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        @page {
+            size: 13.333in 7.5in;
+            margin: 0;
+        }
+
+        @media print {
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                width: auto !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            body {
+                display: block !important;
+            }
+
+            .slide {
+                display: block !important;
+                width: 13.333in !important;
+                height: 7.5in !important;
+                margin: 0.12in auto 0 auto !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .slide + .slide {
+                page-break-before: always !important;
+                break-before: page !important;
+            }
+        }
+
+        /* ===== 放映模式 ===== */
+        .deck {
+            position: relative;
+            width: 100%;
+        }
+
+        .slides-viewport {
+            width: 100%;
+        }
+
+        .slides-track {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide-wrap {
+            width: 1280px;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            display: none;
+        }
+
+        body.presentation-mode {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #000 !important;
+            overflow: hidden !important;
+            display: block !important;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .deck {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slides-viewport {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slides-track {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        body.presentation-mode .slide-wrap {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        body.presentation-mode .slide-wrap.active-slide {
+            display: block;
+        }
+
+        body.presentation-mode .slide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .btn-corner {
+            z-index: 40;
+        }
+    </style>
+</head>
+<body>
+
+<div class="deck">
+    <button class="nav-btn prev" aria-label="上一页"><i class="fas fa-chevron-left"></i></button>
+
+    <div class="slides-viewport">
+        <div class="slides-track" id="slidesTrack">
+
+            <section class="slide-wrap">
+                <div class="slide title-slide">
+                    <div class="content-area">
+                        <div class="badge"><i class="fas fa-sparkles"></i> 导论篇 · 计算机科学与随机数学</div>
+                        <h1>应用随机过程</h1>
+                        <p>Applied Stochastic Processes</p>
+                        <div class="divider"></div>
+                        <p style="font-style: italic; color: #93c5fd; font-size: 28px;">“积硅步以致千里，积怠惰以致深渊”</p>
+                        <div class="math-box" style="background: rgba(255,255,255,0.08); box-shadow: none; color: #eff6ff; margin-top: 28px; font-size: 30px;">
+                            $$ 1.01^{365} = 37.8 \quad \text{vs} \quad 0.99^{365} = 0.03 $$
+                        </div>
+                    </div>
+                    <div class="footer">01</div>
+                </div>
+            </section>
+
+           
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-university"></i> 大学“神课”：理工科的挑战</div>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div class="tile">
+                                <h3><i class="fas fa-landmark"></i> 理工类标杆</h3>
+                                <ul class="bullet-list">
+                                    <li><strong>北京大学：</strong>应用随机过程</li>
+                                    <li><strong>同济大学：</strong>数电、机械制图</li>
+                                    <li><strong>复旦大学：</strong>自动控制原理</li>
+                                    <li><strong>南京理工：</strong>数学分析</li>
+                                </ul>
+                            </div>
+                            <div class="tile">
+                                <h3><i class="fas fa-mountain"></i> 综合挑战</h3>
+                                <ul class="bullet-list">
+                                    <li><strong>武汉大学：</strong>近现代史</li>
+                                    <li><strong>大连理工：</strong>模电、土木、有机</li>
+                                    <li><strong>哈工大：</strong>机械基础、量子力学</li>
+                                    <li><strong>电子科大：</strong>微积分（基科班）</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">03</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-book"></i> 教材参考资料</div>
+                    <div class="content-area">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 28px; width: 100%;">
+                            <div class="tile" style="padding: 28px 24px;">
+                                <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                                    <img src="book1.png" alt="教材1封面" style="width: 180px; height: auto; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,0.15); object-fit: contain; margin-bottom: 20px;">
+                                    <p style="font-size: 26px; margin-bottom: 12px;"><strong>指定教材</strong></p>
+                                    <p style="font-size: 24px; margin-bottom: 10px;">《应用随机过程》</p>
+                                    <p style="font-size: 20px; color: #475569; margin-bottom: 8px;">张波、商豪、邓军 编</p>
+                                    <p style="font-size: 18px; color: #64748b;">中国人民大学出版社</p>
+                                </div>
+                            </div>
+
+                            <div class="tile" style="padding: 28px 24px;">
+                                <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                                    <img src="book2.png" alt="教材2封面" style="width: 180px; height: auto; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,0.15); object-fit: contain; margin-bottom: 20px;">
+                                    <p style="font-size: 26px; margin-bottom: 12px;"><strong>参考教材</strong></p>
+                                    <p style="font-size: 24px; margin-bottom: 10px;">《随机过程及其在金融领域的中的应用》</p>
+                                    <p style="font-size: 20px; color: #475569; margin-bottom: 8px;">王军、王娟 编</p>
+                                    <p style="font-size: 18px; color: #64748b;">清华大学出版社、北京交通大学出版社</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">04</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-circle-play"></i> 多媒体参考资料</div>
+                    <div class="content-area">
+                        <div class="tile" style="padding: 34px;">
+                            <h3><i class="fab fa-bilibili" style="color: #ec4899;"></i> 推荐学习视频（Bilibili）</h3>
+                            <ul class="bullet-list" style="margin-top: 18px;">
+                                <li><i class="fab fa-bilibili" style="color: #ec4899;"></i> 中科大孙应飞老师的随机过程（不带测度版）</li>
+                                <li><i class="fab fa-bilibili" style="color: #ec4899;"></i> 南开大学郭军义教授：随机分析</li>
+                                <li><i class="fab fa-bilibili" style="color: #ec4899;"></i> 随机过程－华中科技大学视频教程</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="footer">05</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-info-circle"></i> 前言：学科发展与意义</div>
+                    <div class="content-area">
+                        <p>几十年来，由于实际问题的需要和数学工作者的努力，随机过程无论在理论上还是在应用上都有了蓬勃的发展。它的基本知识和方法，不仅为数学、概率统计专业所必需，也为工程技术及经济领域的应用与研究所需要。</p>
+                        <div class="example-box">
+                            <p><strong>核心视角：</strong>随机过程通常被视为概率论的<span class="highlight-blue">动态部分</span>。</p>
+                            <p>概率论常研究静态规律，而实际问题里更常见的是随时间不断变化的随机变量，并且这种变化往往牵涉到<strong>无限多个</strong>变量。数学家当然不嫌麻烦，学生也只能慢慢习惯。</p>
+                        </div>
+                    </div>
+                    <div class="footer">06</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide title-slide">
+                    <div class="content-area">
+                        <div class="badge">导论篇 · 计算机科学与随机数学</div>
+                        <h1>计算机专业为何学习<br><span style="color: #60a5fa;">应用随机过程</span>？</h1>
+                        <p>从确定性算法到不确定性世界的桥梁</p>
+                    </div>
+                    <div class="footer">07</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <h2 class="slide-title"><i class="fas fa-question-circle"></i> 为什么学？打破“确定性”思维定势</h2>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div>
+                                <p>计算机科学的初阶教育往往建立在<span class="highlight-blue">确定性 (Deterministic)</span>之上：特定的输入必将产生特定的输出（如排序、查找算法）。</p>
+                                <p>然而，真实的计算世界充满了<span class="highlight">不确定性 (Stochastic)</span>：网络延迟、用户行为、硬件故障、海量数据的噪声。</p>
+                                <ul class="bullet-list" style="margin-top: 30px;">
+                                    <li><strong>思维升级：</strong> 学会用概率的眼光对动态系统建模。</li>
+                                    <li><strong>工具储备：</strong> 掌握现代AI、分布式系统背后的核心语言。</li>
+                                    <li><strong>系统优化：</strong> 从追求“绝对正确”转向追求“概率最优”。</li>
+                                </ul>
+                            </div>
+                            <div class="image-wrapper">
+                                <img src="https://www.askpython.com/wp-content/uploads/2023/04/Deterministic-vs-Stochastic-Comparison-1024x683.png" alt="确定性状态机 vs. 随机状态转移图">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">08</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <h2 class="slide-title"><i class="fas fa-search"></i> 场景一：搜索引擎的网页排名 (PageRank)</h2>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div>
+                                <h3 style="font-size: 28px; color: #1e293b; margin-bottom: 20px;">网页排名的数学魔法</h3>
+                                <ul class="bullet-list">
+                                    <li><strong>核心问题：</strong> 早期 Google 是如何从上百亿个网页中，判断出哪些网页最权威？</li>
+                                    <li><strong>数学工具：</strong> 离散时间马尔可夫链 (DTMC)。</li>
+                                    <li><strong>工程应用：</strong><br>想象一个“随机冲浪者”在超链接中随机跳转，这个过程就是一个马尔可夫链。<br>冲浪者最终在各网页停留的概率（即<span class="highlight-blue">平稳分布</span>），就代表了网页的全局权重！</li>
+                                </ul>
+                            </div>
+                            <div class="image-wrapper">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Page_rank_animation.gif" alt="海量网页的复杂超链接网络转移图" style="width: 100%; height: auto;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">09</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <h2 class="slide-title"><i class="fas fa-server"></i> 场景二：分布式系统的容量规划</h2>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div>
+                                <h3 style="font-size: 28px; color: #1e293b; margin-bottom: 20px;">为什么服务器会突然“雪崩”？</h3>
+                                <ul class="bullet-list">
+                                    <li><strong>核心问题：</strong> 服务器每秒最多处理 100 个请求。如果当前平均每秒来 90 个请求，系统会卡顿吗？</li>
+                                    <li><strong>数学工具：</strong> 泊松过程与排队论 (Queuing Theory)。</li>
+                                    <li><strong>认知颠覆：</strong> 真实的请求到达是<span class="highlight-blue">泊松流</span>（具突发性），处理时间服从指数分布。当到达率逼近极限时，由于方差存在，延迟会呈<span class="highlight">非线性爆炸式增长</span>。</li>
+                                </ul>
+                            </div>
+                            <div class="image-wrapper">
+                                <img src="https://andrewpakhomov.com/posts/why-the-response-time-could-be-high-queuing-theory-approach/images/queuing-theory-overview-system-model.png" alt="用户请求涌入服务器缓冲队列的模型">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">10</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <h2 class="slide-title"><i class="fas fa-keyboard"></i> 场景三：输入法的智能纠错与“读心术”</h2>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div>
+                                <h3 style="font-size: 28px; color: #1e293b; margin-bottom: 20px;">如何从错误的按键中猜出真实意图？</h3>
+                                <ul class="bullet-list">
+                                    <li><strong>核心问题：</strong> 用户敲击了 <code>"t-e-a-x"</code>，如何推断他想打的是 <code>"test"</code>？</li>
+                                    <li><strong>数学工具：</strong> 隐马尔可夫模型 (HMM)。</li>
+                                    <li><strong>工程应用：</strong><br>将真实意图看作底层看不见的“隐藏状态链”，将实际按键看作带噪声的“观测值”。通过概率推断还原真相。</li>
+                                </ul>
+                            </div>
+                            <div class="image-wrapper">
+                                <img src="https://spotintelligence.com/wp-content/uploads/2025/06/viterbi-algorithm-example.jpg" alt="从含噪声物理按键推断真实意图图解">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">11</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <h2 class="slide-title"><i class="fas fa-calculator"></i> 具体实例：HMM 建模与 Viterbi 解码</h2>
+                    <div class="content-area">
+                        <div class="two-column-top">
+                            <div>
+                                <h3 style="font-size: 26px; margin-bottom: 15px; color: #1e293b;">1. 建立 HMM 数学模型</h3>
+                                <ul class="bullet-list" style="font-size: 20px; margin-bottom: 20px;">
+                                    <li><span class="highlight-blue">状态转移矩阵 \(A\)</span>：即语言模型 \(P(X_t|X_{t-1})\)。<br>例如：字母 'e' 后面接 's' 的概率很高。</li>
+                                    <li><span class="highlight">发射矩阵 \(B\)</span>：即键盘误触模型 \(P(Y_t|X_t)\)。<br>例如：本想打 's' 却按到 'a' 的概率。</li>
+                                </ul>
+                                <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 2px dashed #cbd5e1; text-align: center;">
+                                    <p style="font-weight: bold; color: #3b82f6; margin-bottom: 10px;">目标：最大化后验概率序列 X</p>
+                                    <p style="font-size: 22px;">\(\arg\max_{X} P(X_1...X_N | Y_1...Y_N)\)</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 26px; margin-bottom: 15px; color: #1e293b;">2. Viterbi 算法解码</h3>
+                                <p style="font-size: 20px;">暴力穷举的复杂度是指数级的。借助马尔可夫性，利用动态规划（Viterbi算法）可将其降为线性复杂度。</p>
+                                <div class="math-box">
+                                    局部最优概率方程:<br>
+                                    $$v_t(j) = \max_{i} [v_{t-1}(i) \cdot A_{ij}] \cdot B_{j}(Y_t)$$
+                                </div>
+                                <p style="font-size: 18px; color: #64748b;">
+                                    <i class="fas fa-info-circle" style="color: #3b82f6;"></i> 从公式可见，每步只需记录到达当前状态的最大概率路径。这是现代拼音输入法与语音识别底层的核心算法！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">12</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <h2 class="slide-title"><i class="fas fa-book-open"></i> 课程提纲：我们将学什么？</h2>
+                    <div class="content-area">
+                        <div class="tiled-content">
+                            <div class="tile">
+                                <h3 style="font-size: 22px;">第一部分：基础夯实</h3>
+                                <ul class="bullet-list" style="margin-left: 0; margin-top: 15px;">
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;">概率空间与随机变量</li>
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;">条件期望的预测性质</li>
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;">极限定理 (大数定律/CLT)</li>
+                                </ul>
+                            </div>
+                            <div class="tile" style="border-top-color: #8b5cf6;">
+                                <h3 style="font-size: 22px;">第二部分：核心模型</h3>
+                                <ul class="bullet-list" style="margin-left: 0; margin-top: 15px;">
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;"><strong>泊松过程：</strong> 模拟网络请求</li>
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;"><strong>马尔可夫链：</strong> 无记忆状态转移</li>
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;">HMM与平稳分布计算</li>
+                                </ul>
+                            </div>
+                            <div class="tile" style="border-top-color: #ec4899;">
+                                <h3 style="font-size: 22px;">第三部分：CS 进阶应用</h3>
+                                <ul class="bullet-list" style="margin-left: 0; margin-top: 15px;">
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;"><strong>平稳过程：</strong> 信号处理基石</li>
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;"><strong>排队论：</strong> 系统容量规划</li>
+                                    <li style="font-size: 18px; padding-left: 20px; margin-bottom: 10px;">马尔可夫决策过程(MDP)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <p style="text-align: center; margin-top: 50px; font-weight: bold; color: #475569; font-size: 22px;">
+                            数学是武器，计算机是战场。掌握随机过程，才能在不确定的世界中写出稳健的代码！
+                        </p>
+                    </div>
+                    <div class="footer">13</div>
+                </div>
+            </section>
+ <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-tasks"></i> 成绩构成与考核要求</div>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div class="tile">
+                                <h3><i class="fas fa-chart-pie"></i> 评分比例</h3>
+                                <ul class="bullet-list">
+                                    <li><i class="fas fa-file-alt"></i>期末考试：60%</li>
+                                    <li><i class="fas fa-user-check"></i>平常成绩：40%</li>
+                                </ul>
+                                <p style="font-size: 18px; color: #64748b; margin-top: 12px; padding-left: 42px;">（包含出勤、作业、上课表现）</p>
+                            </div>
+                            <div class="tile">
+                                <h3><i class="fas fa-seedling"></i> 教学寄语</h3>
+                                <p>多一份努力，多一份收成。</p>
+                                <p>上面的数学表达式其实很诚实地说明了一个道理：<span class="highlight">量变会堆出质变</span>。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">02</div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const slideWraps = Array.from(document.querySelectorAll('.slide-wrap'));
+    let currentIndex = 0;
+
+    function isPresentationMode() {
+        return document.body.classList.contains('presentation-mode');
+    }
+
+    function getCurrentVisibleSlideIndex() {
+        let bestIndex = 0;
+        let bestScore = Infinity;
+
+        slideWraps.forEach((wrap, index) => {
+            const rect = wrap.getBoundingClientRect();
+            const center = rect.top + rect.height / 2;
+            const score = Math.abs(center - window.innerHeight / 2);
+            if (score < bestScore) {
+                bestScore = score;
+                bestIndex = index;
+            }
+        });
+
+        return bestIndex;
+    }
+
+    function applyScale() {
+        if (!isPresentationMode()) return;
+        const activeWrap = slideWraps[currentIndex];
+        if (!activeWrap) return;
+
+        const slide = activeWrap.querySelector('.slide');
+        if (!slide) return;
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scale = Math.min(vw / 1280, vh / 720);
+
+        slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function showSlide(index) {
+        slideWraps.forEach(wrap => wrap.classList.remove('active-slide'));
+        if (!slideWraps[index]) return;
+        slideWraps[index].classList.add('active-slide');
+        currentIndex = index;
+        applyScale();
+    }
+
+    function nextSlide() {
+        if (currentIndex < slideWraps.length - 1) {
+            showSlide(currentIndex + 1);
+        }
+    }
+
+    function prevSlide() {
+        if (currentIndex > 0) {
+            showSlide(currentIndex - 1);
+        }
+    }
+
+    function enterPresentationMode(fromCurrent = true) {
+        currentIndex = fromCurrent ? getCurrentVisibleSlideIndex() : 0;
+        document.body.classList.add('presentation-mode');
+        showSlide(currentIndex);
+
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function exitPresentationMode() {
+        document.body.classList.remove('presentation-mode');
+        slideWraps.forEach(wrap => wrap.classList.remove('active-slide'));
+        slideWraps.forEach(wrap => {
+            const slide = wrap.querySelector('.slide');
+            if (slide) slide.style.transform = '';
+        });
+
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F5') {
+            e.preventDefault();
+            if (!isPresentationMode()) {
+                enterPresentationMode(true);
+            } else {
+                exitPresentationMode();
+            }
+            return;
+        }
+
+        if (!isPresentationMode()) return;
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            exitPresentationMode();
+            return;
+        }
+
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            nextSlide();
+            return;
+        }
+
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            prevSlide();
+            return;
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!isPresentationMode()) return;
+        const target = e.target;
+        if (target.closest('.btn-corner') || target.closest('a')) return;
+        nextSlide();
+    });
+
+    window.addEventListener('resize', function () {
+        applyScale();
+    });
+
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement && isPresentationMode()) {
+            exitPresentationMode();
+        }
+    });
+});
+</script>
+
+</body>
+</html>
