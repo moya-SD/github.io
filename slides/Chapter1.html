@@ -1,0 +1,3168 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>应用随机过程 - 第1章 预备知识（课堂递进版）</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script><script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide-container {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .slide-container::after {
+            content: '点击显示下一部分';
+            position: absolute;
+            right: 18px;
+            bottom: 14px;
+            font-size: 14px;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.92);
+            padding: 6px 11px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            z-index: 20;
+        }
+
+        .slide-container.all-shown::after {
+            content: '本页内容已全部显示';
+        }
+
+        .title-slide {
+            background: #020617;
+            color: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-container:first-child::before { display: none; }
+        .slide-container.title-slide::after { display: none; }
+
+        .title-slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+
+        .glow-orb-1 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+            top: -200px;
+            left: -200px;
+            z-index: 2;
+        }
+
+        .glow-orb-2 {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%);
+            bottom: -300px;
+            right: -200px;
+            z-index: 2;
+        }
+
+        .title-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 80px 100px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .title-content h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 72px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .title-content h1 span {
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-content p.subtitle {
+            color: #94a3b8;
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .title-content .badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #60a5fa;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 22px;
+            margin-bottom: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .title-content .course-info {
+            margin-top: 50px;
+            display: flex;
+            gap: 40px;
+            color: #64748b;
+            font-size: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 30px;
+        }
+
+        .title-content .course-info div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 42px;
+            color: #1e293b;
+            margin: 50px 80px 20px 80px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        .slide-title i { color: #3b82f6; }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 0 80px 50px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        p {
+            font-size: 24px;
+            color: #334155;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .bullet-list {
+            list-style: none;
+            margin-left: 10px;
+        }
+
+        .bullet-list li {
+            font-size: 22px;
+            color: #475569;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 35px;
+            line-height: 1.6;
+        }
+
+        .bullet-list li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 5px;
+            color: #3b82f6;
+            font-size: 22px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .two-column-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: flex-start;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tiled-content {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            width: 100%;
+        }
+
+        .tiled-content-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+        }
+
+        .tile {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            border-top: 5px solid #3b82f6;
+        }
+
+        .tile h3 {
+            font-size: 26px;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .tile p {
+            font-size: 20px;
+            margin-bottom: 0;
+            color: #475569;
+        }
+
+        .math-box {
+            background: #f8fafc;
+            color: #111827;
+            border-radius: 12px;
+            font-family: monospace;
+            box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            overflow-x: auto;
+            font-size: 22px;
+            padding: 10px 14px;
+            margin: 16px 0;
+            line-height: 1.4;
+            display: block;
+            min-height: 0;
+        }
+
+        .math-box mjx-container {
+            font-size: 98% !important;
+            margin: 0 !important;
+        }
+
+        .math-box mjx-container,
+        .math-box mjx-container * {
+            color: #111827 !important;
+        }
+
+        .math-box[style*="font-size: 16px"],
+        .math-box[style*="font-size:16px"] {
+            font-size: 15px !important;
+        }
+
+        .math-box[style*="font-size: 15px"],
+        .math-box[style*="font-size:15px"] {
+            font-size: 14px !important;
+        }
+
+        .math-box[style*="text-align: left"],
+        .math-box[style*="text-align:left"] {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        .transparent-math {
+            background: transparent !important;
+            box-shadow: none !important;
+            color: #1e293b !important;
+            border-radius: 12px;
+        }
+
+        .transparent-math mjx-container,
+        .transparent-math mjx-container * {
+            color: #1e293b !important;
+        }
+
+        .formula-plain {
+            font-size: 26px;
+            color: #1e293b;
+            text-align: center;
+            line-height: 1.8;
+            margin: 14px 0;
+        }
+
+        .formula-plain mjx-container,
+        .formula-plain mjx-container * {
+            color: #1e293b !important;
+        }
+
+        .math-box-short {
+            overflow-x: hidden !important;
+            white-space: normal !important;
+        }
+
+        .math-box-short mjx-container {
+            overflow-x: visible !important;
+        }
+
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+
+        .info-box {
+            background: #e0f2fe;
+            border-left: 6px solid #3b82f6;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .info-box p {
+            margin: 0 0 8px 0;
+            color: #0369a1;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1.6;
+        }
+
+        .fragment {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.42s ease, transform 0.42s ease;
+            pointer-events: none;
+        }
+
+        .fragment.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        body.presentation-mode {
+            padding: 0;
+            gap: 0;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            display: block;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slide-container {
+            width: 1280px;
+            height: 720px;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slide-container.active-slide {
+            display: flex;
+        }
+    
+        .section-slide { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; justify-content: center; align-items: center; text-align: center; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin-bottom: 20px; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 4px; background: #3b82f6; border: none; margin: 20px auto; }
+        .math-wrapper { text-align: center; width: 100%; margin: 8px 0; }
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; width: 100%; }
+        .title-slide .math-box, .title-slide .math-box mjx-container, .title-slide .math-box mjx-container * { color: #111827 !important; }
+        .slide-container .math-box[style*="background: #0f172a"], .slide-container .math-box[style*="background:#0f172a"] {
+            background: #f8fafc !important;
+            color: #111827 !important;
+            border: 1px solid #e2e8f0 !important;
+        }
+        .slide-container .math-box[style*="background: #0f172a"] mjx-container,
+        .slide-container .math-box[style*="background:#0f172a"] mjx-container * { color: #111827 !important; }
+        @page { size: 13.333in 7.5in; margin: 0; }
+        @media print { html, body { margin:0 !important; padding:0 !important; background:white !important; display:block !important; overflow:visible !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .slide-container { width:13.333in !important; height:7.5in !important; margin:0 !important; border-radius:0 !important; box-shadow:none !important; page-break-after:always !important; break-after:page !important; page-break-inside:avoid !important; break-inside:avoid !important; overflow:hidden !important; cursor:default !important; } .slide-container:last-child { page-break-after:auto !important; break-after:auto !important; } .slide-container::after { display:none !important; } .fragment { opacity:1 !important; transform:none !important; pointer-events:auto !important; } }
+</style></head><body><div class="slide-container title-slide">
+<div class="glow-orb-1"></div>
+<div class="glow-orb-2"></div>
+<div class="title-content">
+<div class="badge"><i class="fas fa-book"></i> 应用随机过程</div>
+<h1>第1章 <span>预备知识</span></h1>
+<p class="subtitle">概率空间、随机变量、数字特征与极限定理</p>
+</div>
+</div>
+
+<div class="slide-container section-slide">
+<h2>1.1 概率空间</h2>
+<hr/>
+<p class="fragment" data-step="1">随机现象的严格数学载体</p>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-dice"></i> 随机试验与样本空间</h2>
+<div class="content-area">
+<p class="fragment" data-step="1">随机试验是概率论的基本概念，虽然试验的结果事先不能准确预言，但具有如下三个特征：</p>
+<ul class="fragment" data-step="2" style="padding-left: 23px;">
+  <li style="font-size: 23px; line-height: 1.9;">（1）可以在相同的条件下重复进行；</li>
+  <li style="font-size: 23px; line-height: 1.9;">（2）每次试验的结果不止一个，但预先知道试验的所有可能的结果；</li>
+  <li style="font-size: 23px; line-height: 1.9;">（3）每次试验前不能确定哪个结果会出现。</li>
+</ul>
+<div class="fragment tile" data-step="3" style="margin-top: 15px;">
+<p>随机试验的可能结果称为<strong>样本点</strong>或<strong>基本事件</strong>，记为 \(\omega\)。<br/>
+                样本点的全体称为<strong>样本空间</strong>，记为 \(\Omega\)。<br/>
+                样本空间 \(\Omega\) 称为必然事件，空集 \(\varnothing\) 称为不可能事件。\(\Omega\) 的子集 \(A\) 由基本事件组成，通常称为<strong>事件</strong>。</p>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-shapes"></i> 核心概念：样本点、样本空间与事件</h2>
+  <div class="content-area" style="padding-top: 10px; padding-bottom: 30px;">
+
+    <style>
+      .concept-stage { position: relative; width: 100%; height: 430px; background: rgba(16,185,129,0.06); border: 4px solid #86efac; border-radius: 28px; box-shadow: inset 0 2px 10px rgba(15,23,42,0.05); overflow: hidden; }
+      .concept-event-a {
+        position:absolute; left:8%; top:18%; width:42%; height:58%;
+        background:rgba(59,130,246,0.16); border:4px dashed #60a5fa;
+        border-radius:44% 56% 60% 40% / 45% 40% 60% 55%;
+        animation: breatheA 3.2s ease-in-out infinite;
+      }
+      .concept-event-b {
+        position:absolute; right:8%; top:22%; width:36%; height:52%;
+        background:rgba(249,115,22,0.16); border:4px dashed #fb923c;
+        border-radius:58% 42% 38% 62% / 52% 36% 64% 48%;
+        animation: breatheB 3.4s ease-in-out infinite;
+      }
+      .concept-dice {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        animation: floatDice 3s ease-in-out infinite;
+      }
+      .concept-dice:hover {
+        transform: translateY(-6px) scale(1.08) rotate(3deg);
+      }
+      .concept-dice-box {
+        background:#fff; border-radius:16px; position:relative; margin:auto;
+      }
+      .concept-dot {
+        position:absolute; background:#1f2937; border-radius:50%;
+      }
+      .concept-pulse {
+        animation: pulseFocus 1.8s ease-in-out infinite;
+      }
+      .concept-tag {
+        margin-top:8px; font-size:16px; font-weight:700; color:#fff;
+        border-radius:8px; padding:2px 8px; display:inline-block;
+        box-shadow:0 4px 10px rgba(15,23,42,0.10);
+      }
+      .concept-toplabel {
+        position:absolute; top:16px; left:50%; transform:translateX(-50%);
+        font-size:24px; font-weight:700; background:rgba(255,255,255,0.95);
+        padding:4px 14px; border-radius:10px; white-space:nowrap;
+      }
+
+      @keyframes floatDice {
+        0%   { transform: translateY(0px); }
+        50%  { transform: translateY(-7px); }
+        100% { transform: translateY(0px); }
+      }
+      @keyframes pulseFocus {
+        0%   { transform: translateX(-50%) scale(1); box-shadow: 0 10px 18px rgba(99,102,241,0.20); }
+        50%  { transform: translateX(-50%) scale(1.08); box-shadow: 0 14px 24px rgba(99,102,241,0.32); }
+        100% { transform: translateX(-50%) scale(1); box-shadow: 0 10px 18px rgba(99,102,241,0.20); }
+      }
+      @keyframes breatheA {
+        0%   { transform: scale(1); opacity: 0.92; }
+        50%  { transform: scale(1.02); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.92; }
+      }
+      @keyframes breatheB {
+        0%   { transform: scale(1); opacity: 0.92; }
+        50%  { transform: scale(1.025); opacity: 1; }
+        100% { transform: scale(1); opacity: 0.92; }
+      }
+
+      @media print {
+        .concept-event-a, .concept-event-b, .concept-dice, .concept-pulse {
+          animation: none !important;
+          transform: none !important;
+        }
+      }
+    </style>
+
+    <div class="fragment tile" data-step="1" style="padding: 18px 24px; margin-bottom: 18px; border-top-color: #3b82f6;">
+      <p style="font-size: 23px; line-height: 1.9; margin-bottom: 0;">
+        “掷骰子时，‘1、2、3、4、5、6’是一个个可能结果，也就是
+        <span style="color:#2563eb; font-weight:700; background:#dbeafe; padding:2px 8px; border-radius:8px;">样本点 \((\omega)\)</span>；
+        这些结果合在一起就是
+        <span style="color:#059669; font-weight:700; background:#d1fae5; padding:2px 8px; border-radius:8px;">样本空间 \((\Omega)\)</span>；
+        从里面挑出一部分，比如“偶数点”“大于 4 的点数”，就构成了
+        <span style="color:#ea580c; font-weight:700; background:#ffedd5; padding:2px 8px; border-radius:8px;">事件 \((A,B)\)</span>。”
+      </p>
+    </div>
+
+    <div class="fragment" data-step="2" style="flex:1; display:flex; align-items:center; justify-content:center;">
+      <div class="concept-stage">
+
+        <div style="
+          position:absolute; top:16px; left:50%; transform:translateX(-50%);
+          font-size:30px; font-weight:800; color:#065f46;
+          background:rgba(255,255,255,0.92); padding:6px 18px; border-radius:14px;
+          border:1px solid #bbf7d0;
+        ">
+          样本空间 \(\Omega=\{1,2,3,4,5,6\}\)
+        </div>
+
+        <div class="concept-event-a fragment show" data-step="2">
+          <div class="concept-toplabel" style="color:#1d4ed8;">事件 \(A=\{2,4,6\}\)：偶数点</div>
+        </div>
+
+        <div class="concept-event-b fragment show" data-step="2">
+          <div class="concept-toplabel" style="color:#c2410c;">事件 \(B=\{5,6\}\)：大于 4</div>
+        </div>
+
+        <!-- 1 -->
+        <div class="concept-dice fragment show" data-step="2" style="position:absolute; top:80px; right:28px; text-align:center;">
+          <div class="concept-dice-box" style="width:64px; height:64px; border:2px solid #cbd5e1; box-shadow:0 6px 14px rgba(15,23,42,0.10);">
+            <span class="concept-dot" style="left:50%; top:50%; transform:translate(-50%,-50%); width:14px; height:14px;"></span>
+          </div>
+          <div class="concept-tag" style="background:#475569;">样本点 \(\omega_1=1\)</div>
+        </div>
+
+        <!-- 3 -->
+        <div class="concept-dice fragment show" data-step="2" style="position:absolute; bottom:20px; left:18px; text-align:center; animation-delay:0.4s;">
+          <div class="concept-dice-box" style="width:70px; height:70px; border:2px solid #cbd5e1; box-shadow:0 6px 14px rgba(15,23,42,0.10);">
+            <span class="concept-dot" style="left:18px; top:18px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="left:29px; top:29px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="right:18px; bottom:18px; width:12px; height:12px;"></span>
+          </div>
+          <div class="concept-tag" style="background:#475569;">样本点 \(\omega_3=3\)</div>
+        </div>
+
+        <!-- 2 -->
+        <div class="concept-dice fragment show" data-step="2" style="position:absolute; top:195px; left:16%; text-align:center; animation-delay:0.2s;">
+          <div class="concept-dice-box" style="width:78px; height:78px; border:4px solid #60a5fa; box-shadow:0 8px 16px rgba(59,130,246,0.15);">
+            <span class="concept-dot" style="left:18px; top:18px; width:13px; height:13px;"></span>
+            <span class="concept-dot" style="right:18px; bottom:18px; width:13px; height:13px;"></span>
+          </div>
+          <div class="concept-tag" style="background:#2563eb;">\(\omega_2 \in A\)</div>
+        </div>
+
+        <!-- 4 -->
+        <div class="concept-dice fragment show" data-step="2" style="position:absolute; bottom:52px; left:28%; text-align:center; animation-delay:0.6s;">
+          <div class="concept-dice-box" style="width:78px; height:78px; border:4px solid #60a5fa; box-shadow:0 8px 16px rgba(59,130,246,0.15);">
+            <span class="concept-dot" style="left:16px; top:16px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="right:16px; top:16px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="left:16px; bottom:16px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="right:16px; bottom:16px; width:12px; height:12px;"></span>
+          </div>
+          <div class="concept-tag" style="background:#2563eb;">\(\omega_4 \in A\)</div>
+        </div>
+
+        <!-- 5 -->
+        <div class="concept-dice fragment show" data-step="2" style="position:absolute; top:215px; right:13%; text-align:center; animation-delay:0.8s;">
+          <div class="concept-dice-box" style="width:78px; height:78px; border:4px solid #fb923c; box-shadow:0 8px 16px rgba(249,115,22,0.16);">
+            <span class="concept-dot" style="left:14px; top:14px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="right:14px; top:14px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="left:50%; top:50%; transform:translate(-50%,-50%); width:12px; height:12px;"></span>
+            <span class="concept-dot" style="left:14px; bottom:14px; width:12px; height:12px;"></span>
+            <span class="concept-dot" style="right:14px; bottom:14px; width:12px; height:12px;"></span>
+          </div>
+          <div class="concept-tag" style="background:#ea580c;">\(\omega_5 \in B\)</div>
+        </div>
+
+        <!-- 6 -->
+        <div class="concept-pulse fragment show" data-step="2" style="position:absolute; top:205px; left:52%; text-align:center; z-index:5;">
+          <div class="concept-dice-box" style="width:88px; height:88px; border:4px solid #6366f1; box-shadow:0 10px 18px rgba(99,102,241,0.20);">
+            <span class="concept-dot" style="left:18px; top:12px; width:11px; height:11px;"></span>
+            <span class="concept-dot" style="right:18px; top:12px; width:11px; height:11px;"></span>
+            <span class="concept-dot" style="left:18px; top:38px; width:11px; height:11px;"></span>
+            <span class="concept-dot" style="right:18px; top:38px; width:11px; height:11px;"></span>
+            <span class="concept-dot" style="left:18px; bottom:12px; width:11px; height:11px;"></span>
+            <span class="concept-dot" style="right:18px; bottom:12px; width:11px; height:11px;"></span>
+          </div>
+          <div class="concept-tag" style="background:#4338ca;">\(\omega_6 \in A \cap B\)</div>
+          <div style="
+            margin-top:6px; font-size:14px; font-weight:700; color:#3730a3;
+            background:rgba(255,255,255,0.95); border:1px solid #c7d2fe;
+            border-radius:999px; padding:2px 10px; display:inline-block;
+          ">交集：同时满足</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 集合的基本运算律</h2>
+  <div class="content-area">
+
+    <ul class="fragment" data-step="1" style="padding-left: 26px; line-height: 1.9; margin-top: 6px;">
+      <li style="font-size: 25px; margin-bottom: 12px;">
+        (1) 交换律：\(A \cup B = B \cup A,\quad A \cap B = B \cap A\)
+      </li>
+      <li style="font-size: 25px; margin-bottom: 12px;">
+        (2) 结合律：\(A \cup (B \cup C) = (A \cup B) \cup C,\quad A \cap (B \cap C) = (A \cap B) \cap C\)
+      </li>
+      <li style="font-size: 25px; margin-bottom: 12px;">
+        (3) 分配律：
+        \[
+        A \cup (B \cap C) = (A \cup B) \cap (A \cup C)
+        \]
+        \[
+        A \cap (B \cup C) = (A \cap B) \cup (A \cap C)
+        \]
+      </li>
+      <li style="font-size: 25px; margin-bottom: 0;">
+        (4) 对偶原则（De Morgan 律）：
+        \[
+        \overline{A \cup B} = \bar{A} \cap \bar{B},\qquad
+        \overline{A \cap B} = \bar{A} \cup \bar{B}
+        \]
+        \[
+        \overline{\bigcup_{i=1}^{\infty} A_i} = \bigcap_{i=1}^{\infty} \overline{A_i},\qquad
+        \overline{\bigcap_{i=1}^{\infty} A_i} = \bigcup_{i=1}^{\infty} \overline{A_i}
+        \]
+      </li>
+    </ul>
+
+    <div class="fragment math-wrapper" data-step="3" style="margin-top: 8px;">
+      <div class="math-box" style="font-size: 18px; border-left: 4px solid #10b981;">
+        \[
+        \text{小结：并、交、补三种运算满足交换、结合、分配与对偶关系}
+        \]
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-sitemap"></i> 定义 1.1.1：\(\sigma\) 代数与可测空间</h2>
+<div class="content-area">  
+<p class="fragment" data-step="1">设 \(\Omega\) 是一个样本空间，\(\mathscr{F}\) 是 \(\Omega\) 的某些子集组成的集合族。如果满足：</p>
+<div class="fragment math-wrapper" data-step="2">
+  <div class="math-box" style="padding: 15px 30px; text-align: left; line-height: 1.9;">
+    （1）\(\Omega \in \mathscr{F}\)   （全集要能讨论）<br/><br/> 
+    （2）若 \(A \in \mathscr{F}\)，则 \(A^c = \Omega \setminus A \in \mathscr{F}\)  (能讨论一件事，就要能讨论它“不发生”)<br/><br/>
+    （3）若 \(A_n \in \mathscr{F}\ (n=1,2,\dots)\)，则 \(\bigcup_{n=1}^{\infty} A_n \in \mathscr{F}\)(能讨论可数多个事件，就要能讨论“至少一个发生”)
+  </div>
+</div>
+<p class="fragment highlight-blue" data-step="3" style="text-align: ">则称 \(\mathscr{F}\) 为 \(\Omega\) 上的一个 <strong>\(\sigma\) 代数</strong>(“允许讨论、允许赋概率”的那些事件的集合)，\((\Omega, \mathscr{F})\) 称为<strong>可测空间</strong>(把“结果空间”和“可讨论事件规则”一起打包)。</p>
+<div class="fragment tile" data-step="4" style="margin-top: 10px;">
+<p><strong>推论：</strong>如果 \(\mathscr{F}\) 是 \(\sigma\) 代数，则必有 \(\varnothing \in \mathscr{F}\)，且对可列交运算 \(\bigcap_{n=1}^{\infty} A_n \in \mathscr{F}\) 封闭。</p>
+<p style="margin-top: 10px;">由某集类 \(\mathscr{C}\) 生成的最小 \(\sigma\) 代数记为 \(\sigma(\mathscr{C})\)。</p>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-layer-group"></i> 关于 \(\sigma\) 代数的实例</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="1" style="margin-bottom: 15px;">
+<h3>例 1.1.3：合并状态</h3>
+<p>研究抛一次六面骰子出现 2 或者 3 的概率：</p>
+<div class="math-wrapper">
+<div class="math-box">\[\Omega=\{1,2,3,4,5,6\}, \quad \mathscr{F}=\{\varnothing, \Omega, \{2,3\}, \{1,4,5,6\}\}\]</div>
+</div>
+<p style="font-size: 16px; color: #64748b;">（把 2 和 3 放在一起作为一个整体）</p>
+</div>
+<div class="fragment tile" data-step="2" style="margin-bottom: 15px; border-top-color: #8b5cf6;">
+<h3>例 1.1.4：细分状态</h3>
+<p>分别研究出现 2 和出现 3 的概率：</p>
+<div class="math-wrapper">
+<div class="math-box">\[\mathscr{F}_1=\{\varnothing, \Omega, \{2\}, \{3\}, \{2,3\}, \{1,2,4,5,6\}, \{1,3,4,5,6\}, \{1,4,5,6\}\}\]</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-layer-group"></i> 关于 \(\sigma\) 代数的实例</h2>
+  <div class="content-area">
+    <div class="fragment tile" data-step="1" style="border-top-color: #ec4899;">
+      <h3>例 1.1.5：一些特殊的 \(\sigma\) 代数</h3>
+      <ul style="padding-left: 28px; margin-top: 10px;">
+        <li style="font-size: 24px; line-height: 1.9; margin-bottom: 10px;">
+          最小的：平凡 \(\sigma\) 代数 \(\{\varnothing, \Omega\}\)
+        </li>
+        <li style="font-size: 24px; line-height: 1.9; margin-bottom: 10px;">
+          最大的：全体子集 \(2^\Omega = \{A: A \subset \Omega\}\)
+        </li>
+        <li style="font-size: 24px; line-height: 1.9;">
+          由有限个互不相交且并集为 \(\Omega\) 的子集 \(A_1, \dots, A_n\) 生成的 \(\sigma\) 代数包含 \(2^n\) 个集合。
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 进阶概念：\(\sigma\) 代数与可测空间</h2>
+  <div class="content-area" style="padding-top: 8px; padding-bottom: 24px;">
+
+    <style>
+      .sigma-page {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sigma-quote {
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 16px;
+        padding: 18px 22px;
+        box-shadow: 0 4px 12px rgba(79,70,229,0.08);
+      }
+
+      .sigma-quote p {
+        font-size: 22px;
+        line-height: 1.9;
+        color: #374151;
+        margin: 0;
+      }
+
+      .sigma-stage-area {
+        flex: 1;
+        position: relative;
+        margin-top: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sigma-arrow-band {
+        position: absolute;
+        top: 49%;
+        left: 9%;
+        width: 82%;
+        height: 16px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #e5e7eb, #c7d2fe, #d8b4fe);
+        z-index: 0;
+      }
+
+      .sigma-arrow-head {
+        position: absolute;
+        right: -6px;
+        top: -4px;
+        width: 0;
+        height: 0;
+        border-top: 12px solid transparent;
+        border-bottom: 12px solid transparent;
+        border-left: 22px solid #c084fc;
+      }
+
+      .sigma-arrow-text {
+        position: absolute;
+        top: 34%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 26px;
+        font-weight: 900;
+        letter-spacing: 2px;
+        color: rgba(79,70,229,0.55);
+        z-index: 0;
+        white-space: nowrap;
+      }
+
+      .sigma-cards {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        display: flex;
+        gap: 26px;
+        align-items: stretch;
+        justify-content: space-between;
+        margin-top: 36px;
+      }
+
+      .sigma-card {
+        flex: 1;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 16px;
+        box-shadow: 0 10px 18px rgba(15,23,42,0.08);
+        transition: transform 0.28s ease, box-shadow 0.28s ease;
+        animation: sigmaFloat 3.8s ease-in-out infinite;
+      }
+
+      .sigma-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 28px rgba(15,23,42,0.14);
+      }
+
+      .sigma-card:nth-child(2) { animation-delay: 0.5s; }
+      .sigma-card:nth-child(3) { animation-delay: 1s; }
+
+      .sigma-visual {
+        height: 150px;
+        border-radius: 14px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sigma-card h3 {
+        font-size: 24px;
+        font-weight: 900;
+        text-align: center;
+        margin: 14px 0 6px 0;
+      }
+
+      .sigma-card .sigma-formula {
+        display: inline-block;
+        font-size: 16px;
+        font-family: monospace;
+        padding: 4px 10px;
+        border-radius: 8px;
+        margin: 0 auto 10px auto;
+      }
+
+      .sigma-card .sigma-desc {
+        font-size: 16px;
+        line-height: 1.65;
+        color: #6b7280;
+        text-align: center;
+        margin: 0;
+      }
+
+      .fog-layer {
+        position: absolute;
+        inset: 0;
+        background: rgba(209,213,219,0.50);
+        backdrop-filter: blur(2px);
+        animation: fogPulse 2.8s ease-in-out infinite;
+      }
+
+      .sigma-grid {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sigma-grid-row {
+        flex: 1;
+        display: flex;
+      }
+
+      .sigma-grid-cell {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        font-weight: 800;
+      }
+
+      .sigma-partition-half {
+        width: 50%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .sigma-breathe {
+        animation: sigmaBreathe 3s ease-in-out infinite;
+      }
+
+      .sigma-breathe-delay {
+        animation: sigmaBreathe 3.4s ease-in-out infinite;
+      }
+
+      @keyframes sigmaFloat {
+        0%   { transform: translateY(0); }
+        50%  { transform: translateY(-5px); }
+        100% { transform: translateY(0); }
+      }
+
+      @keyframes sigmaBreathe {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.02); }
+        100% { transform: scale(1); }
+      }
+
+      @keyframes fogPulse {
+        0%   { opacity: 0.55; }
+        50%  { opacity: 0.78; }
+        100% { opacity: 0.55; }
+      }
+
+      @media print {
+        .sigma-card, .fog-layer, .sigma-breathe, .sigma-breathe-delay {
+          animation: none !important;
+          transform: none !important;
+        }
+      }
+    </style>
+
+    <div class="sigma-page">
+
+      <div class="fragment sigma-quote" data-step="1">
+        <p>
+          “在可测空间 <span style="font-weight:800; color:#4338ca;">\((\Omega,\mathscr F)\)</span> 中，
+          样本空间 <span style="font-weight:800; color:#059669;">\(\Omega\)</span> 是客观存在的全集底座；
+          而 <span style="font-weight:800; color:#2563eb;">\(\sigma\) 代数 \(\mathscr F\)</span> 则是我们主观观测的
+          <strong>‘信息分辨率’</strong>。只有被包含在 <strong>\(\mathscr F\)</strong> 中的集合（事件），
+          才是我们能够观测、测量并赋予概率的。”
+        </p>
+      </div>
+
+      <div class="fragment sigma-stage-area" data-step="2">
+        <div class="sigma-arrow-band">
+          <div class="sigma-arrow-head"></div>
+        </div>
+        <div class="sigma-arrow-text">分辨率不断提高 / 信息量不断增加</div>
+
+        <div class="sigma-cards">
+
+          <!-- Stage 1 -->
+          <div class="sigma-card">
+            <div class="sigma-visual" style="background:#e5e7eb; border:4px solid #9ca3af;">
+              <div class="fog-layer"></div>
+              <div style="position:relative; z-index:2; font-size:48px; font-weight:900; color:#6b7280; letter-spacing:6px;">\(\Omega\)</div>
+            </div>
+            <h3 style="color:#1f2937;">平凡 \(\sigma\) 代数</h3>
+            <div style="text-align:center;">
+              <span class="sigma-formula" style="background:#f3f4f6; color:#374151;">\(\mathscr F_0=\{\varnothing,\Omega\}\)</span>
+            </div>
+            <p class="sigma-desc">
+              <strong>极低分辨率：</strong><br/>
+              眼前像一团迷雾，只知道“做了随机试验”，却无法区分任何更具体的结果。
+            </p>
+          </div>
+
+          <!-- Stage 2 -->
+          <div class="sigma-card">
+            <div class="sigma-visual sigma-breathe" style="background:#eff6ff; border:4px solid #60a5fa; display:flex;">
+              <div class="sigma-partition-half" style="background:#dbeafe; border-right:4px solid #60a5fa;">
+                <div style="font-size:28px; font-weight:900; color:#1d4ed8;">\(A\)</div>
+                <div style="font-size:16px; color:#3b82f6;">（偶数）</div>
+              </div>
+              <div class="sigma-partition-half" style="background:#f8fbff;">
+                <div style="font-size:28px; font-weight:900; color:#60a5fa;">\(A^c\)</div>
+                <div style="font-size:16px; color:#93c5fd;">（奇数）</div>
+              </div>
+            </div>
+            <h3 style="color:#1d4ed8;">粗糙 \(\sigma\) 代数</h3>
+            <div style="text-align:center;">
+              <span class="sigma-formula" style="background:#eff6ff; color:#1d4ed8;">\(\mathscr F_1=\{\varnothing,\Omega,A,A^c\}\)</span>
+            </div>
+            <p class="sigma-desc">
+              <strong>低分辨率：</strong><br/>
+              能分辨“结果属于哪一类”，例如奇数还是偶数，但还不能区分具体是 2 点还是 4 点。
+            </p>
+          </div>
+
+          <!-- Stage 3 -->
+          <div class="sigma-card">
+            <div class="sigma-visual sigma-breathe-delay" style="background:#faf5ff; border:4px solid #a855f7;">
+              <div class="sigma-grid">
+                <div class="sigma-grid-row" style="border-bottom:2px solid #a855f7;">
+                  <div class="sigma-grid-cell" style="background:#ede9fe; border-right:2px solid #a855f7; color:#4338ca;">1点</div>
+                  <div class="sigma-grid-cell" style="background:#e0e7ff; border-right:2px solid #a855f7; color:#3730a3;">2点</div>
+                  <div class="sigma-grid-cell" style="background:#fae8ff; color:#86198f;">3点</div>
+                </div>
+                <div class="sigma-grid-row">
+                  <div class="sigma-grid-cell" style="background:#ede9fe; border-right:2px solid #a855f7; color:#4338ca;">4点</div>
+                  <div class="sigma-grid-cell" style="background:#f3e8ff; border-right:2px solid #a855f7; color:#6b21a8;">5点</div>
+                  <div class="sigma-grid-cell" style="background:#ddd6fe; color:#4c1d95;">6点</div>
+                </div>
+              </div>
+            </div>
+            <h3 style="color:#6d28d9;">全 / 精细 \(\sigma\) 代数</h3>
+            <div style="text-align:center;">
+              <span class="sigma-formula" style="background:#faf5ff; color:#6d28d9;">\(\mathscr F_2=\mathcal P(\Omega)\)</span>
+            </div>
+            <p class="sigma-desc">
+              <strong>高分辨率：</strong><br/>
+              样本空间被细致地区分开。此时可以讨论关于 \(\Omega\) 的任何子集事件。
+            </p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-chart-line"></i> 定义 1.1.2：Borel \(\sigma\) 代数</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="1" style="border-top-color: #ec4899; padding: 40px;">
+<p>设 \(\Omega = \mathbb{R}\)。</p>
+<p style="margin-top: 30px;">由所有半无限区间 \((-\infty, x), x \in \mathbb{R}\) 生成的 \(\sigma\) 代数称为 \(\mathbb{R}\) 上的 <strong>Borel \(\sigma\) 代数</strong>，记为 \(\mathscr{B}(\mathbb{R})\)。</p>
+<p style="margin-top: 15px;">其中的元素称为 <strong>Borel 集合</strong>。</p>
+</div>
+<p class="fragment" data-step="2" style="margin-top: 20px;">类似地，可定义 \(\mathbb{R}^n\) 上的 Borel \(\sigma\) 代数 \(\mathscr{B}(\mathbb{R}^n)\)。</p>
+</div>
+</div>
+
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-chart-line"></i> 定义 1.1.2：Borel \(\sigma\) 代数</h2>
+  <div class="content-area">
+    <div class="fragment" data-step="1">
+  <p style="font-size:24px; line-height:1.9; margin-bottom:16px;">
+    在实数轴上，并不是任意一个奇奇怪怪的集合都适合拿来当事件。我们从最基本的区间出发，
+    通过补集、可列并、可列交不断生成一大类“规矩的集合”，这类集合就叫
+    <span style="color:#2563eb; font-weight:700;">Borel 集</span>，
+    它们组成的集合族叫
+    <span style="color:#7c3aed; font-weight:700;">Borel \(\sigma\) 代数</span>。
+  </p>
+</div>
+
+<div class="fragment" data-step="2" style="display:flex; justify-content:center; margin-top:8px;">
+  <svg width="1060" height="430" viewBox="0 0 1060 430" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowBorel" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+        <path d="M0,0 L12,6 L0,12 Z" fill="#475569"></path>
+      </marker>
+      <filter id="shadowBorel" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#64748b" flood-opacity="0.22"/>
+      </filter>
+    </defs>
+
+    <!-- 左框：奇怪集合 -->
+    <rect x="30" y="45" width="250" height="240" rx="20" fill="#fff7ed" stroke="#fb923c" stroke-width="3" filter="url(#shadowBorel)"/>
+    <text x="155" y="80" text-anchor="middle" font-size="28" font-weight="700" fill="#c2410c">任意子集并不都合适</text>
+
+    <!-- 左框里的“奇怪集合” -->
+    <path d="M85,160 
+             C70,120 110,95 150,110
+             C175,80 230,105 220,150
+             C255,175 230,230 180,225
+             C160,255 100,250 85,205
+             C55,195 50,165 85,160 Z"
+          fill="#fed7aa" stroke="#ea580c" stroke-width="3"/>
+    <text x="155" y="172" text-anchor="middle" font-size="24" font-weight="700" fill="#9a3412">“奇怪集合”</text>
+    <text x="155" y="205" text-anchor="middle" font-size="18" fill="#7c2d12">不一定适合直接当事件</text>
+
+    <!-- 中框：基本区间 -->
+    <rect x="400" y="45" width="260" height="240" rx="20" fill="#eff6ff" stroke="#60a5fa" stroke-width="3" filter="url(#shadowBorel)"/>
+    <text x="530" y="80" text-anchor="middle" font-size="28" font-weight="700" fill="#1d4ed8">从最基本区间出发</text>
+
+    <!-- 数轴 -->
+    <line x1="445" y1="185" x2="615" y2="185" stroke="#334155" stroke-width="4"/>
+    <line x1="615" y1="185" x2="605" y2="178" stroke="#334155" stroke-width="4"/>
+    <line x1="615" y1="185" x2="605" y2="192" stroke="#334155" stroke-width="4"/>
+
+    <!-- 半无限区间高亮 -->
+    <rect x="455" y="170" width="85" height="30" rx="8" fill="#93c5fd" opacity="0.9"/>
+    <line x1="540" y1="160" x2="540" y2="210" stroke="#1d4ed8" stroke-width="3"/>
+    <circle cx="540" cy="185" r="5" fill="#1d4ed8"/>
+    <text x="535" y="152" text-anchor="middle" font-size="18" fill="#1e293b">x</text>
+    <text x="530" y="235" text-anchor="middle" font-size="24" font-weight="700" fill="#1e40af">\((-\infty,x]\)</text>
+
+    <!-- 中间到右边箭头 -->
+    <line x1="680" y1="120" x2="810" y2="120" stroke="#475569" stroke-width="4" marker-end="url(#arrowBorel)"/>
+    <line x1="680" y1="170" x2="810" y2="170" stroke="#475569" stroke-width="4" marker-end="url(#arrowBorel)"/>
+    <line x1="680" y1="220" x2="810" y2="220" stroke="#475569" stroke-width="4" marker-end="url(#arrowBorel)"/>
+
+    <text x="745" y="108" text-anchor="middle" font-size="22" font-weight="700" fill="#334155">补集</text>
+    <text x="745" y="158" text-anchor="middle" font-size="22" font-weight="700" fill="#334155">可列并</text>
+    <text x="745" y="208" text-anchor="middle" font-size="22" font-weight="700" fill="#334155">可列交</text>
+
+    <!-- 右框：Borel集 -->
+    <rect x="820" y="45" width="210" height="240" rx="20" fill="#f5f3ff" stroke="#8b5cf6" stroke-width="3" filter="url(#shadowBorel)"/>
+    <text x="925" y="80" text-anchor="middle" font-size="28" font-weight="700" fill="#6d28d9">Borel 集</text>
+
+    <!-- 右框内部小集合 -->
+    <rect x="860" y="105" width="130" height="36" rx="10" fill="#ddd6fe" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="925" y="129" text-anchor="middle" font-size="22" fill="#4c1d95">\((a,b)\)</text>
+
+    <rect x="860" y="152" width="130" height="36" rx="10" fill="#ddd6fe" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="925" y="176" text-anchor="middle" font-size="22" fill="#4c1d95">\([a,b]\)</text>
+
+    <rect x="860" y="199" width="130" height="36" rx="10" fill="#ddd6fe" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="925" y="223" text-anchor="middle" font-size="22" fill="#4c1d95">\(\{a\}\)</text>
+
+    <text x="925" y="262" text-anchor="middle" font-size="20" fill="#5b21b6">以及更多“规矩集合”</text>
+
+    <!-- 下方总结框 -->
+    <rect x="110" y="325" width="840" height="70" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="530" y="353" text-anchor="middle" font-size="24" font-weight="700" fill="#0f172a">
+      Borel \(\sigma\) 代数：由实数轴上的基本区间生成的最小 \(\sigma\) 代数
+    </text>
+    <text x="530" y="380" text-anchor="middle" font-size="20" fill="#475569">
+      可以理解为“实数轴上适合谈概率的大多数常见集合”
+    </text>
+  </svg>
+</div>
+  </div>
+</div>
+
+
+
+
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-infinity"></i> 定义 1.1.3：集合序列的极限</h2>
+<div class="content-area">
+<p class="fragment" data-step="1">设 \(\{A_n, n=1,2,\dots\}\) 为一集合序列。分别称：</p>
+<div class="fragment math-wrapper" data-step="2">
+<div class="math-box">
+                    \[\limsup_{n \to \infty} A_n = \bigcap_{n=1}^{\infty} \bigcup_{k=n}^{\infty} A_k, \quad \liminf_{n \to \infty} A_n = \bigcup_{n=1}^{\infty} \bigcap_{k=n}^{\infty} A_k\]
+                </div>
+</div>
+<div class="fragment two-column-top" data-step="3" style="margin-top: 10px;">
+<div class="tile">
+<h3>上极限 (\(\limsup\))</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 16px;">\[\{w \mid \forall n \in \mathbb{N}, \exists k \ge n, \text{使 } w \in A_k\}\]</div></div>
+<p>即 \(\{w \mid w \text{ 属于无穷多个 } A_n\}\)</p>
+</div>
+<div class="tile" style="border-top-color: #8b5cf6;">
+<h3>下极限 (\(\liminf\))</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 16px;">\[\{w \mid \exists n \in \mathbb{N}, \forall k \ge n, \text{有 } w \in A_k\}\]</div></div>
+<p>即 \(\{w \mid w \text{ 至多不属于有限多个 } A_n\}\)</p>
+</div>
+</div>
+<p class="fragment" data-step="4" style="margin-top: 15px; text-align: center;">从而恒有：\(\liminf_{n\to\infty} A_n \subset \limsup_{n\to\infty} A_n\)。若二者相等，则称极限 \(\lim_{n\to\infty} A_n\) 存在。</p>
+</div>
+</div>
+
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-infinity"></i> 进阶概念：集合序列的极限示意图</h2>
+  <div class="content-area" style="padding-top: 8px; padding-bottom: 24px;">
+
+    <style>
+      .setlimit-page {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .setlimit-main {
+        flex: 1;
+        width: 100%;
+        display: flex;
+        gap: 26px;
+        align-items: stretch;
+      }
+
+      .setlimit-card {
+        background: #ffffff;
+        border: 2px solid #f1f5f9;
+        border-radius: 18px;
+        box-shadow: 0 10px 18px rgba(15,23,42,0.08);
+        padding: 22px;
+      }
+
+      .setlimit-left {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .setlimit-right {
+        flex: 1.2;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .setlimit-section-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: #1f2937;
+        text-align: center;
+        padding-bottom: 10px;
+        margin-bottom: 18px;
+        border-bottom: 2px solid #e5e7eb;
+      }
+
+      .setlimit-block {
+        flex: 1;
+        border-radius: 14px;
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        border: 1px solid;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .setlimit-block + .setlimit-block {
+        margin-top: 18px;
+      }
+
+      .setlimit-blue {
+        background: rgba(59,130,246,0.06);
+        border-color: #bfdbfe;
+      }
+
+      .setlimit-green {
+        background: rgba(16,185,129,0.06);
+        border-color: #bbf7d0;
+      }
+
+      .setlimit-viz {
+        flex-shrink: 0;
+        width: 155px;
+        height: 140px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .setlimit-text {
+        flex: 1;
+        padding-left: 18px;
+      }
+
+      .setlimit-text h4 {
+        font-size: 22px;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+      }
+
+      .setlimit-text p {
+        margin: 6px 0 0 0;
+        font-size: 17px;
+        line-height: 1.65;
+      }
+
+      .setlimit-mono {
+        font-family: monospace;
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .circle {
+        position: absolute;
+        border-radius: 50%;
+        transition: all 0.4s ease;
+      }
+
+      .circle-expand-1 {
+        width: 60px; height: 60px;
+        border: 2px solid #2563eb;
+        background: rgba(59,130,246,0.75);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 16px;
+        box-shadow: inset 0 2px 6px rgba(255,255,255,0.15);
+        animation: expandPulse1 2.8s ease-in-out infinite;
+      }
+
+      .circle-expand-2 {
+        width: 105px; height: 105px;
+        border: 2px solid #3b82f6;
+        background: rgba(96,165,250,0.18);
+        animation: expandPulse2 2.8s ease-in-out infinite;
+      }
+
+      .circle-expand-3 {
+        width: 145px; height: 145px;
+        border: 2px dashed #60a5fa;
+        background: rgba(147,197,253,0.15);
+        animation: expandPulse3 2.8s ease-in-out infinite;
+      }
+
+      .circle-shrink-1 {
+        width: 145px; height: 145px;
+        border: 2px solid #86efac;
+        background: rgba(187,247,208,0.28);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        padding-top: 12px;
+        font-weight: 800;
+        font-size: 16px;
+        color: #047857;
+        animation: shrinkPulse1 2.8s ease-in-out infinite;
+      }
+
+      .circle-shrink-2 {
+        width: 92px; height: 92px;
+        border: 2px solid #10b981;
+        background: rgba(16,185,129,0.18);
+        animation: shrinkPulse2 2.8s ease-in-out infinite;
+      }
+
+      .circle-shrink-3 {
+        width: 38px; height: 38px;
+        border: 2px solid #047857;
+        background: rgba(5,150,105,0.9);
+        box-shadow: 0 4px 10px rgba(5,150,105,0.24);
+        animation: shrinkPulse3 2.8s ease-in-out infinite;
+      }
+
+      .setlimit-right p.note {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #6b7280;
+        margin: 10px 0 0 0;
+      }
+
+      .timeline-box {
+        border-radius: 16px;
+        padding: 16px;
+        border: 1px solid;
+        position: relative;
+      }
+
+      .timeline-box + .timeline-box {
+        margin-top: 24px;
+      }
+
+      .timeline-orange {
+        background: rgba(251,146,60,0.08);
+        border-color: #fed7aa;
+      }
+
+      .timeline-purple {
+        background: rgba(168,85,247,0.08);
+        border-color: #e9d5ff;
+      }
+
+      .timeline-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 10px;
+      }
+
+      .timeline-head .main {
+        font-size: 21px;
+        font-weight: 800;
+      }
+
+      .timeline-head .tag {
+        font-family: monospace;
+        font-size: 13px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+
+      .timeline-axis {
+        position: relative;
+        width: 100%;
+        height: 56px;
+        display: flex;
+        align-items: center;
+      }
+
+      .timeline-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        height: 4px;
+        background: #d1d5db;
+        border-radius: 999px;
+      }
+
+      .timeline-arrow {
+        position: absolute;
+        right: -1px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 0;
+        height: 0;
+        border-top: 7px solid transparent;
+        border-bottom: 7px solid transparent;
+        border-left: 12px solid #9ca3af;
+      }
+
+      .timeline-nodes {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 10px;
+        position: relative;
+        z-index: 2;
+      }
+
+      .timeline-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .mark {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 800;
+        animation: markBlink 2.4s ease-in-out infinite;
+      }
+
+      .mark.green {
+        background: #dcfce7;
+        border-color: #22c55e;
+        color: #16a34a;
+      }
+
+      .mark.red {
+        background: #fee2e2;
+        border-color: #ef4444;
+        color: #dc2626;
+      }
+
+      .timeline-node span {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 4px;
+      }
+
+      .timeline-note-badge {
+        position: absolute;
+        right: 18px;
+        top: -12px;
+        background: #fff;
+        border: 1px solid #fecdd3;
+        color: #e11d48;
+        font-size: 12px;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 999px;
+        box-shadow: 0 4px 10px rgba(15,23,42,0.08);
+      }
+
+      @keyframes expandPulse1 {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      @keyframes expandPulse2 {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+      }
+      @keyframes expandPulse3 {
+        0%,100% { transform: scale(1); opacity: 0.95; }
+        50% { transform: scale(1.02); opacity: 1; }
+      }
+
+      @keyframes shrinkPulse1 {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(0.985); }
+      }
+      @keyframes shrinkPulse2 {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(0.97); }
+      }
+      @keyframes shrinkPulse3 {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(0.92); }
+      }
+
+      @keyframes markBlink {
+        0%,100% { transform: scale(1); }
+        50% { transform: scale(1.12); }
+      }
+
+      @media print {
+        .circle, .mark {
+          animation: none !important;
+          transform: none !important;
+        }
+      }
+    </style>
+
+    <div class="setlimit-page">
+
+      <div class="setlimit-main">
+
+        <!-- 左侧 -->
+        <div class="setlimit-left setlimit-card fragment" data-step="1">
+          <div class="setlimit-section-title">1. 单调序列 (Monotone Sequences)</div>
+
+          <div class="setlimit-block setlimit-blue">
+            <div class="setlimit-viz">
+              <div class="circle circle-expand-3"></div>
+              <div class="circle circle-expand-2"></div>
+              <div class="circle circle-expand-1">A₁</div>
+            </div>
+            <div class="setlimit-text">
+              <h4 style="color:#1d4ed8;">递增序列 (Expanding)</h4>
+              <div class="setlimit-mono" style="color:#2563eb;">\(A_1 \subset A_2 \subset \cdots \subset A_n\)</div>
+              <p>如同滚雪球，极限是所有集合的<strong style="color:#1d4ed8;">并集 \((\bigcup)\)</strong>。</p>
+              <p style="font-weight:800; color:#1d4ed8;">\(\lim A_n = \bigcup A_n\)</p>
+            </div>
+          </div>
+
+          <div class="setlimit-block setlimit-green">
+            <div class="setlimit-viz">
+              <div class="circle circle-shrink-1">A₁</div>
+              <div class="circle circle-shrink-2"></div>
+              <div class="circle circle-shrink-3"></div>
+            </div>
+            <div class="setlimit-text">
+              <h4 style="color:#047857;">递减序列 (Shrinking)</h4>
+              <div class="setlimit-mono" style="color:#059669;">\(A_1 \supset A_2 \supset \cdots \supset A_n\)</div>
+              <p>如同大浪淘沙，极限是所有集合的<strong style="color:#047857;">交集 \((\bigcap)\)</strong>。</p>
+              <p style="font-weight:800; color:#047857;">\(\lim A_n = \bigcap A_n\)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧 -->
+        <div class="setlimit-right setlimit-card fragment" data-step="2">
+          <div class="setlimit-section-title">2. 一般序列：上下极限 (\(\limsup\) / \(\liminf\))</div>
+          <p style="font-size:15px; color:#6b7280; text-align:center; margin:-4px 0 18px 0;">
+            观察一个固定样本点 \(w\) 在不同时间 \(n\) 的集合 \(A_n\) 中是否出现
+          </p>
+
+          <div class="timeline-box timeline-orange">
+            <div class="timeline-head">
+              <div class="main" style="color:#9a3412;">下极限 (\(\liminf\))：最终总是出现</div>
+              <div class="tag" style="background:#ffedd5; color:#c2410c;">\(w \in \liminf A_n\)</div>
+            </div>
+
+            <div class="timeline-axis">
+              <div class="timeline-line"></div>
+              <div class="timeline-arrow"></div>
+              <div class="timeline-nodes">
+                <div class="timeline-node"><div class="mark red">✗</div><span>\(n=1\)</span></div>
+                <div class="timeline-node"><div class="mark red" style="animation-delay:0.2s;">✗</div><span>\(n=2\)</span></div>
+                <div class="timeline-node"><div class="mark green" style="animation-delay:0.4s;">✓</div><span>\(n=3\)</span></div>
+                <div class="timeline-node"><div class="mark green" style="animation-delay:0.6s;">✓</div><span>\(n=4\)</span></div>
+                <div class="timeline-node"><div class="mark green" style="animation-delay:0.8s;">✓</div><span>\(n=5\)</span></div>
+                <div class="timeline-node" style="justify-content:center;">
+                  <div style="font-size:20px; font-weight:800; color:#16a34a; white-space:nowrap;">…一直 ✓</div>
+                </div>
+              </div>
+            </div>
+
+            <p class="note">
+              解释：前面缺席几次没关系，只要从某个时刻开始它<strong>再也不退出</strong>，就属于下极限。
+            </p>
+          </div>
+
+          <div class="timeline-box timeline-purple">
+            <div class="timeline-note-badge">\(\liminf A_n \subset \limsup A_n\)</div>
+            <div class="timeline-head">
+              <div class="main" style="color:#6b21a8;">上极限 (\(\limsup\))：出现无限次</div>
+              <div class="tag" style="background:#f3e8ff; color:#7e22ce;">\(w \in \limsup A_n\)</div>
+            </div>
+
+            <div class="timeline-axis">
+              <div class="timeline-line"></div>
+              <div class="timeline-arrow"></div>
+              <div class="timeline-nodes">
+                <div class="timeline-node"><div class="mark green">✓</div><span>\(n=1\)</span></div>
+                <div class="timeline-node"><div class="mark red" style="animation-delay:0.2s;">✗</div><span>\(n=2\)</span></div>
+                <div class="timeline-node"><div class="mark green" style="animation-delay:0.4s;">✓</div><span>\(n=3\)</span></div>
+                <div class="timeline-node"><div class="mark red" style="animation-delay:0.6s;">✗</div><span>\(n=4\)</span></div>
+                <div class="timeline-node"><div class="mark green" style="animation-delay:0.8s;">✓</div><span>\(n=5\)</span></div>
+                <div class="timeline-node" style="justify-content:center;">
+                  <div style="font-size:17px; font-weight:800; color:#7e22ce; white-space:nowrap;">…✓✗交替</div>
+                </div>
+              </div>
+            </div>
+
+            <p class="note">
+              解释：它可以反复进出集合。只要以后<strong>还会无穷多次出现</strong>，就属于上极限。
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-compress-alt"></i> 集合序列极限的例题</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="1" style="margin-bottom: 15px;">
+<h3>例 1.1.6：单调序列</h3>
+<p>设 \(A_n = [0, 1 + \frac{1}{n}]\)。显然 \(A_n\) 是一个递减集合序列。</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 18px;">
+                        \[\limsup_{n\to\infty} A_n = \bigcap_{n=1}^{\infty} \left( \bigcup_{k=n}^{\infty} \left[0, 1+\frac{1}{k}\right] \right) = \bigcap_{n=1}^{\infty} \left[0, 1+\frac{1}{n}\right] = [0,1]\]
+                        \[\liminf_{n\to\infty} A_n = \bigcup_{n=1}^{\infty} \left( \bigcap_{k=n}^{\infty} \left[0, 1+\frac{1}{k}\right] \right) = \bigcup_{n=1}^{\infty} [0,1] = [0,1]\]
+                    </div>
+</div>
+</div>
+<div class="fragment tile" data-step="2" style="border-top-color: #ec4899;">
+<h3>例 1.1.8：抛硬币的直观理解</h3>
+<p>\(\Omega=\{\text{所有由正反面组成的序列}\}\)，\(A_n\) 为第 \(n\) 次结果是“正面”。</p>
+<ul>
+<li>\(\limsup_{n\to\infty} A_n\) = {有无限多个抛掷结果是“正面”}</li>
+<li>\(\liminf_{n\to\infty} A_n\) = {除有限多个外，抛掷结果都是“正面”}</li>
+</ul>
+</div>
+</div>
+</div>
+
+<!--
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-list-ol"></i> 例 1.1.7：交替序列的极限</h2>
+<div class="content-area">
+<p class="fragment" data-step="1">如果集合序列 \(A_n\) 如下：\(A_{2n} = [0, 2+\frac{1}{n}], \quad A_{2n+1} = [0, 1+\frac{1}{n}]\)</p>
+<div class="fragment math-wrapper" data-step="2">
+<div class="math-box" style="font-size: 16px;">
+                    \[
+                    \begin{aligned}
+                    B_{2n} &amp;= \bigcup_{k=2n}^{\infty} A_k = (A_{2n} \cup A_{2n+2} \dots) \cup (A_{2n+1} \cup A_{2n+3} \dots) = \left[0, 2+\frac{1}{n}\right] \cup \left[0, 1+\frac{1}{n}\right] = \left[0, 2+\frac{1}{n}\right] \\
+                    B_{2n+1} &amp;= \bigcup_{k=2n+1}^{\infty} A_k = \left[0, 1+\frac{1}{n}\right] \cup \left[0, 2+\frac{1}{n+1}\right] = \left[0, 2+\frac{1}{n+1}\right]
+                    \end{aligned}
+                    \]
+                </div>
+</div>
+<div class="fragment math-wrapper" data-step="3">
+<div class="math-box" style="font-size: 18px;">
+                    \[
+                    \begin{aligned}
+                    \limsup_{n \to \infty} A_n &amp;= \bigcap_{n=1}^{\infty} B_n = \left(\bigcap_{n=1}^{\infty} B_{2n}\right) \bigcap \left(\bigcap_{n=0}^{\infty} B_{2n+1}\right) \\
+                    &amp;= \left(\bigcap_{n=1}^{\infty}\left[0,2+\frac{1}{n}\right]\right) \cap \left(\bigcap_{n=0}^{\infty}\left[0,2+\frac{1}{n+1}\right]\right) = [0,2]
+                    \end{aligned}
+                    \]
+                </div>
+</div>
+<p class="fragment" data-step="4">同理可以得到 \(\liminf_{n \to \infty} A_n = [0,1]\)。故 \(\liminf A_n \neq \limsup A_n\)。</p>
+</div>
+</div>
+-->
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-balance-scale"></i> 定义 1.1.4：概率的公理化定义</h2>
+<div class="content-area">
+<p class="fragment" data-step="1">设 \((\Omega, \mathscr{F})\) 是可测空间，\(P(\cdot)\) 是定义在 \(\mathscr{F}\) 上的实值函数。如果：</p>
+<div class="fragment tile" data-step="2" style="padding: 30px;">
+<ul style="line-height: 2; padding-left: 24px; margin-top: 8px;">
+  <li style="font-size: 25px; margin-bottom: 10px;">
+    （1）<strong>规范性：</strong> \(P(\Omega) = 1\)
+  </li>
+  <li style="font-size: 25px; margin-bottom: 10px;">
+    （2）<strong>非负性：</strong> \(\forall A \in \mathscr{F},\ 0 \le P(A) \le 1\)
+  </li>
+  <li style="font-size: 25px; margin-bottom: 0;">
+    （3）<strong>可列可加性：</strong> 对两两互不相容事件 \(A_1, A_2, \dots\)
+    （即 \(i \neq j\) 时 \(A_i \cap A_j = \varnothing\)），有：
+    <div class="math-wrapper">
+      <div class="math-box" style="margin: 12px 0 0 0; font-size: 22px; padding: 12px 16px;">
+        \[
+        P\left(\bigcup_{i=1}^{\infty} A_i\right)=\sum_{i=1}^{\infty}P(A_i)
+        \]
+      </div>
+    </div>
+  </li>
+</ul>
+</div>
+<p class="fragment highlight-blue" data-step="3" style="text-align: center; margin-top: 20px; font-size: 24px;">
+                则称 \(P\) 是 \((\Omega, \mathscr{F})\) 上的概率，\((\Omega, \mathscr{F}, P)\) 称为<strong>概率空间</strong>。
+            </p>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-check-double"></i> 例 1.1.10：验证泊松测度</h2>
+<div class="content-area">
+<p class="fragment" data-step="1">设某股票一天成交笔数 \(m\)，样本空间 \(\Omega=\{0, 1, 2, \dots\}\)，\(\mathscr{F}\) 为一切子集。定义 \(P(\varnothing)=0\)，并对 \(A \in \mathscr{F}\) 令：</p>
+<div class="fragment math-wrapper" data-step="2"><div class="math-box">\[P(A) = \sum_{k \in A} \mathrm{e}^{-\lambda} \frac{\lambda^k}{k!}, \quad \lambda&gt;0\]</div></div>
+<p class="fragment" data-step="3">证明：\(P\) 为可测空间上的概率测度。</p>
+<div class="fragment tile" data-step="4" style="border-top-color: #10b981;">
+<p><strong>(1) 证明 \(P(\Omega)=1\)：</strong></p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[P(\Omega) = \sum_{k \in \Omega} \mathrm{e}^{-\lambda} \frac{\lambda^k}{k!} = \sum_{k=0}^{\infty} \mathrm{e}^{-\lambda} \frac{\lambda^k}{k!} = \mathrm{e}^{-\lambda} \mathrm{e}^\lambda = 1\]</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-check-double"></i> 例 1.1.10：验证泊松测度</h2>
+<div class="content-area">
+<p><strong>(2) 可列可加性：</strong>对于互不相交的集合序列 \(A_n\)</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[P\left(\bigcup_{n=1}^{\infty} A_n\right) = \sum_{k \in \cup_n A_n} \mathrm{e}^{-\lambda} \frac{\lambda^k}{k!} = \sum_{n=1}^{\infty} \sum_{k \in A_n} \mathrm{e}^{-\lambda} \frac{\lambda^k}{k!} = \sum_{n=1}^{\infty} P(A_n)\]</div>
+</div>
+<p><strong>因此 \(P\) 是概率测度。</strong></p>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-list-ul"></i> 概率的基本性质</h2>
+<div class="content-area">
+<ul class="fragment" data-step="1" style="padding-left: 26px; line-height: 1.9; margin-top: 6px;">
+  <li style="font-size: 25px; margin-bottom: 10px;">
+    (1) \(P(A \cup B) + P(A \cap B) = P(A) + P(B)\)
+  </li>
+  <li style="font-size: 25px; margin-bottom: 10px;">
+    (2) 若 \(A \subset B\)，则 \(P(B-A) = P(B) - P(A)\)（可减性）
+  </li>
+  <li style="font-size: 25px; margin-bottom: 0;">
+    (3) 若 \(A \subset B\)，则 \(P(A) \le P(B)\)（单调性）
+  </li>
+    <li style="font-size: 25px; margin-bottom: 0;">
+    (4) 次 \(\sigma\) 可加性：</strong> \(P\left(\bigcup_{n \ge 1} A_n\right) \le \sum_{n \ge 1} P(A_n)\)
+  </li>
+    </li>
+    <li style="font-size: 25px; margin-bottom: 0;">
+    (5) 从下连续：</strong> 若 \(A_n \uparrow A\)，则 \(P(A)=\lim_{n\to\infty}P(A_n)\)
+  </li>
+    </li>
+    <li style="font-size: 25px; margin-bottom: 0;">
+    (6) 从上连续：</strong> 若 \(A_n \downarrow A\)，则 \(P(A)=\lim_{n\to\infty}P(A_n)\)
+  </li>
+</ul>
+<div class="fragment math-wrapper" data-step="3" style="margin-top: 8px;">
+<div class="math-box" style="font-size: 18px; border-left: 4px solid #10b981;">
+                \[\text{小结：可列可加性 } \Longrightarrow \text{ 单调性、次可加性、连续性}\]
+            </div>
+</div>
+</div>
+</div>
+
+
+
+<div class="slide-container section-slide">
+<h2>1.2 随机变量与分布函数</h2>
+<hr/>
+<p class="fragment" data-step="1">将抽象事件映射到实数域的桥梁</p>
+</div>
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-exchange-alt"></i> 定义 1.2.1：随机变量</h2>
+  <div class="content-area">
+    <p class="fragment" data-step="1" style="font-size: 25px; line-height: 1.8;">
+      设 \((\Omega, \mathscr{F}, P)\) 是概率空间，\(X\) 是定义在 \(\Omega\) 上取值于 \(\mathbb{R}\) 的函数。
+    </p>
+
+    <div class="fragment tile" data-step="2" style="border-top-color: #3b82f6;">
+      <p style="font-size: 24px;">如果对 \(\forall x \in \mathbb{R}\)，有</p>
+      <div class="math-wrapper">
+        <div class="math-box" style="font-size: 25px; padding: 14px 18px;">
+          \[
+          \{\omega: X(\omega) \le x\} \in \mathscr{F}
+          \]
+        </div>
+      </div>
+      <p style="font-size: 24px;">则称 \(X\) 是 \(\mathscr{F}\) 上的<strong>随机变量</strong>。</p>
+    </div>
+
+    <p class="fragment" data-step="3" style="margin-top: 15px; font-size: 24px;">函数</p>
+
+    <div class="fragment math-wrapper" data-step="4">
+      <div class="math-box" style="border-left: 4px solid #8b5cf6; font-size: 24px; padding: 14px 18px;">
+        \[
+        F(x) = P\{\omega: X(\omega) \le x\}, \quad -\infty &lt; x &lt; +\infty
+        \]
+      </div>
+    </div>
+
+    <p class="fragment" data-step="5" style="text-align: center; font-size: 24px;">
+      称为随机变量 \(X\) 的<strong>分布函数</strong>。
+    </p>
+
+    <p class="fragment" data-step="6" style="font-size: 19px; color: #64748b; margin-top: 15px; line-height: 1.8;">
+      注：我们要求 \(\{\omega: X(\omega) \le x\} \in \mathscr{F}\) 是为了确保它是一个“可测事件”，这样我们才能用概率测度 \(P\) 去衡量它发生的概率。
+    </p>
+  </div>
+</div>
+
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-eye"></i> 例 1.2.1：可测性的直观理解</h2>
+  <div class="content-area">
+    <p class="fragment" data-step="1" style="font-size: 24px; line-height: 1.8;">
+      设 \(\Omega=\{w_1, w_2, w_3\}, \mathscr{F}=\{\varnothing, \Omega, \{w_1, w_2\}, \{w_3\}\}\)。定义 \(X, Y\)：
+    </p>
+
+    <div class="fragment math-wrapper" data-step="2">
+      <div class="math-box" style="font-size: 24px; padding: 16px 18px;">
+        \[
+        X =
+        \begin{cases}
+        1, & \{w_1, w_2\} \\
+        2, & \{w_3\}
+        \end{cases},
+        \quad
+        Y =
+        \begin{cases}
+        1, & \{w_1\} \\
+        2, & \{w_2, w_3\}
+        \end{cases}
+        \]
+      </div>
+    </div>
+
+    <div class="fragment tile" data-step="3" style="border-top-color: #ec4899; margin-top: 10px;">
+      <p style="font-size: 24px;">检查原像是否在 \(\mathscr{F}\) 中：</p>
+      <div class="math-wrapper">
+        <div class="math-box" style="font-size: 23px; padding: 14px 18px;">
+          \[
+          \{X=1\} = \{w_1, w_2\} \in \mathscr{F}, \quad \{X=2\} = \{w_3\} \in \mathscr{F}
+          \]
+          \[
+          \{Y=1\} = \{w_1\} \notin \mathscr{F}, \quad \{Y=2\} = \{w_2, w_3\} \notin \mathscr{F}
+          \]
+        </div>
+      </div>
+      <p style="font-weight: bold; color: #1e293b; font-size: 24px; margin-top: 8px;">
+        结论：\(X\) 是关于 \(\mathscr{F}\) 的随机变量，而 \(Y\) 不是。
+      </p>
+    </div>
+
+    <p class="fragment" data-step="4" style="margin-top: 10px; font-size: 19px; line-height: 1.8;">
+      如果定义新的代数 \(\hat{\mathscr{F}}\) 包含 \(\{w_1\}, \{w_2\}, \{w_3\}\) 等所有子集，那么 \(X, Y\) 就都是关于 \(\hat{\mathscr{F}}\) 的随机变量了。可见随机变量是相对于特定的 \(\sigma\) 代数而言的。
+    </p>
+  </div>
+</div>
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-cogs"></i> 随机变量的运算封闭性</h2>
+  <div class="content-area">
+    <p class="fragment" data-step="1">
+      <strong>定理 1.2.1 可测性等价条件：</strong>
+      \(\{X \ge x\}, \{X \gt x\}, \{X \lt x\}\) 都属于 \(\mathscr{F}\)。
+    </p>
+  <div class="fragment tile" data-step="2" style="padding: 24px 28px;">
+  <p style="font-size: 25px; line-height: 1.9; margin-bottom: 12px;">
+    <strong>(1)：若 \(X, Y\) 是随机变量，则 \(\{X\lt Y\}\in\mathscr{F}\)</strong>
+  </p>
+  <p style="font-size: 25px; line-height: 1.9; margin-bottom: 12px;">
+    <strong>(2)：\(X+Y\)、\(X^2\) 与 \(XY\) 都是随机变量</strong>
+  </p>
+  <p style="font-size: 25px; line-height: 1.9; margin-bottom: 0;">
+    <strong>(3)：\(\sup X_n\)、\(\limsup X_n\) 仍是随机变量</strong>
+  </p>
+</div>
+    <div class="fragment tile" data-step="5" style="margin-top: 12px; border-top-color: #ec4899;">
+      <p><strong>结论：</strong>随机变量在比较、四则运算、上确界和极限运算下都保持可测性。</p>
+      <p style="font-size: 17px;">这也是后续研究随机过程、极限定理与鞅时能够自由进行代数和极限操作的基础。</p>
+    </div>
+  </div>
+</div>
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-th-large"></i> 常见分布 (1)：离散型分布</h2>
+<div class="content-area">
+<div class="two-column-top">
+<div class="fragment tile" data-step="6">
+<h3>1. 退化分布 (单点)</h3>
+<p>\(P\{X=c\} = 1\)</p>
+</div>
+<div class="fragment tile" data-step="7" style="border-top-color: #8b5cf6;">
+<h3>2. Bernoulli 分布</h3>
+<p>\(P\{X=k\} = p^k(1-p)^{1-k}, \quad k=0,1\)</p>
+</div>
+<div class="fragment tile" data-step="8" style="border-top-color: #ec4899;">
+  <h3>3. 二项分布 \(B(n,p)\)</h3>
+  <div class="math-wrapper">
+    <div class="math-box" style="font-size: 26px; padding: 12px 16px;">
+      \[
+      P\{X=k\} = \binom{n}{k} p^k(1-p)^{n-k}
+      \]
+    </div>
+  </div>
+</div>
+
+<div class="fragment tile" data-step="9" style="border-top-color: #10b981;">
+  <h3>4. Poisson 分布 \(P(\lambda)\)</h3>
+  <div class="math-wrapper">
+    <div class="math-box" style="font-size: 26px; padding: 12px 16px;">
+      \[
+      P\{X=k\} = \mathrm{e}^{-\lambda} \frac{\lambda^k}{k!}
+      \]
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+</div>
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-th-large"></i> 常见分布 (1-续)：离散型分布</h2>
+<div class="content-area">
+ <div class="two-column-top"> 
+    <div class="fragment tile" data-step="10" style="border-top-color: #f59e0b;">
+<h3>5. 几何分布</h3>
+<div class="math-wrapper">
+  <div class="math-box" style="font-size: 26px; padding: 12px 16px;">
+    \[
+    P\{X=k\} = p(1-p)^{k-1}, \quad k \ge 1
+    \]
+  </div>
+</div>
+</div>
+<div class="fragment tile" data-step="11" style="border-top-color: #3b82f6;">
+<h3>6. 离散均匀分布</h3>
+<div class="math-wrapper">
+  <div class="math-box" style="font-size: 26px; padding: 12px 16px;">
+    \[
+    P\{X=k\} = \frac{1}{n}, \quad 1 \le k \le n
+    \]
+  </div>
+</div>
+</div>
+</div>  
+<div class="fragment tile" data-step="13" style="border-top-color: #ec4899;">
+<h3>7. 负二项分布</h3>
+<p>在 Bernoulli 试验序列中，事件 A <strong>第 r 次出现</strong> 的试验次数 \(k\)：</p>
+<div class="math-wrapper"><div class="math-box">\[P\{X=k\} = \binom{k+r-1}{k} p^r(1-p)^k, \quad k=0,1,2, \dots\]</div></div>
+<p style="font-size: 18px; color: #475569;">注：当某类数据集观测到的方差大于均值时，负二项分布比泊松分布（均值=方差）更合适。</p>
+</div>
+</div>
+</div>
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-wave-square"></i> 常见分布 (2)：连续型分布（上）</h2>
+<div class="content-area">
+  <div class="two-column-top">
+    <div class="fragment tile" data-step="14">
+      <h3>8. 均匀分布</h3>
+      <div class="math-wrapper">
+        <div class="math-box math-box-short" style="font-size: 28px; padding: 12px 16px;">
+          \[
+          f(x)=(b-a)^{-1},\quad x\in[a,b]
+          \]
+        </div>
+      </div>
+    </div>
+
+    <div class="fragment tile" data-step="15" style="border-top-color: #8b5cf6;">
+      <h3>9. 正态 / Gauss 分布 \(N(\mu,\sigma^2)\)</h3>
+      <div class="math-wrapper">
+        <div class="math-box" style="font-size: 22px; padding: 12px 16px;">
+          \[
+          f(x)=\frac{1}{\sigma\sqrt{2\pi}}
+          \exp\left\{-\frac{(x-\mu)^2}{2\sigma^2}\right\}
+          \]
+        </div>
+      </div>
+    </div>
+
+    <div class="fragment tile" data-step="16" style="border-top-color: #ec4899; grid-column: span 2;">
+      <h3>10. \(d\) 维正态分布 \(N_d(\boldsymbol{\mu},\boldsymbol{\Sigma})\)</h3>
+      <div class="math-wrapper">
+        <div class="math-box" style="font-size: 20px; padding: 12px 18px;">
+          \[
+          f(\boldsymbol{x})
+          =(2\pi)^{-d/2}|\boldsymbol{\Sigma}|^{-1/2}
+          \exp\left\{
+          -\frac{1}{2}
+          (\boldsymbol{x}-\boldsymbol{\mu})'
+          \boldsymbol{\Sigma}^{-1}
+          (\boldsymbol{x}-\boldsymbol{\mu})
+          \right\}
+          \]
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-wave-square"></i> 常见分布 (2)：连续型分布（下）</h2>
+  <div class="content-area">
+    <div class="two-column-top">
+      <div class="fragment tile" data-step="17" style="border-top-color: #10b981;">
+        <h3>11. \(\Gamma\) 分布</h3>
+        <div class="math-wrapper">
+          <div class="math-box" style="font-size: 22px; padding: 12px 16px;">
+            \[
+            f(x)=\frac{\lambda^s}{\Gamma(s)}
+            x^{\,s-1}\mathrm{e}^{-\lambda x}
+            \]
+          </div>
+        </div>
+      </div>
+
+      <div class="fragment tile" data-step="18" style="border-top-color: #3b82f6;">
+        <h3>12. 指数分布</h3>
+        <p style="font-size: 20px;">当 \(\Gamma\) 分布中取 \(s=1\) 时，就得到指数分布：</p>
+        <div class="math-wrapper">
+          <div class="math-box math-box-short" style="font-size: 28px; padding: 12px 16px;">
+            \[
+            f(x)=\lambda \mathrm{e}^{-\lambda x}
+            \]
+          </div>
+        </div>
+      </div>
+
+      <div class="fragment tile" data-step="19" style="border-top-color: #f59e0b; grid-column: span 2;">
+        <h3>13. \(\chi^2\) 分布</h3>
+        <p style="font-size: 20px;">
+          在 \(\Gamma\) 分布中取
+          \(s=n/2,\ \lambda=1/2\)，可得 \(\chi^2\) 分布：
+        </p>
+        <div class="math-wrapper">
+          <div class="math-box" style="font-size: 22px; padding: 12px 16px;">
+            \[
+            f(x)=\frac{1}{2^{n/2}\Gamma(n/2)}
+            x^{n/2-1}\mathrm{e}^{-x/2}
+            \]
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==================== 1.3 数字特征 ==================== -->
+
+
+
+<div class="slide-container section-slide">
+<h2>1.3 数字特征、矩母函数与特征函数</h2>
+<hr/>
+<p class="fragment" data-step="20">分布的粗略轮廓与唯一“指纹”</p>
+</div>
+
+
+
+
+
+
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-calculator"></i> 核心工具：黎曼-斯蒂尔杰斯积分</h2>
+  <div class="content-area" style="padding-top: 0; padding-bottom: 14px;">
+
+    <style>
+      .rs-page{width:100%;height:100%;display:flex;flex-direction:column;}
+      .rs-quote{
+        background:#fffbeb;border:1px solid #fde68a;border-radius:14px;
+        padding:12px 16px;box-shadow:0 4px 10px rgba(217,119,6,0.07);
+      }
+      .rs-quote p{font-size:18px;line-height:1.75;color:#374151;margin:0;}
+
+      .rs-main{
+        flex:1;width:100%;display:flex;gap:16px;align-items:stretch;margin-top:10px;
+        min-height:0;
+      }
+      .rs-card{
+        background:#fff;border:1.5px solid #f1f5f9;border-radius:16px;
+        box-shadow:0 8px 14px rgba(15,23,42,0.07);padding:14px;
+        min-height:0;
+      }
+      .rs-left{flex:1;display:flex;flex-direction:column;min-height:0;}
+      .rs-right{flex:1.08;display:flex;flex-direction:column;min-height:0;}
+
+      .rs-title{
+        font-size:20px;font-weight:800;color:#1f2937;text-align:center;
+        padding-bottom:8px;margin-bottom:12px;border-bottom:2px solid #e5e7eb;
+      }
+
+      .rs-formula-box{
+        position:absolute;top:8px;left:8px;background:#fff;border:1px solid #e5e7eb;
+        border-radius:10px;padding:6px 10px;box-shadow:0 4px 8px rgba(15,23,42,0.06);
+        font-family:monospace;font-size:13px;font-weight:700;color:#1f2937;z-index:5;
+      }
+
+      .rs-left-viz{
+        flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+        padding:10px;position:relative;display:flex;align-items:center;justify-content:center;
+        min-height:0;
+      }
+
+      .rs-bar{transition:all .4s ease;animation:rsBarPulse 3s ease-in-out infinite;}
+      .rs-bar:nth-child(2){animation-delay:.25s;}
+      .rs-bar:nth-child(3){animation-delay:.5s;}
+      .rs-bar:nth-child(4){animation-delay:.75s;}
+      .rs-highlight{animation:rsGlow 2.4s ease-in-out infinite;}
+
+      .rs-split{flex:1;display:flex;gap:10px;align-items:stretch;justify-content:center;min-height:0;}
+      .rs-subcard{
+        flex:1;border-radius:12px;padding:10px;display:flex;flex-direction:column;
+        align-items:center;justify-content:center;min-height:0;
+      }
+      .rs-blue{background:rgba(59,130,246,.06);border:1px solid #bfdbfe;}
+      .rs-rose{background:rgba(225,29,72,.06);border:1px solid #fecdd3;position:relative;}
+
+      .rs-small-title{font-size:15px;font-weight:800;margin-bottom:8px;text-align:center;}
+      .rs-badge{
+        display:inline-block;background:#fff;border-radius:10px;padding:5px 8px;
+        box-shadow:0 4px 8px rgba(15,23,42,0.06);font-family:monospace;font-size:12px;
+        font-weight:700;text-align:center;
+      }
+      .rs-callout{
+        position:absolute;top:-8px;right:8px;background:#fff;border:1px solid #fde68a;
+        color:#b45309;font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;
+        box-shadow:0 4px 8px rgba(15,23,42,0.06);z-index:5;
+      }
+
+      .rs-step-curve{animation:rsStepPulse 2.8s ease-in-out infinite;}
+      .rs-bottom-note{margin-top:10px;font-size:13px;line-height:1.55;color:#6b7280;}
+
+      @keyframes rsBarPulse{0%,100%{opacity:.82;}50%{opacity:1;}}
+      @keyframes rsGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(217,119,6,0));}50%{filter:drop-shadow(0 0 7px rgba(217,119,6,.24));}}
+      @keyframes rsStepPulse{0%,100%{opacity:.9;}50%{opacity:1;}}
+
+      @media print{
+        .rs-bar,.rs-highlight,.rs-step-curve{animation:none !important;}
+      }
+    </style>
+
+    <div class="rs-page">
+      <div class="fragment rs-quote" data-step="1">
+        <p>
+          “在概率论中，我们不再只对空间 \(dx\) 均匀积分，而是对
+          <strong>‘概率的累积量 \(dF(x)\)’</strong> 进行积分。黎曼-斯蒂尔杰斯积分
+          \(\int f(x)\,dg(x)\) 允许‘底边宽度’由另一个函数 \(g(x)\) 决定，
+          它将<strong>离散求和与连续积分统一到同一个公式下</strong>。”
+        </p>
+      </div>
+
+      <div class="rs-main fragment" data-step="2">
+
+        <div class="rs-left rs-card">
+          <div class="rs-title">1. 几何意义：非均匀加权</div>
+
+          <div class="rs-left-viz">
+            <div class="rs-formula-box">
+              \(\int f(x)\,dg(x)\approx \sum f(\xi_i)\,[g(x_i)-g(x_{i-1})]\)
+            </div>
+
+            <svg viewBox="0 0 400 300" style="width:100%; height:100%; max-height:190px; overflow:visible;">
+              <defs>
+                <marker id="rsArrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"></path>
+                </marker>
+                <marker id="rsArrowDark" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                  <path d="M 10 0 L 0 5 L 10 10 z" fill="#475569"></path>
+                </marker>
+              </defs>
+
+              <line x1="20" y1="250" x2="380" y2="250" stroke="#94a3b8" stroke-width="2" marker-end="url(#rsArrow)"></line>
+              <line x1="40" y1="20" x2="40" y2="270" stroke="#94a3b8" stroke-width="2"></line>
+              <text x="385" y="245" font-size="12" font-weight="700" fill="#4b5563">x</text>
+              <text x="24" y="16" font-size="12" font-weight="700" fill="#4b5563">y</text>
+
+              <rect class="rs-bar" x="60" y="100" width="40" height="150" fill="#cbd5e1" stroke="#64748b" stroke-width="1" opacity="0.7"></rect>
+              <rect class="rs-bar" x="120" y="80" width="15" height="170" fill="#cbd5e1" stroke="#64748b" stroke-width="1" opacity="0.7"></rect>
+              <rect class="rs-bar rs-highlight" x="160" y="120" width="90" height="130" fill="#fde68a" stroke="#d97706" stroke-width="2" opacity="0.88"></rect>
+              <rect class="rs-bar" x="270" y="160" width="50" height="90" fill="#cbd5e1" stroke="#64748b" stroke-width="1" opacity="0.7"></rect>
+
+              <path d="M 40 130 C 100 80, 150 50, 200 120 S 300 180, 360 140" fill="none" stroke="#2563eb" stroke-width="3"></path>
+              <text x="338" y="132" font-size="14" font-weight="700" fill="#2563eb">f(x)</text>
+
+              <line x1="160" y1="260" x2="160" y2="275" stroke="#475569" stroke-width="1"></line>
+              <line x1="250" y1="260" x2="250" y2="275" stroke="#475569" stroke-width="1"></line>
+              <path d="M 160 270 L 205 270 M 205 270 L 250 270" stroke="#475569" stroke-width="1"
+                    marker-start="url(#rsArrowDark)" marker-end="url(#rsArrow)"></path>
+              <text x="205" y="290" text-anchor="middle" font-size="12" font-weight="700" fill="#b45309">Δg(x) 很大</text>
+              <text x="163" y="111" font-size="12" font-weight="700" fill="#b45309">f(ξᵢ)</text>
+            </svg>
+          </div>
+
+          <div class="rs-bottom-note">
+            <strong>直观理解：</strong>高度由 \(f(x)\) 决定，但底边不再是 \(\Delta x\)，而是 \(\Delta g(x)\)。若 \(g(x)\) 变化更快，该段权重更大。
+          </div>
+        </div>
+
+        <div class="rs-right rs-card">
+          <div class="rs-title">2. 概率论应用：统一离散与连续</div>
+
+          <div class="rs-split">
+            <div class="rs-subcard rs-blue">
+              <div class="rs-small-title" style="color:#1d4ed8;">如果 \(F(x)\) 是平滑曲线</div>
+
+              <svg viewBox="0 0 200 150" style="width:100%; max-width:130px; margin-bottom:8px;">
+                <line x1="10" y1="130" x2="190" y2="130" stroke="#94a3b8" stroke-width="2"></line>
+                <line x1="20" y1="10" x2="20" y2="140" stroke="#94a3b8" stroke-width="2"></line>
+                <path d="M 20 120 C 80 120, 100 20, 180 20" fill="none" stroke="#2563eb" stroke-width="3"></path>
+                <text x="156" y="40" font-size="12" font-weight="700" fill="#2563eb">F(x)</text>
+              </svg>
+
+              <div class="rs-badge" style="color:#1d4ed8;">
+                \(dF(x)=f(x)\,dx\)<br/>
+                <span style="display:block; margin-top:4px; font-family:sans-serif; color:#6b7280; font-weight:600;">
+                  退化为普通积分
+                </span>
+              </div>
+            </div>
+
+            <div class="rs-subcard rs-rose">
+              <div class="rs-callout">\(E[X]=\int x\,dF(x)\)</div>
+              <div class="rs-small-title" style="color:#be123c;">如果 \(F(x)\) 是阶跃函数</div>
+
+              <svg viewBox="0 0 250 150" style="width:100%; max-width:170px; margin-bottom:8px; overflow:visible;">
+                <defs>
+                  <marker id="rsArrow2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"></path>
+                  </marker>
+                </defs>
+
+                <line x1="10" y1="130" x2="240" y2="130" stroke="#94a3b8" stroke-width="2" marker-end="url(#rsArrow2)"></line>
+                <line x1="20" y1="10" x2="20" y2="140" stroke="#94a3b8" stroke-width="2"></line>
+
+                <g class="rs-step-curve">
+                  <line x1="20" y1="120" x2="80" y2="120" stroke="#e11d48" stroke-width="3"></line>
+                  <circle cx="80" cy="120" r="3" fill="none" stroke="#e11d48" stroke-width="2"></circle>
+                  <line x1="80" y1="80" x2="160" y2="80" stroke="#e11d48" stroke-width="3"></line>
+                  <circle cx="80" cy="80" r="3" fill="#e11d48"></circle>
+                  <circle cx="160" cy="80" r="3" fill="none" stroke="#e11d48" stroke-width="2"></circle>
+                  <line x1="160" y1="30" x2="230" y2="30" stroke="#e11d48" stroke-width="3"></line>
+                  <circle cx="160" cy="30" r="3" fill="#e11d48"></circle>
+                </g>
+
+                <line x1="80" y1="120" x2="80" y2="80" stroke="#fb7185" stroke-width="2" stroke-dasharray="4,2"></line>
+                <text x="58" y="105" font-size="11" font-weight="700" fill="#e11d48">p₁</text>
+                <line x1="160" y1="80" x2="160" y2="30" stroke="#fb7185" stroke-width="2" stroke-dasharray="4,2"></line>
+                <text x="170" y="60" font-size="11" font-weight="700" fill="#e11d48">p₂</text>
+                <text x="75" y="145" font-size="11" font-weight="700" fill="#6b7280">x₁</text>
+                <text x="155" y="145" font-size="11" font-weight="700" fill="#6b7280">x₂</text>
+              </svg>
+
+              <div class="rs-badge" style="color:#be123c;">
+                \(\int x\,dF(x)=x_1p_1+x_2p_2\)<br/>
+                <span style="display:block; margin-top:4px; font-family:sans-serif; color:#6b7280; font-weight:600;">
+                  跳点处变成求和
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rs-bottom-note">
+            <strong>核心结论：</strong>R-S 积分把离散求和与连续积分统一写成 \(\int f(x)\,dF(x)\)，这正是概率论里期望表达式统一的关键。
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-balance-scale"></i> 1.3.1 数学期望与方差 (R-S 积分)</h2>
+<div class="content-area">
+<p class="fragment" data-step="21">利用 Riemann-Stieltjes 积分，可以对离散和连续的期望给出统一表达式：</p>
+<div class="fragment math-wrapper" data-step="22">
+<div class="math-box" style="font-size: 21px;">
+                    \[E(X) = \int_{-\infty}^{+\infty} x \mathrm{d} F(x)\]
+                </div>
+</div>
+<div class="fragment two-column-top" data-step="23" style="margin-top: 15px;">
+<div class="tile">
+<h3>方差 (Variance)</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size:21px;">\[\operatorname{Var}(X) = \int_{-\infty}^{+\infty} [x - E(X)]^2 \mathrm{d} F(x)\]</div></div>
+<p style="font-size: 18px;">即二阶中心矩。</p>
+</div>
+<div class="tile" style="border-top-color: #8b5cf6;">
+<h3>协方差 (Covariance)</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size:21px;">\[\operatorname{Cov}(X, Y) = E[(X-EX)(Y-EY)]\]</div></div>
+<div class="math-wrapper"><div class="math-box" style="font-size:21px;">\[= E(XY) - E(X)E(Y)\]</div></div>
+</div>
+</div>
+<p class="fragment" data-step="24" style="margin-top: 15px; text-align: center;">\(E(X^k)\) 称为 \(k\) 阶原点矩；\(E[X - E(X)]^k\) 称为 \(k\) 阶中心矩。</p>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-calculator"></i> 例 1.3.1：对数正态分布的期望与方差</h2>
+<div class="content-area">
+<p class="fragment" data-step="25">假设 \(X \sim N(\mu, \sigma^2)\)，求 \(Y = \mathrm{e}^X\) 的期望和方差。</p>
+<div class="fragment tile" data-step="26" style="border-top-color: #3b82f6;">
+<p><strong>求期望 \(E(Y)\)：</strong></p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        E(Y) &amp;= E(\mathrm{e}^X) = \frac{1}{\sqrt{2\pi}\sigma} \int_{-\infty}^{+\infty} \mathrm{e}^x \cdot \mathrm{e}^{-\frac{(x-\mu)^2}{2\sigma^2}} \mathrm{d}x \\
+                        &amp;= \frac{1}{\sqrt{2\pi}\sigma} \int_{-\infty}^{+\infty} \mathrm{e}^{\mu + \frac{\sigma^2}{2}} \cdot \mathrm{e}^{-\frac{(x - (\mu+\sigma^2))^2}{2\sigma^2}} \mathrm{d}x \\
+                        &amp;= \mathrm{e}^{\mu + \frac{\sigma^2}{2}}
+                        \end{aligned}
+                        \]
+                    </div>
+</div>
+</div>
+<div class="fragment tile" data-step="27" style="border-top-color: #ec4899; margin-top: 15px;">
+<p><strong>求方差 \(\operatorname{Var}(Y)\)：</strong></p>
+<p style="font-size: 18px;">因 \(Y^2 = \mathrm{e}^{2X}, X \sim N(\mu, \sigma^2)\)，故有 \(2X \sim N(2\mu, 4\sigma^2)\)。代入上述公式：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px;">
+                        \[E(Y^2) = \mathrm{e}^{2\mu + 2\sigma^2}\]
+                        \[D(Y) = E(Y^2) - [E(Y)]^2 = \mathrm{e}^{2\mu + 2\sigma^2} - \mathrm{e}^{2\mu + \sigma^2}\]
+                    </div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-hat-wizard"></i> 例 1.3.2：匹配问题 (帽子问题) </h2>
+<div class="content-area">
+<p class="fragment" data-step="28" style="font-size: 20px;">\(n\) 个人将帽子打乱后每人随机取一顶。\(X\) 表示取到自己帽子的人数，求 \(X\) 的期望和方差。</p>
+<div class="fragment tile" data-step="29" style="padding: 20px;">
+<p><strong>解：</strong>引入示性随机变量 \(X_i = 1\) (若第 \(i\) 个人取到了自己的帽子)，否则为 0。则 \(X = \sum_{i=1}^n X_i\)。</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px;">
+                        \[P\{X_i=1\} = \frac{1}{n}, \quad E(X_i) = \frac{1}{n}, \quad \operatorname{Var}(X_i) = \frac{1}{n} - \frac{1}{n^2}\]
+                    </div>
+</div>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; border-left: 4px solid #3b82f6;">
+                        \[E(X) = E\left[\sum_{i=1}^n X_i\right] = n \times \frac{1}{n} = 1\]
+                    </div>
+</div>
+</div>
+<div class="fragment tile" data-step="30" style="border-top-color: #8b5cf6; padding: 20px; margin-top: 15px;">
+<p>求方差需计算协方差：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px;">
+                        \[\operatorname{Var}(X) = \sum_{i=1}^n \operatorname{Var}(X_i) + 2 \sum_{1 \le i &lt; j \le n} \operatorname{Cov}(X_i, X_j)\]
+                    </div>
+</div>
+</div>
+</div>
+</div>
+
+<!--
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-hat-wizard"></i> 例 1.3.2：匹配问题 (帽子问题) 2/2</h2>
+<div class="content-area">
+<p class="fragment" data-step="31">考察 \(X_i X_j\)：只有当 \(i\) 和 \(j\) 都取到自己帽子时才为 1。</p>
+<div class="fragment math-wrapper" data-step="32">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                    \[P\{X_i X_j = 1\} = P\{X_i=1\}P\{X_j=1 \mid X_i=1\} = \frac{1}{n} \cdot \frac{1}{n-1}\]
+                    \[\operatorname{Cov}(X_i, X_j) = E(X_i X_j) - E(X_i)E(X_j) = \frac{1}{n(n-1)} - \frac{1}{n^2}\]
+                </div>
+</div>
+<div class="fragment tile" data-step="33" style="border-top-color: #10b981; margin-top: 15px;">
+<p>代入方差公式：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        \operatorname{Var}(X) &amp;= \sum_{i=1}^n \left(\frac{1}{n} - \frac{1}{n^2}\right) + 2 \frac{n(n-1)}{2} \left[ \frac{1}{n(n-1)} - \frac{1}{n^2} \right] \\
+                        &amp;= n\left(\frac{1}{n} - \frac{1}{n^2}\right) + n(n-1)\left[ \frac{n - (n-1)}{n^2(n-1)} \right] \\
+                        &amp;= 1 - \frac{1}{n} + \frac{1}{n} = 1
+                        \end{aligned}
+                        \]
+                    </div>
+</div>
+<p style="text-align: center; color: #10b981; font-weight: bold; margin-top: 10px;">结论：\(X\) 的期望和方差均为 1。</p>
+</div>
+</div>
+</div>
+-->
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-superscript"></i> 例 1.3.3：正态分布的 k 阶原点矩</h2>
+<div class="content-area">
+<p class="fragment" data-step="34">若 \(X \sim N(0, \sigma^2)\)，求 \(E(X^k)\)。</p>
+<div class="fragment math-wrapper" data-step="35">
+<div class="math-box" style="font-size: 21px;">
+                    \[E(X^k) = \int_{-\infty}^{+\infty} x^k \frac{1}{\sqrt{2\pi}\sigma} \mathrm{e}^{-\frac{x^2}{2\sigma^2}} \mathrm{d}x\]
+                </div>
+</div>
+<p class="fragment" data-step="36">(1) 当 \(k\) 为奇数时，被积函数为奇函数，积分区间对称，故 \(E(X^k)=0\)。</p>
+<div class="fragment tile" data-step="37" style="border-top-color: #ec4899; margin-top: 10px; padding: 15px;">
+<p style="font-size: 18px;">(2) 当 \(k\) 为偶数时。令 \(t = \frac{x^2}{2\sigma^2}\)，即 \(x = \sqrt{2} \sigma t^{1/2}, \mathrm{d}x = \frac{\sqrt{2}\sigma}{2} t^{-1/2} \mathrm{d}t\)：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        E(X^k) &amp;= 2 \int_0^{+\infty} \frac{1}{\sqrt{2\pi}\sigma} (\sqrt{2}\sigma t^{1/2})^k \mathrm{e}^{-t} \frac{\sqrt{2}\sigma}{2} t^{-1/2} \mathrm{d}t \\
+                        &amp;= \frac{2^{k/2}\sigma^k}{\sqrt{\pi}} \int_0^{+\infty} t^{\frac{k+1}{2}-1} \mathrm{e}^{-t} \mathrm{d}t = \frac{2^{k/2}\sigma^k}{\sqrt{\pi}} \Gamma\left(\frac{k+1}{2}\right) \\
+                        &amp;= \frac{2^{k/2}\sigma^k}{\sqrt{\pi}} \times \frac{k-1}{2} \times \frac{k-3}{2} \dots \times \frac{1}{2} \times \Gamma\left(\frac{1}{2}\right) \\
+                        &amp;= \sigma^k(k-1)(k-3)\dots 3 \times 1 \quad \text{(由于 } \Gamma(1/2) = \sqrt{\pi})
+                        \end{aligned}
+                        \]
+                    </div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-magic"></i> 1.3.3 矩母函数 (MGF)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="38" style="border-top-color: #3b82f6;">
+<p><strong>定义 1.3.2：</strong>若随机变量 \(X\) 的分布函数为 \(F(x)\)，则称</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px;">\[\phi(t) = E(\mathrm{e}^{tX}) = \int_{-\infty}^{+\infty} \mathrm{e}^{tx} \mathrm{d} F(x)\]</div>
+</div>
+<p>为 \(X\) 的矩母函数。</p>
+</div>
+<div class="fragment tile" data-step="39" style="border-top-color: #8b5cf6; margin-top: 20px;">
+<p><strong>性质：</strong>通过对 \(\phi(t)\) 逐次求导并计算在 \(t=0\) 点的值就能得到 \(X\) 的各阶矩：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[\phi'(t) = E(X \mathrm{e}^{tX}) \quad \Rightarrow \quad \phi'(0) = E(X)\]
+                        \[\phi''(t) = E(X^2 \mathrm{e}^{tX}) \quad \Rightarrow \quad \phi''(0) = E(X^2)\]
+                        \[\phi^{(n)}(t) = E(X^n \mathrm{e}^{tX}) \quad \Rightarrow \quad \phi^{(n)}(0) = E(X^n)\]
+                    </div>
+</div>
+<p style="font-size: 18px; margin-top: 10px;">当矩母函数存在时，它唯一决定分布。但有时矩母函数不一定存在（积分发散），此时特征函数更方便。</p>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-fingerprint"></i> 1.3.4 特征函数 (CF)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="40" style="border-top-color: #ec4899;">
+<p><strong>定义 1.3.3：</strong></p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 23px;">\[\psi(t) = E(\mathrm{e}^{\mathrm{i}tX}) = \int_{-\infty}^{+\infty} \mathrm{e}^{\mathrm{i}tx} \mathrm{d} F(x)\]</div>
+</div>
+<p>为 \(X\) 的特征函数。如果存在密度 \(f(x)\)，则 \(\psi(t)\) 就是 \(f(x)\) 的 <strong>Fourier 变换</strong>。</p>
+</div>
+</div>
+</div>
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-fingerprint"></i> 1.3.4 特征函数 (CF)</h2>
+<div class="content-area">
+<p class="fragment" data-step="41" style="margin-top: 30px;">因为 \(|\mathrm{e}^{\mathrm{i}tx}| = 1\)，所以特征函数对一切实数 \(t\) 都有定义。
+    常用性质：</p>
+<div class="fragment tile" data-step="42" style="border-top-color: #10b981; padding: 50px;">
+<ul style="font-size: 23px; line-height: 1.6;">
+<li>(1) 有界性：\(|\psi(t)| \le 1 = \psi(0)\)</li>
+<li>(2) 共轭对称性：\(\psi(-t) = \overline{\psi(t)}\)   (共轭:\(z=a+bi,\overline{z}=a-bi\))   </li>
+<li>(4) 线性变换：设 \(Y = aX+b\)，则 \(\psi_Y(t) = \mathrm{e}^{\mathrm{i}bt} \psi_X(at)\)</li>
+<li class="highlight-blue">(5) 两个相互独立的随机变量之和的特征函数等于它们的特征函数之积。</li>
+<li>(5) 矩的关系：若 \(n\) 阶矩存在，则 \(\psi^{(k)}(0) = \mathrm{i}^k E(X^k)\)</li>
+</ul>
+</div>
+<div class="fragment math-center" data-step="43" style="margin-top: 18px;">
+      <a href="https://mobilelearn.chaoxing.com/page/active/activeList?fid=1952&courseId=262091860&classId=143392832&showInvitecode=1&cpi=468232648&enc=dfa044722e179185a97009c5e3b152f3"
+         class="hw-btn"
+         target="_blank"
+         style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 35px; border-radius: 50px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); border: none; cursor: pointer;">
+        <i class="fas fa-laptop-code"></i> 课堂练习
+      </a>
+    </div>
+</div>
+</div>
+
+
+
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-laptop-code"></i> 特征函数计算实例 (1/3)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="43" style="margin-bottom: 30px;">
+<h3>例 1.3.4：单点分布</h3>
+<p>\(P\{X=c\}=1\) 的特征函数：</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\psi(t) = E(\mathrm{e}^{\mathrm{i}tc}) = \mathrm{e}^{\mathrm{i}tc}\]</div></div>
+</div>
+<div class="fragment tile" data-step="44" style="border-top-color: #8b5cf6; margin-bottom: 20px;">
+<h3>例 1.3.5：两点分布 (Bernoulli)</h3>
+<p>\(P\{X=0\}=p, P\{X=1\}=1-p\)：</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\psi(t) = p \mathrm{e}^{\mathrm{i}t\cdot 0} + (1-p)\mathrm{e}^{\mathrm{i}t\cdot 1} = p + \mathrm{e}^{\mathrm{i}t}(1-p)\]</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-laptop-code"></i> 特征函数计算实例 (2/3)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="45" style="border-top-color: #ec4899; padding: 20px;">
+<h3>例 1.3.6：指数分布的特征函数</h3>
+<p style="font-size: 23px;">密度 \(f(x) = \lambda \mathrm{e}^{-\lambda x} (x \ge 0)\)。利用欧拉公式展开：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        \psi(t) &amp;= \int_0^{+\infty} \lambda \mathrm{e}^{\mathrm{i}tx} \mathrm{e}^{-\lambda x} \mathrm{d}x \\
+                        &amp;= \int_0^{+\infty} \lambda \mathrm{e}^{-\lambda x} \cos(tx) \mathrm{d}x + \mathrm{i}\lambda \int_0^{+\infty} \mathrm{e}^{-\lambda x} \sin(tx) \mathrm{d}x
+                        \end{aligned}
+                        \]
+                    </div>
+</div>
+<p style="font-size: 23px;">回顾数学分析中的分部积分（以第一项为例）：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        \int_0^{+\infty} \mathrm{e}^{-\lambda x} \cos x \mathrm{d}x &amp;= \mathrm{e}^{-\lambda x} \sin x \Big|_0^{+\infty} + \lambda \int_0^{+\infty} \mathrm{e}^{-\lambda x} \sin x \mathrm{d}x \\
+                        &amp;= \lambda \left[ -\mathrm{e}^{-\lambda x} \cos x \Big|_0^{+\infty} - \lambda \int_0^{+\infty} \mathrm{e}^{-\lambda x} \cos x \mathrm{d}x \right] \\
+                        &amp;= \lambda - \lambda^2 \int_0^{+\infty} \mathrm{e}^{-\lambda x} \cos x \mathrm{d}x \quad \Rightarrow \quad \int = \frac{\lambda}{1+\lambda^2}
+                        \end{aligned}
+                        \]
+                    </div>
+</div>
+<p style="font-size: 18px;">代回原式化简得：\(\psi(t) = \lambda \frac{\lambda}{\lambda^2+t^2} + \mathrm{i}\lambda \frac{t}{\lambda^2+t^2} = (1 - \frac{\mathrm{i}t}{\lambda})^{-1}\)</p>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-laptop-code"></i> 特征函数计算实例 (3/3)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="46" style="border-top-color: #10b981; padding: 20px;">
+<h3>例 1.3.7 &amp; 1.3.8：正态分布的特征函数</h3>
+<p style="font-size: 18px;">对于 \(X \sim N(0,1)\)，由偶函数对称性，\(\sin\) 项积分抵消：</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\psi_X(t) = \frac{2}{\sqrt{2\pi}} \int_0^{+\infty} \cos(tx) \mathrm{e}^{-x^2/2} \mathrm{d}x\]</div></div>
+<p style="font-size: 18px;">两边对 \(t\) 求导并利用分部积分构造常微分方程：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \psi_X'(t) = \frac{2}{\sqrt{2\pi}} \int_0^{+\infty} \sin(tx) \mathrm{d}\mathrm{e}^{-x^2/2} = -t \psi_X(t)
+                        \]
+                    </div>
+</div>
+<p style="font-size: 18px;">解得初值问题 \(\psi_X(0)=1 \Rightarrow \psi_X(t) = \mathrm{e}^{-t^2/2}\)。</p>
+<p style="font-size: 18px; margin-top: 10px;">对于 \(Y \sim N(\mu, \sigma^2)\)，有 \(Y = \sigma X + \mu\)，利用线性性质：</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\psi_Y(t) = \mathrm{e}^{\mathrm{i}t\mu} \psi_X(\sigma t) = \mathrm{e}^{\mathrm{i}t\mu - \frac{1}{2}\sigma^2 t^2}\]</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-calculator"></i> 例 1.3.9：Poisson 的特征函数</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="47" style="border-top-color: #f59e0b;">
+<p style="font-size: 19px;">设 \(X\sim P(\lambda)\)。计算特征函数：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                    \[
+                    \begin{aligned}
+                    \psi_X(t)
+                    &amp;= \sum_{x=0}^{\infty}\mathrm{e}^{\mathrm{i}tx}\frac{\lambda^x}{x!}\mathrm{e}^{-\lambda}
+                    = \mathrm{e}^{-\lambda}\sum_{x=0}^{\infty}\frac{(\lambda \mathrm{e}^{\mathrm{i}t})^x}{x!}\\
+                    &amp;= \mathrm{e}^{-\lambda}\mathrm{e}^{\lambda \mathrm{e}^{\mathrm{i}t}}
+                    = \mathrm{e}^{\lambda(\mathrm{e}^{\mathrm{i}t}-1)}
+                    \end{aligned}
+                    \]
+                </div>
+</div>
+<p style="font-size: 18px; margin-top: 10px;">因此，Poisson 分布的特征函数为</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px; border-left: 4px solid #8b5cf6;">\[\psi_X(t)=\mathrm{e}^{\lambda(\mathrm{e}^{\mathrm{i}t}-1)}\]</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-calculator"></i> 例 1.3.9：Poisson 的矩与方差</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="48" style="border-top-color: #10b981;">
+<p style="font-size: 19px;">由 \(\psi^{(k)}(0)=\mathrm{i}^k E(X^k)\) 求矩：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                    \[
+                    E(X)=-\mathrm{i}\psi'(0)=\lambda
+                    \]
+                    \[
+                    E(X^2)=-\psi''(0)=\lambda+\lambda^2
+                    \]
+                </div>
+</div>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; border-left: 4px solid #ec4899;">
+                    \[
+                    \operatorname{Var}(X)=E(X^2)-[E(X)]^2=\lambda
+                    \]
+                </div>
+</div>
+<p style="font-size: 19px; color: #10b981; font-weight: bold; text-align: center;">结论：Poisson 分布的均值与方差都等于 \(\lambda\)。</p>
+</div>
+</div>
+</div>
+
+<!-- ==================== 1.4 收敛性 ==================== -->
+<div class="slide-container section-slide">
+<h2>1.4 收敛性</h2>
+<hr/>
+<p class="fragment" data-step="49">随机变量序列的四种极限界限</p>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-project-diagram"></i> 定义 1.4.1：四大收敛性</h2>
+<div class="content-area">
+<div class="tiled-content" style="grid-template-columns: 1fr 1fr;">
+<div class="fragment tile" data-step="50" style="border-top-color: #3b82f6;">
+<h3>(1) 几乎必然收敛 (a.s.)</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[P\{\omega: \lim_{n\to\infty} X_n(\omega) = X(\omega)\} = 1\]</div></div>
+<p style="font-size: 16px;">(最强，样本轨道级别收敛)</p>
+</div>
+<div class="fragment tile" data-step="51" style="border-top-color: #8b5cf6;">
+<h3>(2) 依概率收敛 (P)</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\lim_{n\to\infty} P\{|X_n - X| \ge \varepsilon\} = 0\]</div></div>
+<p style="font-size: 16px;">(大数定律基础)</p>
+</div>
+<div class="fragment tile" data-step="52" style="border-top-color: #ec4899;">
+<h3>(3) L^p 平均收敛</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\lim_{n\to\infty} E(|X_n - X|^p) = 0\]</div></div>
+<p style="font-size: 16px;">(p=2为均方收敛)</p>
+</div>
+<div class="fragment tile" data-step="53" style="border-top-color: #10b981;">
+<h3>(4) 依分布收敛 (弱收敛 / d)</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[\lim_{n\to\infty} F_n(x) = F(x)\]</div></div>
+<p style="font-size: 16px;">(最弱，中心极限定理基础)</p>
+</div>
+</div>
+</div>
+</div>
+
+<!---->
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-network-wired"></i> 收敛性的关系与反例 (例 1.4.1)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="54" style="text-align: center; padding: 20px;">
+<p style="font-size: 22px; font-weight: bold; color: #1e293b;">几乎必然收敛 \(\Rightarrow\) 依概率收敛 \(\Rightarrow\) 依分布收敛</p>
+<p style="font-size: 22px; font-weight: bold; color: #1e293b;">L^p 收敛 \(\Rightarrow\) 依概率收敛 \(\Rightarrow\) 依分布收敛</p>
+</div>
+<!--
+<div class="fragment tile" data-step="55" style="margin-top: 20px; border-top-color: #ef4444; padding: 20px;">
+<p style="font-size: 18px; color: #ef4444; font-weight: bold;"><i class="fas fa-exclamation-triangle"></i> L^p 收敛与 a.s. 收敛之间没有蕴含关系：</p>
+<p style="font-size: 18px;">构造打字机序列 \(Y_{ki}\) (在 \((0,1]\) 上滑动的长度为 \(1/k\) 的脉冲)：</p>
+<ul style="font-size: 16px;">
+<li>\(E(|Y_{ki}|^r) = 1/k \to 0\)，所以 <strong>L^r 收敛</strong>。</li>
+<li>但对任意 \(\omega\)，都会被脉冲无限次扫过（取值为1），故<strong>不 a.s. 收敛</strong>。</li>
+</ul>
+<p style="font-size: 18px; margin-top: 10px;">反之，构造 \(Z_n = n^{1/r}\) (在 \((0, 1/n]\))，其余为 0：</p>
+<ul style="font-size: 16px;">
+<li>对任意 \(\omega &gt; 0\)，当 \(n\) 足够大时 \(Z_n(\omega)=0\)，所以 <strong>\(Z_n \to 0\) a.s.</strong></li>
+<li>但 \(E(|Z_n-0|^r) = n \cdot \frac{1}{n} = 1 \not\to 0\)，故<strong>不 L^r 收敛</strong>。</li>
+</ul>
+</div>
+-->
+</div>
+</div>
+
+<!--
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-sort-amount-up"></i> 积分号下取极限的三大定理</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="56" style="border-top-color: #3b82f6; padding: 20px;">
+<h3>定理 1.4.2 单调收敛定理</h3>
+<p style="font-size: 18px;">若 \(f_n \uparrow f\) a.s. 且 \(\int f_1 &gt; -\infty\)，则可交换极限与积分：\(\int f_n \uparrow \int f\)。</p>
+</div>
+<div class="fragment tile" data-step="57" style="border-top-color: #8b5cf6; margin-top: 15px; padding: 20px;">
+<h3>定理 1.4.3 Fatou 引理</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">
+                    \[E(\liminf X_n) \le \liminf E(X_n) \le \limsup E(X_n) \le E(\limsup X_n)\]
+                </div></div>
+</div>
+<div class="fragment tile" data-step="58" style="border-top-color: #ec4899; margin-top: 15px; padding: 20px;">
+<h3>定理 1.4.4 Lebesgue 控制收敛定理</h3>
+<p style="font-size: 18px;">若 \(f_n \to f\) (a.s. 或依概率)，且被一个非负可积函数 \(g\) 控制 (\(|f_n| \le g\))，则：</p>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">
+                    \[\lim_{n\to\infty} \int f_n \mathrm{d}P = \int f \mathrm{d}P\]
+                </div></div>
+</div>
+</div>
+</div>
+-->
+
+<!-- ==================== 1.5 独立性与条件期望 ==================== -->
+<div class="slide-container section-slide">
+<h2>1.5 独立性与条件期望</h2>
+<hr/>
+<p class="fragment" data-step="59">随机过程建模的最核心工具：预测未来</p>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-unlink"></i> 1.5.1 独立性</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="60" style="padding: 50px;">
+<p style="font-size: 28px;"><strong>相互独立：</strong>事件组中任意有限子集的交概率等于概率的乘积。</p>
+<p style="font-size: 28px;"><strong>定理 1.5.1：</strong>独立变量乘积的期望=期望的乘积；独立变量和的方差=方差的和。</p>
+</div>
+<!--
+<div class="fragment two-column" data-step="61" style="margin-top: 15px;">
+<div class="tile" style="border-top-color: #ef4444; padding: 20px;">
+<h3 style="font-size: 20px;">B-C 第一引理</h3>
+<p style="font-size: 18px;">若 \(\sum P(A_n) &lt; \infty\)，则 \(P(A_n \text{ i.o.}) = 0\)。<br/>
+                    (概率和收敛，则无限次发生的概率为0)</p>
+</div>
+<div class="tile" style="border-top-color: #10b981; padding: 20px;">
+<h3 style="font-size: 20px;">B-C 第二引理</h3>
+<p style="font-size: 18px;">若 \(\{A_n\}\) <strong>独立</strong>，且 \(\sum P(A_n) = \infty\)，则 \(P(A_n \text{ i.o.}) = 1\)。</p>
+</div>
+</div>
+<div class="fragment tile" data-step="62" style="margin-top: 15px; border-top-color: #8b5cf6; padding: 20px;">
+<p style="font-size: 18px;"><strong>定理 1.5.4 (Kolmogorov 0-1律)：</strong>独立随机变量序列的尾事件(即与有限个变量无关的事件)的概率必定为 0 或 1。</p>
+</div>
+-->
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-plus-circle"></i> 1.5.2 独立随机变量和的分布 (卷积)</h2>
+<div class="content-area">
+<p class="fragment" data-step="63">设 \(X_1, X_2\) 独立，分布函数分别为 \(F_1, F_2\)。令 \(X = X_1 + X_2\)，则：</p>
+<div class="fragment math-wrapper" data-step="64">
+<div class="math-box" style="font-size: 21px;">
+                    \[F_X(x) = \int_{-\infty}^{+\infty} F_2(x-t) \mathrm{d} F_1(t) \triangleq (F_1 * F_2)(x)\]
+                </div>
+</div>
+<p class="fragment" data-step="65" style="text-align: center; margin-top: 10px;">这称为 <strong>卷积 (Convolution)</strong>。</p>
+<div class="fragment tile" data-step="66" style="border-top-color: #3b82f6; margin-top: 10px; padding: 20px;">
+<ul style="line-height: 1.8; font-size: 18px;">
+<li>交换律：\(F_1 * F_2 = F_2 * F_1\)</li>
+<li>结合律：\((F * G) * H = F * (G * H)\)</li>
+<li>分配律：\(F * (G+H) = F * G + F * H\)</li>
+<li>同分布 n 重卷积：\(F_n(x) = F * F_{n-1}(x)\)</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-search-location"></i> 1.5.3 条件期望 (最优预测)</h2>
+<div class="content-area">
+<p class="fragment highlight-blue" data-step="67" style="font-size: 26px; text-align: center;">\(E(X \mid Y)\) 表示已知 Y 的信息后，对 X 的预测。</p>
+<div class="fragment two-column-top" data-step="68" style="margin-top: 15px;">
+<div class="tile" style="padding: 20px;">
+<h3 style="font-size: 20px;">离散情形</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[E(X \mid Y=y) = \sum_x x P\{X=x \mid Y=y\}\]</div></div>
+</div>
+<div class="tile" style="border-top-color: #ec4899; padding: 20px;">
+<h3 style="font-size: 20px;">连续情形</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">\[E(X \mid Y=y) = \int x f(x \mid y) \mathrm{d} x\]</div></div>
+</div>
+</div>
+<div class="fragment tile" data-step="69" style="border-top-color: #8b5cf6; margin-top: 15px; padding: 20px;">
+<h3 style="font-size: 20px;">全期望公式 (极其重要)</h3>
+<div class="math-wrapper"><div class="math-box" style="font-size: 21px;">
+                    \[E(X) = E[E(X \mid Y)] = \int E(X \mid Y=y) \mathrm{d} F_Y(y)\]
+                </div></div>
+<p style="font-size: 16px; color: #64748b; text-align: center;">注：\(E(X \mid Y=y)\) 是实数函数；\(E(X \mid Y)\) 是一个随机变量。</p>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-laptop-code"></i> 条件期望的应用例题 (1)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="70" style="margin-bottom: 20px; padding: 20px;">
+<h3>例 1.5.1：求连续条件期望</h3>
+<p style="font-size: 18px;">联合密度 \(f(x,y) = \frac{1}{2}\mathrm{e}^{-y} \ (y&gt;|x|)\)。求 \(E(Y|X=x)\)。</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        边缘密度 \(f_X(x) = \int_{|x|}^\infty \frac{1}{2}\mathrm{e}^{-y} \mathrm{d}y = \frac{1}{2}\mathrm{e}^{-|x|}\)。<br/>
+                        条件密度 \(f(y|x) = f(x,y)/f_X(x) = \mathrm{e}^{-y+|x|}\)。<br/>
+                        积分 \(E(Y|X=x) = \int_{|x|}^\infty y \mathrm{e}^{-y+|x|} \mathrm{d}y = 1 + |x|\)。
+                    </div>
+</div>
+</div>
+<div class="fragment tile" data-step="71" style="border-top-color: #10b981; padding: 20px;">
+<h3>例 1.5.2：随机个随机变量之和 (Wald等式)</h3>
+<p style="font-size: 18px;">\(N\) 与独立同分布序列 \(X_i\) 独立，求 \(Y = \sum_{i=1}^N X_i\) 的均值和方差。</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        先求条件 MGF：\(E[\mathrm{e}^{t \sum X_i} \mid N] = [\phi_X(t)]^N\)。<br/>
+                        全期望求 MGF：\(\phi_Y(t) = E\{[\phi_X(t)]^N\}\)。求一阶、二阶导后在 \(t=0\) 取值：<br/>
+                        \(E(Y) = E(N)E(X)\)<br/>
+                        \(\operatorname{Var}(Y) = E(N)\operatorname{Var}(X) + [E(X)]^2\operatorname{Var}(N)\)
+                    </div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-laptop-code"></i> 条件期望的应用例题 (2)</h2>
+<div class="content-area">
+<div class="fragment tile" data-step="72" style="padding: 30px; border-top-color: #f59e0b;">
+<h3>例 1.5.3：矿工迷路问题</h3>
+<p style="font-size: 18px;">三个门概率均等：1门(安全, 2小时)，2门(绕回, 3小时)，3门(绕回, 5小时)。求到达安全时间 \(X\) 的期望与矩母函数。</p>
+<p style="font-size: 18px; margin-top: 10px;">令 \(Y\) 为首次选择的门。利用全期望 \(E(X) = E[E(X|Y)]\)：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px;">
+                        \[E(X) = \frac{1}{3}[2 + (3+E(X)) + (5+E(X))] \implies E(X) = 10\]
+                    </div>
+</div>
+<p style="font-size: 18px; margin-top: 10px;">利用全期望求矩母函数：</p>
+<div class="math-wrapper">
+<div class="math-box" style="font-size: 21px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        E(\mathrm{e}^{tX}) &amp;= \frac{1}{3}[E(\mathrm{e}^{tX}|Y=1) + E(\mathrm{e}^{tX}|Y=2) + E(\mathrm{e}^{tX}|Y=3)] \\
+                        &amp;= \frac{1}{3}[\mathrm{e}^{2t} + E(\mathrm{e}^{t(3+X')}) + E(\mathrm{e}^{t(5+X')})] \\
+                        &amp;= \frac{1}{3}[\mathrm{e}^{2t} + \mathrm{e}^{3t}E(\mathrm{e}^{tX}) + \mathrm{e}^{5t}E(\mathrm{e}^{tX})] \implies E(\mathrm{e}^{tX}) = \frac{\mathrm{e}^{2t}}{3-\mathrm{e}^{3t}-\mathrm{e}^{5t}}
+                        \end{aligned}
+                        \]
+                    </div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide-container">
+<h2 class="slide-title"><i class="fas fa-cogs"></i> 定义 1.5.3：一般条件期望与定理\(^{**}\)</h2>
+<div class="content-area">
+<p class="fragment" data-step="73" style="font-size: 20px;">基于 \(\sigma\) 代数的严谨定义：设子代数 \(\mathcal{G} \subset \mathcal{F}\)，随机变量 \(X^* = E(X \mid \mathcal{G})\) 必须是 \(\mathcal{G}\) 可测的，且在 \(\mathcal{G}\) 中的任何集合 \(B\) 上积分与 \(X\) 等价：\(\int_B X^* \mathrm{d}P = \int_B X \mathrm{d}P\)。</p>
+<div class="fragment tile" data-step="74" style="border-top-color: #3b82f6; margin-top: 15px; padding: 25px;">
+<h3 style="font-size: 22px;">定理 1.5.5 核心性质</h3>
+<ul style="font-size: 18px; line-height: 1.8;">
+<li><strong>(1) 平滑法则：</strong> \(E[E(X \mid \mathcal{G})] = E(X)\)</li>
+<li><strong>(2) 已知即常量：</strong> 若 \(X\) 是 \(\mathcal{G}\) 可测的，则 \(E(X \mid \mathcal{G}) = X\) a.s.</li>
+<li><strong>(6) 线性：</strong> \(E(aX+bY \mid \mathcal{G}) = aE(X \mid \mathcal{G}) + bE(Y \mid \mathcal{G})\)</li>
+<li><strong>(9) 提出来：</strong> 若 \(Y\) 是 \(\mathcal{G}\) 可测，\(E(XY \mid \mathcal{G}) = Y E(X \mid \mathcal{G})\) a.s.</li>
+<li><strong>(10) 独立无关：</strong> 若 \(X\) 与 \(\mathcal{G}\) 独立，\(E(X \mid \mathcal{G}) = E(X)\) a.s.</li>
+<li><strong>(11) 塔律 (Tower)：</strong> 若 \(\mathcal{G}_1 \subset \mathcal{G}_2\)，则 \(E[E(X \mid \mathcal{G}_2) \mid \mathcal{G}_1] = E(X \mid \mathcal{G}_1)\) a.s.</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- ==================== 课程总结 ==================== -->
+<div class="slide-container">
+  <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 1 章 本章总结</h2>
+  <div class="content-area">
+    <div class="fragment tile" data-step="75" style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+      <ul class="bullet-list" style="margin-left: 10px; line-height: 2; font-size: 22px;">
+        <li><span class="highlight-blue">概率空间与随机变量：</span> 从公理化定义出发，理解了 \(\sigma\) 代数、可测性及 14 种经典分布的特性。</li>
+        <li><span class="highlight-blue">数字特征与特征函数：</span> 掌握了 R-S 积分统一期望表达式，以及利用特征函数（唯一的“指纹”）求矩的分析方法。</li>
+        <li><span class="highlight-blue">随机序列的收敛性：</span> 明确了四大收敛性（a.s. / \(L^p\) / 依概率 / 依分布）的强弱关联，以及三大积分极限交换定理。</li>
+        <li><span class="highlight-blue">独立性与条件期望：</span> 理解了条件期望的“投影预测”本质及平滑法则，为随机过程（如马氏链、鞅）奠定根基。</li>
+      </ul>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/tch?courseid=262091860&clazzid=143392832&cpi=468232648&enc=dfa044722e179185a97009c5e3b152f3&t=1774890707830&pageHeader=6&v=2&hideHead=0" target="_blank"
+           style="
+             display: inline-block;
+             background: #3b82f6;
+             color: #ffffff;
+             font-size: 22px;
+             font-weight: 700;
+             text-decoration: none;
+             padding: 12px 28px;
+             border-radius: 12px;
+             box-shadow: 0 6px 14px rgba(59,130,246,0.25);
+             transition: all 0.25s ease;
+           "
+           onmouseover="this.style.background='#2563eb'; this.style.transform='translateY(-2px)';"
+           onmouseout="this.style.background='#3b82f6'; this.style.transform='translateY(0)';">
+          本章作业
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ==================== 结束页 ==================== -->
+<div class="slide-container title-slide">
+<div class="glow-orb-1"></div>
+<div class="glow-orb-2"></div>
+<div class="title-content" style="background: transparent; box-shadow: none; border: none;">
+<h1 style="font-size: 100px; color: #10b981; margin-bottom: 20px;"><i class="fas fa-check-circle"></i></h1>
+<h1 style="color: #f8fafc;">第一章 预备知识</h1>
+<p class="subtitle" style="color: #64748b;">讲解结束 (End of Chapter 1)</p>
+</div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const slides = Array.from(document.querySelectorAll('.slide-container'));
+    let currentSlideIndex = 0;
+
+    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+        MathJax.typesetPromise().catch(function (err) {
+            console.error('MathJax 初始渲染失败:', err);
+        });
+    }
+
+    function isPresentationMode() {
+        return document.body.classList.contains('presentation-mode');
+    }
+
+    function showSlide(index) {
+        currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+        sessionStorage.setItem('currentSlideIndex', String(currentSlideIndex));
+        slides.forEach(slide => slide.classList.remove('active-slide'));
+        if (!slides[currentSlideIndex]) return;
+        const slide = slides[currentSlideIndex];
+        slide.classList.add('active-slide');
+        applyPresentationScale(slide);
+        rerenderMath(slide);
+    }
+
+    function applyPresentationScale(slide) {
+        if (!isPresentationMode() || !slide) return;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scale = Math.min(vw / 1280, vh / 720);
+        slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function getActiveSlide() {
+        if (isPresentationMode()) return slides[currentSlideIndex];
+
+        const viewportCenter = window.innerHeight / 2;
+        let bestSlide = slides[0];
+        let bestDistance = Infinity;
+
+        slides.forEach(slide => {
+            const rect = slide.getBoundingClientRect();
+            const slideCenter = rect.top + rect.height / 2;
+            const distance = Math.abs(slideCenter - viewportCenter);
+            const isOnScreen = rect.bottom > 0 && rect.top < window.innerHeight;
+
+            if (isOnScreen && distance < bestDistance) {
+                bestDistance = distance;
+                bestSlide = slide;
+            }
+        });
+
+        return bestSlide;
+    }
+
+    function getHiddenFragments(slide) {
+        return [...slide.querySelectorAll('.fragment:not(.show)')];
+    }
+
+    function getShownFragments(slide) {
+        return [...slide.querySelectorAll('.fragment.show')];
+    }
+
+    function updateAllShownState(slide) {
+        if (!slide.querySelector('.fragment')) {
+            slide.classList.add('all-shown');
+            return;
+        }
+        if (slide.querySelector('.fragment:not(.show)')) {
+            slide.classList.remove('all-shown');
+        } else {
+            slide.classList.add('all-shown');
+        }
+    }
+
+    function revealNextStep(slide) {
+        if (!slide) return 'finished';
+
+        const hidden = getHiddenFragments(slide);
+
+        if (hidden.length === 0) {
+            updateAllShownState(slide);
+            return 'finished';
+        }
+
+        const step = hidden[0].dataset.step || '1';
+        const targets = [...slide.querySelectorAll('.fragment[data-step="' + step + '"]:not(.show)')];
+
+        if (targets.length > 0) {
+            targets.forEach(el => {
+                el.classList.add('show');
+                rerenderMath(el);
+            });
+        } else {
+            hidden[0].classList.add('show');
+            rerenderMath(hidden[0]);
+        }
+
+        updateAllShownState(slide);
+        return 'revealed';
+    }
+
+    function hideLastStep(slide) {
+        if (!slide) return;
+
+        const shown = getShownFragments(slide);
+        if (!shown.length) return;
+
+        const steps = [...new Set(shown.map(el => Number(el.dataset.step || 1)))].sort((a, b) => a - b);
+        const lastStep = steps[steps.length - 1];
+
+        slide.querySelectorAll('.fragment.show[data-step="' + lastStep + '"]').forEach(el => {
+            el.classList.remove('show');
+        });
+
+        updateAllShownState(slide);
+        rerenderMath(slide);
+    }
+
+    function rerenderMath(el) {
+        if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+            MathJax.typesetClear([el]);
+            MathJax.typesetPromise([el]).catch(function (err) {
+                console.error('MathJax 渲染失败:', err);
+            });
+        }
+    }
+
+    function enterPresentationMode(fromCurrent = true) {
+        let targetIndex = 0;
+
+        if (fromCurrent) {
+            const active = getActiveSlide();
+            targetIndex = Math.max(0, slides.indexOf(active));
+        }
+
+        currentSlideIndex = targetIndex;
+        document.body.classList.add('presentation-mode');
+        showSlide(currentSlideIndex);
+
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function exitPresentationMode() {
+        document.body.classList.remove('presentation-mode');
+        slides.forEach(slide => {
+            slide.classList.remove('active-slide');
+            slide.style.transform = '';
+        });
+
+        const slideToRestore = slides[currentSlideIndex];
+
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+
+        requestAnimationFrame(function () {
+            if (slideToRestore) {
+                slideToRestore.scrollIntoView({ behavior: 'auto', block: 'start' });
+                window.scrollBy(0, -18);
+            }
+        });
+    }
+
+    slides.forEach(slide => {
+        updateAllShownState(slide);
+
+        slide.addEventListener('click', function (e) {
+            if (!isPresentationMode() && e.target.closest('a, button')) return;
+
+            const state = revealNextStep(slide);
+
+            if (isPresentationMode() && state === 'finished' && currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                showSlide(currentSlideIndex);
+            }
+
+            e.stopPropagation();
+        });
+    });
+
+    window.addEventListener('resize', function () {
+        if (isPresentationMode()) showSlide(currentSlideIndex);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        const activeSlide = getActiveSlide();
+        if (!activeSlide) return;
+
+        if (e.key === 'F5') {
+            e.preventDefault();
+            if (!isPresentationMode()) {
+                enterPresentationMode(true);
+            } else {
+                exitPresentationMode();
+            }
+            return;
+        }
+
+        if (e.key === 'Escape' && isPresentationMode()) {
+            e.preventDefault();
+            exitPresentationMode();
+            return;
+        }
+
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+
+            const state = revealNextStep(activeSlide);
+
+            if (isPresentationMode() && state === 'finished' && currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                showSlide(currentSlideIndex);
+            }
+            return;
+        }
+
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+
+            const shown = getShownFragments(activeSlide);
+
+            if (shown.length > 0) {
+                hideLastStep(activeSlide);
+            } else if (isPresentationMode() && currentSlideIndex > 0) {
+                currentSlideIndex--;
+                showSlide(currentSlideIndex);
+            }
+            return;
+        }
+    });
+
+    const savedIndex = Number(sessionStorage.getItem('currentSlideIndex') || 0);
+    if (slides[savedIndex]) {
+        requestAnimationFrame(function () {
+            slides[savedIndex].scrollIntoView({ behavior: 'auto', block: 'start' });
+            window.scrollBy(0, -18);
+        });
+    }
+});
+</script></body></html>
