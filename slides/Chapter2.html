@@ -1,0 +1,2857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用随机过程 - 第2章 随机过程的基本概念和类型</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #e5e7eb;
+            min-height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0; padding: 0;
+        }
+
+        body.slideshow-mode {
+            background-color: #1e293b;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器：浏览模式纵向浏览，放映模式固定 1280x720
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: relative;
+            width: 1280px;
+            margin: 24px auto 40px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        body.slideshow-mode #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            margin: 0;
+            gap: 0;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        body.slideshow-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #7c3aed, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: relative;
+            width: 1280px; height: 720px;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            background-color: #ffffff;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(15,23,42,0.12);
+        }
+        body.slideshow-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        body.slideshow-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* 步进动画控制类：浏览模式全部可见，放映模式按步进显示 */
+        .step {
+            opacity: 1; transform: translateY(0);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        body.slideshow-mode .step {
+            opacity: 0; transform: translateY(15px);
+        }
+        body.slideshow-mode .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 40px; color: #1e293b;
+            margin: 0 0 20px 0; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 60px; /* 锁死标题高度，防跳动 */
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; /* 严格顶部对齐 */
+        }
+
+        /* 大字体适配投影仪 */
+        p { font-size: 23px !important; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 35px; margin-bottom: 12px; font-size: 24px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 5px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 5px solid #2563eb;
+        }
+        .tile h3 { font-size: 28px; color: #0f172a; margin-bottom: 15px; }
+
+
+        .axis-line { stroke: #94a3b8; stroke-width: 2; }
+        .person-marker { transition: transform 0.2s ease-in-out; }
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 5px solid #7c3aed; border-radius: 8px;
+            padding: 12px 25px;
+            color: #000000 !important; /* 强制公式纯黑 */
+            font-size: 23px !important; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            line-height: 1.4;
+        }
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; }
+        .math-box[style] { font-size: 23px !important; }
+        .math-box mjx-container { font-size: 100% !important; }
+        
+        .info-box {
+            background: #e0f2fe; border-left: 6px solid #3b82f6; padding: 20px 25px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 24px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+        .title-slide { 
+            background: #020617;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.6); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 32px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa;
+            padding: 10px 30px; border-radius: 50px; font-size: 22px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 100px; height: 6px; background: #3b82f6; border: none; margin: 20px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 15px 40px; border-radius: 50px; font-size: 23px !important; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); transition: transform 0.2s;
+            border: none; cursor: pointer;
+            margin-top: 20px;
+        }
+        .hw-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4); }
+
+        .progress-bar {
+            display: none;
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            display: none;
+            position: absolute; bottom: 20px; right: 30px; font-size: 20px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+        body.slideshow-mode .progress-bar,
+        body.slideshow-mode .slide-counter { display: block; }
+
+        @page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+@media print {
+
+    html, body {
+        width: 100%;
+        height: auto;
+        background: #ffffff !important;
+        overflow: visible !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    body.slideshow-mode {
+        background: #ffffff !important;
+        overflow: visible !important;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    #presentation-container {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+        transform: none !important;
+        box-shadow: none !important;
+        gap: 0 !important;
+        background: transparent !important;
+    }
+
+    body.slideshow-mode #presentation-container {
+        position: static !important;
+        top: auto !important;
+        left: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        transform: none !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    body.slideshow-mode #presentation-container::before {
+        display: none !important;
+    }
+
+    .slide {
+        position: relative !important;
+        width: 297mm !important;
+        height: 166.5mm !important;   /* 16:9 比例，对应 A4 横向内嵌一页 */
+        margin: 0 auto !important;
+        padding: 12mm 14mm !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: #ffffff !important;
+    }
+
+    body.slideshow-mode .slide,
+    body.slideshow-mode .slide.active {
+        position: relative !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        z-index: auto !important;
+        width: 297mm !important;
+        height: 166.5mm !important;
+    }
+
+    .slide:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    .progress-bar,
+    .slide-counter {
+        display: none !important;
+    }
+
+    .step,
+    .step.visible {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+
+    .hw-btn {
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    a[href]:after {
+        content: "" !important;
+    }
+}
+    </style>
+
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-book"></i> 应用随机过程</div>
+            <h1>第2章<span>基本概念和类型</span></h1>
+        </div>
+    </div>
+
+    <!-- ==================== 目录 ==================== -->
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 第2章 课程大纲</h2>
+        <div class="content-area" style="justify-content: center; align-items: center;">
+            <div class="tiled-content" style="width: 100%;">
+                <div class="tile step" style="border-top-color: #2563eb; grid-column: span 2;">
+                    <h3>2.1 基本概念</h3>
+                    <p>状态空间、参数集、样本路径及三大经典物理现象。</p>
+                </div>
+                <div class="tile step" style="border-top-color: #7c3aed; grid-column: span 2;">
+                    <h3>2.2 有限维分布与 Kolmogorov 定理</h3>
+                    <p>刻画随机过程的完整统计特性，以及均值、协方差等核心数字特征。</p>
+                </div>
+                <div class="tile step" style="border-top-color: #db2777; grid-column: span 2;">
+                    <h3>2.3 随机过程的基本类型</h3>
+                    <p>重点研究两类极其重要的过程：<strong>平稳过程</strong>（含遍历性定理及证明）与 <strong>独立增量过程</strong>。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2.1 节 ==================== -->
+    <div class="slide section-slide" id="slide-2">
+        <h2>2.1 基本概念</h2>
+        <hr>
+        <p class="step" style="font-size: 32px; color: #cbd5e1;">随机变量在时间轴上的延伸</p>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-cube"></i> 定义 2.1.1：随机过程</h2>
+        <div class="content-area">
+            <p class="step"><strong>随机过程</strong>是概率空间 $(\Omega, \mathscr{F}, P)$ 上的一族随机变量 $\{X(t), t \in T\}$ ，其中 $T$ 称为指标集或参数集。</p>
+            <div class="step tile" style="margin-top: 15px;">
+                <h3>物理意义的解释</h3>
+                <p>通常将随机过程 $\{X(t), t \in T\}$ 解释为一个物理、自然或社会的系统：</p>
+                <ul style="margin-top: 10px;">
+                    <li>$X(t)$ 表示系统在时刻 $t$ 所处的状态。</li>
+                    <li><strong>状态空间 $S$：</strong> $X(t)$ 的所有可能状态构成的集合。根据 $S$ 的不同，过程分为<strong>连续状态</strong>和<strong>离散状态</strong>。</li>
+                    <li>一般如果不作说明，都认为状态空间是实数集 $\mathbb{R}$ 或 $\mathbb{R}$ 的子集。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+<div class="slide" id="slide-4">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 例：四节课连上时学生学习状态变化</h2>
+    <div class="content-area" style="gap: 12px;">
+        <p class="step" style="font-size: 21px !important; line-height: 1.6;">
+            把某位学生在四节连上课程中的学习状态变化看成一个随机过程。
+        </p>
+
+        <div class="step two-column-top" style="gap: 24px; margin-top: 4px;">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 20px 22px;">
+                <h3 style="font-size: 26px; margin-bottom: 12px;">随机过程的构造</h3>
+                <p style="font-size: 21px !important; line-height: 1.6;">
+                    设 \(X(t)\) 表示某位学生在第 \(t\) 节课时的学习状态，其中参数集取为
+                </p>
+                <div class="math-center" style="margin: 8px 0;">
+                    <div class="math-box" style="font-size: 21px !important; padding: 10px 18px;">
+                        \(T=\{1,2,3,4\}\)
+                    </div>
+                </div>
+                <p style="font-size: 21px !important; line-height: 1.6;">
+                    表示四节连上的课次编号；状态空间可设为
+                </p>
+                <div class="math-center" style="margin: 8px 0;">
+                    <div class="math-box" style="font-size: 20px !important; padding: 10px 16px; line-height: 1.5;">
+                        \(S=\{\text{专心小天使},\ \text{疲惫小战士},\ \text{发呆小蘑菇},\ \text{下课倒计时选手}\}\)
+                    </div>
+                </div>
+                <p style="font-size: 21px !important; line-height: 1.6;">
+                    于是 \(\{X(t),t\in T\}\) 就构成一个随机过程。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 20px 22px;">
+                <h3 style="font-size: 26px; margin-bottom: 12px;">如何理解这个例子？</h3>
+                <ul style="margin-top: 4px;">
+                    <li style="font-size: 21px; line-height: 1.5; margin-bottom: 10px;">
+                        \(t=1,2,3,4\) 表示第 1 节、第 2 节、第 3 节、第 4 节课，因此参数集 \(T\) 是<strong>离散的</strong>。
+                    </li>
+                    <li style="font-size: 21px; line-height: 1.5; margin-bottom: 10px;">
+                        学生在每节课可能处于“专心小天使”“疲惫小战士”“发呆小蘑菇”“下课倒计时选手”等状态，因此状态空间 \(S\) 也是<strong>离散的</strong>。
+                    </li>
+                    <li style="font-size: 21px; line-height: 1.5; margin-bottom: 0;">
+                        随着课次变化，学生状态会发生改变，而且这种变化事先不能完全确定，所以它具有<strong>随机性</strong>。
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0;">
+            <p style="font-size: 22px;">结论：这是一个离散时间、离散状态的随机过程。</p>
+        </div>
+    </div>
+</div>
+
+
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title"><i class="fas fa-clock"></i> 参数集 $T$ 与时间分类</h2>
+        <div class="content-area">
+            <p class="step">参数集 $T$ 通常代表时间，可以取各种不同的数集：</p>
+            <div class="step two-column-top" style="margin-top: 15px;">
+                <div class="tile" style="border-top-color: #db2777;">
+                    <h3>连续参数随机过程</h3>
+                    <p>当 $T$ 取为实数集 $\mathbb{R}$、非负实数集 $\mathbb{R}^+$ 或区间 $[a, b]$ 时。</p>
+                    <p style="font-size: 22px; color: #64748b; margin-top: 10px;">(系统在任何无限小的时间瞬间都在演化)</p>
+                </div>
+                <div class="tile" style="border-top-color: #7c3aed;">
+                    <h3>离散参数随机过程</h3>
+                    <p>当 $T$ 取为整数集 $\mathbb{Z}$ 或非负整数集 $\mathbb{Z}^+$ 时。</p>
+                    <p style="font-size: 22px; color: #64748b; margin-top: 10px;">当 $T=\{0,1,2,\dots\}$ 时，称之为<strong>随机序列</strong>或<strong>时间序列</strong>，常写成 $\{X(n), n \ge 0\}$ 或 $\left\{X_n, n=0,1, \cdots\right\}$。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-binoculars"></i> 随机过程的二元视角</h2>
+        <div class="content-area">
+            <p class="step">从另一个角度来看，随机过程 $\{X(t, w), t \in T, w \in \Omega\}$ 可以看成定义在 $T \times \Omega$ 上的<strong>二元函数</strong>。</p>
+            <div class="step tile" style="margin-top: 15px; border-top-color: #2563eb; padding: 30px 40px;">
+                <ul style="line-height: 2;">
+                    <li><span style="color: #2563eb; font-weight: bold;">视角一 (固定样本点 $w$)：</span><br> 对于固定的样本点 $w \in \Omega$，$X(t, w)$ 就是定义在 $T$ 上的一个函数，称为 $X(t)$ 的一条<strong>样本路径</strong>或一个<strong>样本函数</strong>。(记录了一次完整实验的运行轨迹)</li>
+                    <li style="margin-top: 15px;"><span style="color: #db2777; font-weight: bold;">视角二 (固定时间 $t$)：</span><br> 对于固定的时刻 $t \in T$，$X(t) = X(t, w)$ 是概率空间 $(\Omega, \mathscr{F}, P)$ 上的一个<strong>随机变量</strong>。(在某一个横截面上对系统进行抽样观测)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+<div class="slide" id="slide-6">
+    <h2 class="slide-title" style="font-size: 34px; margin-bottom: 12px; padding-bottom: 10px; height: 52px;">
+        <i class="fas fa-binoculars"></i> 例题：随机过程的二元视角
+    </h2>
+
+    <div class="content-area" style="gap: 10px;">
+        <p class="step" style="font-size: 19px !important; line-height: 1.45;">
+            用“四节课连上时学生学习状态变化”来理解随机过程 \(X(t,\omega)\) 的两种看法。
+        </p>
+
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 16px 18px;">
+            <h3 style="font-size: 23px; margin-bottom: 8px;">例题</h3>
+
+            <p style="font-size: 18px !important; line-height: 1.45;">
+                设 \(X(t,\omega)\) 表示某学生在第 \(t\) 节课时的学习状态，其中
+            </p>
+
+            <div class="math-center" style="margin: 6px 0;">
+                <div class="math-box" style="font-size: 18px !important; padding: 6px 14px;">
+                    \(T=\{1,2,3,4\}\)
+                </div>
+            </div>
+
+            <p style="font-size: 18px !important; line-height: 1.45;">
+                若对某个样本点 \(\omega_1\)，有
+            </p>
+
+            <div class="math-center" style="margin: 6px 0;">
+                <div class="math-box" style="font-size: 17px !important; padding: 8px 14px; line-height: 1.5;">
+                    \(X(1,\omega_1)=\text{专心小天使}\)<br>
+                    \(X(2,\omega_1)=\text{疲惫小战士}\)<br>
+                    \(X(3,\omega_1)=\text{发呆小蘑菇}\)<br>
+                    \(X(4,\omega_1)=\text{下课倒计时选手}\)
+                </div>
+            </div>
+
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                问：<br>
+                （1）固定 \(\omega_1\) 时，\(X(t,\omega_1)\) 表示什么？<br>
+                （2）固定 \(t=2\) 时，\(X(2,\omega)\) 表示什么？
+            </p>
+        </div>
+
+        <div class="step two-column-top" style="gap: 14px;">
+            <div class="tile" style="border-top-color: #2563eb; padding: 14px 16px;">
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    固定 \(\omega_1\) 时，\(X(t,\omega_1)\) 表示该学生四节课学习状态随课次变化的轨迹，
+                    因而它是一条<strong>样本路径</strong>。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 14px 16px;">
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    固定 \(t=2\) 时，\(X(2,\omega)\) 表示“第 2 节课时学生的学习状态”，
+                    它随 \(\omega\) 的不同而变化，因此是一个<strong>随机变量</strong>。
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0; padding: 14px 18px;">
+            <p style="font-size: 18px;">
+                记忆：固定 \(\omega\) 看一条轨迹；固定 \(t\) 看一个随机变量。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="slide" id="slide-6">
+    <h2 class="slide-title"><i class="fas fa-star"></i> 常见的随机过程例子 (1)</h2>
+    <div class="content-area">
+        <div class="step tile">
+            <h3>例 2.1.1: 随机游动 (Random Walk)</h3>
+            <p>一个醉汉在路上行走，以概率 $p$ 前进一步，以概率 $1-p$ 后退一步（假定其步长相同）。以 $X(t)$ 记 $t$ 时刻他在路上的位置，则 $\{X(t)\}$ 就是直线上的随机游动。</p>
+            <p style="font-size: 22px; color: #64748b; margin-top: 10px;">(离散时间，离散状态。在计算机网络路由、量化金融交易中应用极广)</p>
+        </div>
+    </div>
+   </div>
+   
+   
+
+  <div class="slide" id="slide-7" style="padding-top: 24px; padding-bottom: 24px;">
+    <div class="content-area" style="gap: 18px;">
+        <div class="step tile" style="padding: 18px 24px; border-top-color: #6366f1;">
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:10px; background:#eef2ff; padding:10px 14px; border-radius:12px; border:1px solid #c7d2fe;">
+                    <label for="probSlider-slide7" style="font-size:18px; font-weight:700; color:#4338ca;">向右概率 p:</label>
+                    <input type="range" id="probSlider-slide7" min="0" max="1" step="0.1" value="0.5"
+                           style="width:120px; accent-color:#4f46e5; cursor:pointer;"
+                           oninput="updateProbDisplaySlide7()" onchange="startSimulationSlide7()">
+                    <span id="probDisplay-slide7" style="font-size:18px; font-weight:700; color:#4f46e5; width:36px; text-align:right;">0.5</span>
+                </div>
+
+                <button onclick="startSimulationSlide7()" class="hw-btn" style="margin-top:0; padding:12px 26px; font-size:20px !important;">
+                    <i class="fas fa-rotate-right"></i>
+                    重新模拟
+                </button>
+            </div>
+        </div>
+
+        <div class="step two-column-top" style="gap: 20px;">
+            <!-- 左侧：状态空间 -->
+            <div class="tile" style="border-top-color:#2563eb; padding:20px;">
+                <h3 style="text-align:center; margin-bottom:10px;">物理空间（状态空间 State Space）</h3>
+
+                <div style="text-align:center; margin: 4px 0 12px 0;">
+                    <div style="font-size:30px; font-weight:900; color:#4f46e5; margin-bottom:4px;" id="current-pos-slide7">X₀ = 0</div>
+                    <div style="font-size:17px; color:#64748b; font-family:monospace;" id="current-step-slide7">Step: 0</div>
+                </div>
+
+                <svg viewBox="0 0 400 150" style="width:100%; overflow:visible;">
+                    <rect x="0" y="70" width="400" height="10" fill="#e2e8f0" rx="5"></rect>
+                    <line x1="0" y1="75" x2="400" y2="75" class="axis-line"></line>
+
+                    <g stroke="#64748b" stroke-width="2">
+                        <line x1="200" y1="65" x2="200" y2="85" stroke="#334155" stroke-width="3"></line>
+                        <text x="200" y="105" text-anchor="middle" style="font-size:13px; font-weight:bold; fill:#1f2937;">0 (酒吧)</text>
+
+                        <line x1="240" y1="70" x2="240" y2="80"></line><text x="240" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">+2</text>
+                        <line x1="280" y1="70" x2="280" y2="80"></line><text x="280" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">+4</text>
+                        <line x1="320" y1="70" x2="320" y2="80"></line><text x="320" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">+6</text>
+                        <line x1="360" y1="70" x2="360" y2="80"></line><text x="360" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">+8</text>
+
+                        <line x1="160" y1="70" x2="160" y2="80"></line><text x="160" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">-2</text>
+                        <line x1="120" y1="70" x2="120" y2="80"></line><text x="120" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">-4</text>
+                        <line x1="80" y1="70" x2="80" y2="80"></line><text x="80" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">-6</text>
+                        <line x1="40" y1="70" x2="40" y2="80"></line><text x="40" y="100" text-anchor="middle" style="font-size:12px; fill:#6b7280;">-8</text>
+                    </g>
+
+                    <g id="drunkard-slide7" class="person-marker" transform="translate(200, 75)">
+                        <path d="M -8 -30 L 8 -30 L 0 -15 Z" fill="#4f46e5"></path>
+                        <circle cx="0" cy="0" r="10" fill="#4f46e5" stroke="#ffffff" stroke-width="3"></circle>
+                    </g>
+                </svg>
+
+                <div style="margin-top:14px; background:#f8fafc; padding:12px; border-radius:10px; border:1px solid #e2e8f0;">
+                    <p style="font-size:17px !important; color:#64748b; margin-bottom:8px;">当前步长 \(\xi_n\):</p>
+                    <div style="display:flex; justify-content:center; gap:14px;">
+                        <div id="btn-left-slide7" style="padding:8px 16px; background:#ffffff; border:1px solid #d1d5db; border-radius:8px; color:#9ca3af; font-weight:700;">-1 (左)</div>
+                        <div id="btn-right-slide7" style="padding:8px 16px; background:#ffffff; border:1px solid #d1d5db; border-radius:8px; color:#9ca3af; font-weight:700;">+1 (右)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：样本轨道 -->
+            <div class="tile" style="border-top-color:#7c3aed; padding:20px;">
+                <h3 style="text-align:center; margin-bottom:10px;">时间演化：样本轨道（Sample Path）</h3>
+
+                <div style="height:300px; width:100%; position:relative; border-top:1px solid #f1f5f9; border-bottom:1px solid #f1f5f9; margin-top:8px;">
+                    <svg viewBox="0 0 600 300" style="width:100%; height:100%; overflow:hidden;" preserveAspectRatio="none">
+                        <g stroke="#f1f5f9" stroke-width="1">
+                            <line x1="0" y1="0" x2="600" y2="0"></line>
+                            <line x1="0" y1="50" x2="600" y2="50"></line>
+                            <line x1="0" y1="100" x2="600" y2="100"></line>
+                            <line x1="0" y1="200" x2="600" y2="200"></line>
+                            <line x1="0" y1="250" x2="600" y2="250"></line>
+                            <line x1="0" y1="300" x2="600" y2="300"></line>
+                        </g>
+
+                        <g text-anchor="end">
+                            <text x="-5" y="54" style="font-size:10px; fill:#9ca3af;">+10</text>
+                            <text x="-5" y="104" style="font-size:10px; fill:#9ca3af;">+5</text>
+                            <text x="-5" y="204" style="font-size:10px; fill:#9ca3af;">-5</text>
+                            <text x="-5" y="254" style="font-size:10px; fill:#9ca3af;">-10</text>
+                        </g>
+
+                        <line x1="0" y1="150" x2="600" y2="150" class="axis-line" style="stroke-dasharray:4,2;"></line>
+                        <text x="-5" y="154" text-anchor="end" style="font-size:12px; font-weight:bold; fill:#4b5563;">0</text>
+                        <text x="610" y="154" style="font-size:12px; font-weight:bold; fill:#4b5563;">n</text>
+
+                        <g text-anchor="middle">
+                            <text x="120" y="165" style="font-size:10px; fill:#9ca3af;">10</text>
+                            <line x1="120" y1="148" x2="120" y2="152" stroke="#94a3b8"></line>
+                            <text x="240" y="165" style="font-size:10px; fill:#9ca3af;">20</text>
+                            <line x1="240" y1="148" x2="240" y2="152" stroke="#94a3b8"></line>
+                            <text x="360" y="165" style="font-size:10px; fill:#9ca3af;">30</text>
+                            <line x1="360" y1="148" x2="360" y2="152" stroke="#94a3b8"></line>
+                            <text x="480" y="165" style="font-size:10px; fill:#9ca3af;">40</text>
+                            <line x1="480" y1="148" x2="480" y2="152" stroke="#94a3b8"></line>
+                            <text x="600" y="165" style="font-size:10px; fill:#9ca3af;">50</text>
+                            <line x1="600" y1="148" x2="600" y2="152" stroke="#94a3b8"></line>
+                        </g>
+
+                        <text x="10" y="20" style="font-size:12px; font-weight:bold; fill:#4b5563;">Xₙ (位置)</text>
+                        <polyline id="random-path-slide7" points="0,150"
+                                  style="fill:none; stroke:#6366f1; stroke-width:3; stroke-linejoin:round; stroke-linecap:round;"></polyline>
+                        <circle id="path-head-slide7" cx="0" cy="150" r="4" fill="#ef4444"></circle>
+                    </svg>
+                </div>
+
+                <div style="margin-top:12px; font-size:17px; color:#64748b; line-height:1.65;">
+                    <strong style="color:#334155;">教学要点：</strong>
+                    对于对称随机游走（\(p=0.5\)），有 \(E[X_n]=0\)，且方差随时间线性增长。
+                    当 \(p \neq 0.5\) 时，会出现明显的<strong>漂移</strong>，此时期望变为
+                    \(E[X_n]=n(2p-1)\)。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+   
+
+
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-star"></i> 常见的随机过程例子 (2)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #7c3aed; margin-top: 25px;">
+                <h3>例 2.1.2: Brown 运动 (Brownian Motion)</h3>
+                <p>英国植物学家 Brown 注意到飘浮在液面上的微小粒子不断进行无规则的运动，这种运动后来称为 Brown 运动。它是分子大量随机碰撞的结果。若以 $(X(t), Y(t))$ 表示粒子在平面坐标上的位置，则它是平面上的 Brown 运动。</p>
+                <p style="font-size: 22px; color: #64748b; margin-top: 10px;">(连续时间，连续状态。是随机微积分的绝对基石)</p>
+            </div>
+        </div>
+    </div>
+
+
+
+<div class="slide" id="slide-9" style="padding-top: 24px; padding-bottom: 24px;">
+    <div class="content-area" style="gap: 18px;">
+        <div class="step tile" style="padding: 18px 24px; border-top-color: #14b8a6;">
+            <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:10px; background:#f0fdfa; padding:10px 14px; border-radius:12px; border:1px solid #99f6e4;">
+                    <label for="tempSlider-slide9" style="font-size:18px; font-weight:700; color:#0f766e;">温度（方差 σ²）:</label>
+                    <input type="range" id="tempSlider-slide9" min="0.5" max="5" step="0.5" value="1.5"
+                           style="width:120px; accent-color:#0f766e; cursor:pointer;"
+                           oninput="updateTempDisplaySlide9()">
+                    <span id="tempDisplay-slide9" style="font-size:18px; font-weight:700; color:#0f766e; width:36px; text-align:right;">1.5</span>
+                </div>
+
+                <button onclick="resetSimulationSlide9()" class="hw-btn" style="margin-top:0; padding:12px 26px; font-size:20px !important; background:linear-gradient(135deg,#0f766e,#14b8a6); box-shadow:0 10px 20px rgba(20,184,166,0.25);">
+                    <i class="fas fa-rotate-right"></i>
+                    重新观察
+                </button>
+            </div>
+        </div>
+
+        <div class="step two-column-top" style="gap: 20px;">
+            <!-- 左侧：显微镜视角 -->
+            <div class="tile" style="border-top-color:#14b8a6; padding:20px; display:flex; flex-direction:column; align-items:center;">
+                <h3 style="text-align:center; margin-bottom:10px;">显微镜视角（2D 物理空间）</h3>
+
+                <div style="position:relative; width:100%; max-width:320px; aspect-ratio:1/1; background:#f1f5f9; border-radius:50%; border:8px solid #cbd5e1; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow: inset 0 0 50px rgba(0,0,0,0.25);">
+                    <div style="position:absolute; inset:0; opacity:0.10; background-image:radial-gradient(#64748b 1px, transparent 1px); background-size:15px 15px;"></div>
+
+                    <canvas id="canvas2d-slide9" width="320" height="320"
+                            style="position:absolute; inset:0; width:100%; height:100%; z-index:10;"></canvas>
+
+                    <div id="particle-slide9"
+                         style="position:absolute; width:14px; height:14px; background:#fbbf24; border-radius:50%; border:2px solid #ffffff; box-shadow:0 0 10px rgba(251,191,36,0.8); z-index:20; transform:translate(-50%,-50%);"></div>
+                </div>
+
+                <div style="margin-top:16px; font-size:16px; color:#64748b; line-height:1.65; text-align:center;">
+                    花粉微粒不断受到周围隐形水分子的随机撞击，呈现<strong>处处连续，但处处不可导</strong>的混沌轨迹。
+                </div>
+            </div>
+
+            <!-- 右侧：数学投影 -->
+            <div class="tile" style="border-top-color:#2563eb; padding:20px;">
+                <h3 style="text-align:center; margin-bottom:10px;">数学投影：两个独立的一维过程</h3>
+
+                <div style="display:flex; justify-content:center; margin-bottom:10px;">
+                    <span style="font-size:14px; background:#f8fafc; color:#475569; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0;">X(t) ⊥ Y(t)</span>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div style="height:130px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; overflow:hidden; display:flex;">
+                        <div style="width:44px; background:#fff1f2; border-right:1px solid #ffe4e6; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <span style="font-weight:700; color:#e11d48; transform:rotate(-90deg); white-space:nowrap;">X(t)</span>
+                        </div>
+                        <canvas id="canvasX-slide9" style="flex:1; width:100%; height:100%;"></canvas>
+                    </div>
+
+                    <div style="height:130px; border:1px solid #e5e7eb; border-radius:10px; background:#f9fafb; overflow:hidden; display:flex;">
+                        <div style="width:44px; background:#eff6ff; border-right:1px solid #dbeafe; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <span style="font-weight:700; color:#2563eb; transform:rotate(-90deg); white-space:nowrap;">Y(t)</span>
+                        </div>
+                        <canvas id="canvasY-slide9" style="flex:1; width:100%; height:100%;"></canvas>
+                    </div>
+                </div>
+
+                <div style="margin-top:12px; font-size:17px; color:#64748b; line-height:1.65;">
+                    <strong style="color:#334155;">数学性质：</strong>
+                    \(\Delta W = W(t+\Delta t)-W(t)\sim N(0,\sigma^2\Delta t)\)。
+                    即增量服从正态分布，且方差与时间成正比。这正是随机游走在极限情况下的表现。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-star"></i> 常见的随机过程例子 (3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #db2777; padding: 50px;">
+                <h3>例 2.1.3: 排队模型 (Queueing Model)</h3>
+                <p>顾客来到服务站要求服务。当服务站中的服务员都忙碌，即服务员都在为别的顾客服务时，来到的顾客就要排队等候。</p>
+                <ul style="margin-top: 20px;">
+                    <li>用 $X(t)$ 表示 $t$ 时刻的<strong>队长</strong>（排队人数）。</li>
+                    <li>用 $Y(t)$ 表示 $t$ 时刻到来的顾客所需的<strong>等待时间</strong>。</li>
+                </ul>
+                <p style="margin-top: 20px;">顾客的到来、每个顾客所需的服务时间都是随机的，所以 $\{X(t), t \in T\}$ 和 $\{Y(t), t \in T\}$ 都是随机过程。</p>
+                <p style="font-size: 22px; color: #64748b; margin-top: 20px;">(这是 CS 专业分析服务器并发、缓冲区溢出的最核心模型)</p>
+                
+            </div>
+        </div>
+    </div>
+
+
+<div class="slide" id="slide-10" style="padding-top: 24px; padding-bottom: 24px;">
+    <div class="content-area" style="gap: 18px;">
+        <div class="step tile" style="padding: 18px 24px; border-top-color: #8b5cf6;">
+            <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
+                <div style="display:flex; flex-direction:column; gap:8px; background:#f5f3ff; padding:12px 16px; border-radius:12px; border:1px solid #ddd6fe;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <label for="lambdaSlider-slide10" style="font-size:16px; font-weight:700; color:#6d28d9; width:92px;">到达率 λ:</label>
+                        <input type="range" id="lambdaSlider-slide10" min="0.01" max="0.15" step="0.01" value="0.05"
+                               style="width:110px; accent-color:#7c3aed; cursor:pointer;"
+                               oninput="updateRatesSlide10()">
+                        <span id="lambdaDisplay-slide10" style="font-size:16px; font-weight:700; color:#7c3aed; width:40px; text-align:right;">0.05</span>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:10px; border-top:1px solid #ddd6fe; padding-top:8px;">
+                        <label for="muSlider-slide10" style="font-size:16px; font-weight:700; color:#047857; width:92px;">服务率 μ:</label>
+                        <input type="range" id="muSlider-slide10" min="0.01" max="0.15" step="0.01" value="0.08"
+                               style="width:110px; accent-color:#10b981; cursor:pointer;"
+                               oninput="updateRatesSlide10()">
+                        <span id="muDisplay-slide10" style="font-size:16px; font-weight:700; color:#059669; width:40px; text-align:right;">0.08</span>
+                    </div>
+                </div>
+
+                <button onclick="resetSimulationSlide10()" class="hw-btn" style="margin-top:0; padding:12px 26px; font-size:20px !important; background:linear-gradient(135deg,#7c3aed,#8b5cf6); box-shadow:0 10px 20px rgba(139,92,246,0.25);">
+                    <i class="fas fa-trash"></i>
+                    清空队列
+                </button>
+            </div>
+        </div>
+
+        <div class="step two-column-top" style="gap: 20px;">
+            <!-- 左侧：物理系统 -->
+            <div class="tile" style="border-top-color:#8b5cf6; padding:20px;">
+                <h3 style="text-align:center; margin-bottom:12px;">系统状态（物理视角）</h3>
+
+                <div style="display:flex; flex-direction:column; gap:24px; justify-content:center; min-height:420px;">
+                    <div style="display:flex; flex-direction:column; align-items:center;">
+                        <span style="font-size:16px; font-weight:700; color:#7c3aed; margin-bottom:6px;">λ：新请求到达（Poisson Process）</span>
+                        <div style="width:55%; height:8px; background:#ddd6fe; position:relative; border-radius:999px;">
+                            <div style="position:absolute; right:0; top:50%; transform:translateY(-50%); width:0; height:0; border-top:6px solid transparent; border-bottom:6px solid transparent; border-left:10px solid #a78bfa;"></div>
+                        </div>
+                    </div>
+
+                    <div style="position:relative; background:#f8fafc; border:2px solid #cbd5e1; border-radius:12px; padding:14px;">
+                        <span style="position:absolute; top:-12px; left:16px; background:#ffffff; padding:0 8px; font-size:14px; font-weight:700; color:#64748b;">缓冲区（Queue）</span>
+                        <div id="queue-container-slide10" style="display:flex; flex-wrap:wrap-reverse; gap:8px; min-height:44px; justify-content:flex-end; align-items:center;"></div>
+                        <div id="overflow-warning-slide10" style="position:absolute; inset:0; background:rgba(239,68,68,0.92); color:#ffffff; font-weight:700; display:flex; align-items:center; justify-content:center; border-radius:12px; opacity:0; transition:opacity 0.3s; pointer-events:none;">
+                            BUFFER OVERFLOW! (λ > μ)
+                        </div>
+                    </div>
+
+                    <div style="display:flex; flex-direction:column; align-items:center; position:relative;">
+                        <span style="position:absolute; top:-12px; background:#ffffff; padding:0 8px; font-size:14px; font-weight:700; color:#059669; z-index:5;">服务站（Server CPU）</span>
+                        <div id="server-box-slide10" style="width:96px; height:96px; background:#ffffff; border:4px solid #cbd5e1; border-radius:16px; display:flex; align-items:center; justify-content:center; position:relative; transition:all 0.3s;">
+                            <span id="server-status-slide10" style="color:#94a3b8; font-weight:700; font-size:15px;">IDLE</span>
+                            <div id="processing-block-slide10" style="width:44px; height:44px; background:#8b5cf6; border-radius:10px; box-shadow:0 4px 10px rgba(139,92,246,0.28); display:none; align-items:center; justify-content:center; color:#ffffff; font-size:12px; font-weight:700;">
+                                工作中
+                            </div>
+                        </div>
+                        <span style="font-size:16px; font-weight:700; color:#059669; margin-top:10px;">μ：服务完成离开（Exp Dist）</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：状态演化 -->
+            <div class="tile" style="border-top-color:#db2777; padding:20px;">
+                <h3 style="text-align:center; margin-bottom:10px;">状态演化：队长过程 \(X(t)\)</h3>
+
+                <div style="height:360px; position:relative; border:1px solid #e5e7eb; border-radius:12px; background:#f8fafc; overflow:hidden;">
+                    <div style="position:absolute; top:12px; right:12px; background:#ffffff; border:1px solid #e5e7eb; box-shadow:0 2px 8px rgba(15,23,42,0.06); padding:8px 12px; border-radius:10px; font-family:monospace; font-size:16px; font-weight:700; color:#6d28d9; z-index:10; display:flex; gap:16px;">
+                        <span>t: <span id="time-display-slide10">0.0</span></span>
+                        <span>X(t): <span id="xt-display-slide10" style="color:#e11d48;">0</span></span>
+                    </div>
+
+                    <canvas id="graph-canvas-slide10" style="width:100%; height:100%;"></canvas>
+                </div>
+
+                <div style="margin-top:12px; font-size:17px; color:#64748b; line-height:1.65;">
+                    <strong style="color:#334155;">阶跃函数特征：</strong>
+                    \(\{X(t),t\ge 0\}\) 是一个<strong>连续时间、离散状态</strong>的马尔可夫链。
+                    图中的“水平线 + 瞬时跳跃”结构，正对应请求到达或离开的状态变化。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-5">
+    <h2 class="slide-title"><i class="fas fa-comments"></i> 课堂互动：判断随机过程类型</h2>
+    <div class="content-area" style="justify-content: center; gap: 18px;">
+
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 26px 30px;">
+            <h3>课堂练习</h3>
+            <p style="font-size: 22px !important; line-height: 1.7;">
+                设 \(X(t)\) 表示\(t\) 时刻 CPU 任务队列中的任务数，则随机过程
+                \(\{X(t), t\ge 0\}\) 属于哪一类？
+            </p>
+
+            <div style="margin-top: 18px;">
+                <ul style="margin-top: 0;">
+                    <li style="font-size: 22px; line-height: 1.6;">A. 离散时间、离散状态随机过程</li>
+                    <li style="font-size: 22px; line-height: 1.6;">B. 离散时间、连续状态随机过程</li>
+                    <li style="font-size: 22px; line-height: 1.6;">C. 连续时间、离散状态随机过程</li>
+                    <li style="font-size: 22px; line-height: 1.6;">D. 连续时间、连续状态随机过程</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0;">
+            <p style="font-size: 22px;">
+                提示：先判断时间 \(t\) 是连续还是离散，再判断“队列中的任务数”是连续还是离散。
+            </p>
+        </div>
+
+        <div class="step" style="text-align: center; margin-top: 6px;">
+            <a href="https://mobilelearn.chaoxing.com/page/active/activeList?fid=1952&courseId=262091860&classId=143392832&showInvitecode=1&cpi=468232648&enc=87a23c0494ce1b66af5ef110ab03d87d"
+               target="_blank"
+               class="hw-btn"
+               style="font-size: 22px; padding: 14px 34px; margin-top: 0;">
+                <i class="fas fa-pen-to-square"></i> 进入课堂练习
+            </a>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+
+    <!-- ==================== 2.2 节 ==================== -->
+    <div class="slide section-slide" id="slide-8">
+        <h2>2.2 有限维分布与 Kolmogorov 定理</h2>
+        <hr>
+        <p class="step" style="font-size: 32px; color: #cbd5e1;">如何从数学上完整刻画一个随机过程？</p>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 一维与多维分布</h2>
+        <div class="content-area">
+            <p class="step">研究随机现象主要是研究其统计规律性，掌握了分布函数就能完全了解随机变量。对于随机过程 $\{X(t), t \in T\}$，为了描述它的统计特性：</p>
+            <div class="step tile">
+                <p><strong>一维分布：</strong> 对于每个 $t \in T$，$X(t)$ 的分布函数 $F(t, x) = P\{X(t) \le x\}$。</p>
+                <p style="margin-top: 15px;"><strong>多维联合分布：</strong> 过程在任意 $n$ 个时间点 $t_1, t_2, \dots, t_n \in T$ 的 $n$ 维分布：</p>
+                <div class="math-center">
+                    <div class="math-box">
+                        \[F_{t_1, \dots, t_n}(x_1, \dots, x_n) = P\{X(t_1) \le x_1, \dots, X(t_n) \le x_n\}\]
+                    </div>
+                </div>
+            </div>
+            <p class="step" style="margin-top: 10px;">所有一维分布、二维分布……n维分布等的全体：</p>
+            <div class="step math-center">
+                <div class="math-box" style="border-left-color: #7c3aed;">
+                    \[\left\{F_{t_1, \dots, t_n}(x_1, \dots, x_n), t_1, \dots, t_n \in T, n \ge 1\right\}\]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; font-weight: bold; color: #2563eb; margin-top: 5px;">称为随机过程的 有限维分布族。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 有限维分布族的两个基本性质</h2>
+        <div class="content-area">
+            <p class="step">不难看出，一个随机过程的有限维分布族必然具有下述两个性质：</p>
+            <div class="step tile" style="margin-top: 20px;">
+                <h3>(1) 对称性</h3>
+                <p>对 $1, 2, \dots, n$ 的任一排列 $j_1, j_2, \dots, j_n$，有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px;">
+                        \[
+                        \begin{aligned}
+                        &F_{t_{j_1}, \dots, t_{j_n}}(x_{j_1}, \dots, x_{j_n}) \\
+                        =& P\{X(t_{j_1}) \le x_{j_1}, \dots, X(t_{j_n}) \le x_{j_n}\} \\
+                        =& P\{X(t_1) \le x_1, \dots, X(t_n) \le x_n\} \\
+                        =& F_{t_1, \dots, t_n}(x_1, \dots, x_n)
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+            </div>
+              <div class="step info-box" style="background: #e0f2fe; border-left: 6px solid #2563eb; padding: 20px;">
+                 <p style="color: #1e40af; font-size: 22px; margin:0;"><i class="fas fa-lightbulb"></i> 同一组时刻上的联合分布，
+                 不应该因为我们把这些时刻“写在前还是写在后”就改变本质。即，同一组变量，换个排列顺序，本质不变.</p>
+              </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 有限维分布族的相容性</h2>
+        <div class="content-area">
+            <div class="step tile" style="margin-top: 20px; border-top-color: #db2777; padding: 40px;">
+                <h3>(2) 相容性 (边缘分布性质)</h3>
+                <p>对于 $m < n$，有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; margin-top: 20px; padding: 25px;">
+                        \[F_{t_1, \dots, t_m, t_{m+1}, \dots, t_n}(x_1, \dots, x_m, +\infty, \dots, +\infty) = F_{t_1, \dots, t_m}(x_1, \dots, x_m)\]
+                    </div>
+                </div>
+                <p style="margin-top: 20px;">这说明高维分布可以通过将多余维度取至无穷大，自然退化为低维分布。</p>
+            </div>
+            <div class="step info-box" style="background: #e0f2fe; border-left: 6px solid #2563eb; padding: 20px;">
+                 <p style="color: #1e40af; font-size: 22px; margin:0;"><i class="fas fa-lightbulb"></i> 
+                 如果我们只想看前\(n-1\)个时刻的分布，那么这个低维分布不应该重新凭空造一个，而应该能从高维分布里“消掉一个变量”得到.
+                二维表里只要把另一个变量“放开不管”，就应该退化成一维分布。如果退不出来，说明这两份分布根本不是同一个随机过程的。</p>
+              </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 定理 2.2.1: Kolmogorov 存在性定理</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; margin-bottom: 10px;">这是一个研究随机过程理论的基本定理！</p>
+            <div class="step tile" style="border-top-color: #2563eb; padding: 40px;">
+                <p>设有一族分布函数 $\left\{F_{t_1, \dots, t_n}(x_1, \dots, x_n), t_i \in T, n \ge 1\right\}$，若它们满足上述的<strong>对称性</strong>和<strong>相容性</strong>，则：</p>
+                <p style="margin-top: 20px; font-size: 30px; font-weight: bold; color: #db2777; text-align: center;">
+                    必存在一个随机过程 $\{X(t), t \in T\}$
+                </p>
+                <p style="margin-top: 20px;">使这族分布函数恰好是 $\{X(t), t \in T\}$ 的有限维分布族。</p>
+            </div>
+            <div class="step info-box" style="background: #e0f2fe; border-left: 6px solid #2563eb; padding: 20px;">
+                <p style="color: #1e40af; font-size: 22px; margin:0;"><i class="fas fa-lightbulb"></i> CS工程视角：</p>
+                <p style="color: #334155; font-size: 22px; margin-top: 10px;">只要你设计的多维概率模型在逻辑上不自相矛盾（对称且相容），数学上就保证一定能写出符合该规律的系统。它是证明过程存在性的有力工具。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 定义 2.2.1: 随机过程的数字特征 (1/2)</h2>
+        <div class="content-area">
+            <p class="step">在实际问题中，要知道随机过程的全部有限维分布是不可能的。因此人们想到了用某些数字特征来刻画。</p>
+            <div class="step tile" style="margin-top: 20px;">
+                <h3>(1) 均值函数 (Mean Function)</h3>
+                <p>称 $X(t)$ 的期望为过程的均值函数（如果存在的话）：</p>
+                <div class="math-center">
+                    <div class="math-box">\[\mu_X(t) = E[X(t)]\]</div>
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #7c3aed;">
+                <h3>(2) 二阶矩过程 (Second-order Moment Process)</h3>
+                <p>如果 $\forall t \in T, E[X^2(t)]$ 存在，则称随机过程 $\{X(t), t \in T\}$ 为二阶矩过程。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 定义 2.2.1: 随机过程的数字特征 (2/2)</h2>
+        <div class="content-area">
+            <p class="step">对于二阶矩过程，我们定义以下核心函数：</p>
+            <div class="step tile" style="margin-top: 10px;">
+                <h3>协方差函数 (Covariance Function)</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 24px; padding: 15px;">\[\gamma(t_1, t_2) = E\{[X(t_1) - \mu_X(t_1)][X(t_2) - \mu_X(t_2)]\}\]</div>
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 15px; border-top-color: #db2777;">
+                <h3>方差函数 & 自相关函数</h3>
+                <p>方差函数：$\operatorname{Var}[X(t)] = \gamma(t, t)$</p>
+                <p style="margin-top: 10px;">自相关函数 (Autocorrelation)：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 24px; padding: 15px;">\[R_X(s, t) = E[X(s)X(t)]\]</div>
+                </div>
+            </div>
+            <div class="step math-center" style="margin-top: 10px;">
+                <p style="font-weight: bold; color: #1e293b;">由 Schwartz 不等式知存在，且有： $\gamma_X(s, t) = R_X(s, t) - \mu_X(s)\mu_X(t)$</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-edit"></i> 例 2.2.1: 均值与协方差的计算 (1/2)</h2>
+        <div class="content-area">
+            <p class="step">已知过程 $X(t) = X_0 + tV \quad (a \le t \le b)$，其中 $X_0$ 和 $V$ 是相互独立且均服从 $N(0,1)$ 分布的随机变量。</p>
+            <div class="step tile">
+                <p><strong>过程特性分析：</strong> 由于 $X_0$ 和 $V$ 相互独立且均服从正态分布，因此 $X(t)$ 也服从正态分布。并且 $(X(t_1), \dots, X(t_n))$ 服从 $n$ 维正态分布。</p>
+                <p style="margin-top: 15px; color: #2563eb; font-weight: bold;">所以只要知道它的一阶矩和二阶矩就完全确定了它的分布！</p>
+            </div>
+            <div class="step tile" style="border-top-color: #7c3aed; margin-top: 25px;">
+                <h3>计算均值函数 $\mu_X(t)$</h3>
+                <div class="math-center">
+                    <div class="math-box" style="padding: 20px 30px; font-size: 28px;">
+                        \[\mu_X(t) = E[X(t)] = E(X_0 + tV) = E(X_0) + tE(V) = 0\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-16">
+        <h2 class="slide-title"><i class="fas fa-edit"></i> 例 2.2.1: 均值与协方差的计算 (2/2)</h2>
+        <div class="content-area">
+            <p class="step">继续计算 $X(t) = X_0 + tV$ 的协方差函数 $\gamma(t_1, t_2)$。</p>
+            <div class="step math-center">
+                <div class="math-box" style="text-align: left; padding: 25px;">
+                    \[
+                    \begin{aligned}
+                    \gamma(t_1, t_2) &= E[X(t_1)X(t_2)] \\
+                    &= E[(X_0 + t_1V)(X_0 + t_2V)] \\
+                    &= E(X_0^2 + t_1 X_0 V + t_2 X_0 V + t_1 t_2 V^2) \\
+                    &= E(X_0^2) + t_1 t_2 E(V^2)
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="margin-top: 10px;">由于 $X_0, V \sim N(0,1)$ 且独立，有 $E(X_0^2)=1, E(V^2)=1, E(X_0 V)=0$。代入上式得：</p>
+            <div class="step math-center">
+                <div class="math-box" style="border-left-color: #db2777; font-size: 32px; padding: 20px;">
+                    \[\gamma(t_1, t_2) = 1 + t_1 t_2\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <div class="slide" id="slide-12">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 从多维正态分布到正态随机过程</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <p class="step" style="font-size: 19px !important; line-height: 1.5;">
+            正态随机过程可以看作：把<strong>多维正态分布</strong>推广到“任意有限个时刻的随机变量联合分布”上。
+        </p>
+
+        <div class="step two-column-top" style="gap: 18px;">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">多维正态分布</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    设随机向量
+                    \[
+                    \mathbf X=(X_1,X_2,\dots,X_n)^\top \sim N_n(\boldsymbol\mu,\Sigma),
+                    \]
+                    其中
+                    \[
+                    \boldsymbol\mu=E(\mathbf X), \qquad \Sigma=\operatorname{Cov}(\mathbf X).
+                    \]
+                </p>
+
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    当 \(\Sigma\) 非奇异时，其密度函数为
+                </p>
+
+                <div class="math-center" style="margin: 6px 0;">
+                    <div class="math-box" style="font-size: 15px !important; padding: 8px 12px; line-height: 1.45;">
+                        \[
+                        f(x_1,\dots,x_n)=
+                        \frac{1}{(2\pi)^{n/2}|\Sigma|^{1/2}}
+                        \exp\left\{
+                        -\frac12(\mathbf x-\boldsymbol\mu)^\top
+                        \Sigma^{-1}
+                        (\mathbf x-\boldsymbol\mu)
+                        \right\}
+                        \]
+                    </div>
+                </div>
+
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    这里，<strong>均值向量 \(\boldsymbol\mu\)</strong> 和 <strong>协方差矩阵 \(\Sigma\)</strong>
+                    完全决定该多维正态分布。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">推广到随机过程</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    对随机过程 \(\{X(t),t\in T\}\)，若任取
+                    \[
+                    t_1,t_2,\dots,t_n\in T,
+                    \]
+                    随机向量
+                    \[
+                    (X(t_1),X(t_2),\dots,X(t_n))
+                    \]
+                    都服从 \(n\) 维正态分布，
+                    则称 \(\{X(t),t\in T\}\) 为<strong>正态随机过程（Gauss过程、Wiener过程）</strong>。
+                </p>
+
+                <p style="font-size: 17px !important; line-height: 1.45; margin-top: 8px;">
+                    这时，多维正态分布中的“均值向量”和“协方差矩阵”自然推广为：
+                </p>
+
+                <div class="math-center" style="margin: 6px 0;">
+                    <div class="math-box" style="font-size: 16px !important; padding: 8px 12px; line-height: 1.5;">
+                        \[
+                        m(t)=E[X(t)]
+                        \]
+                        \[
+                        C(s,t)=\operatorname{Cov}(X(s),X(t))
+                        \]
+                    </div>
+                </div>
+
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    其中 \(m(t)\) 为<strong>均值函数</strong>，
+                    \(C(s,t)\) 为<strong>协方差函数</strong>。
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0; padding: 12px 16px;">
+            <p style="font-size: 18px;">
+                结论：正态随机过程由<strong>均值函数 \(m(t)\)</strong> 和
+                <strong>协方差函数 \(C(s,t)\)</strong> 完全决定。
+            </p>
+        </div>
+    </div>
+</div>
+    <!-- ==================== 2.3 节 ==================== -->
+    <div class="slide section-slide" id="slide-17">
+        <h2>2.3 随机过程的基本类型</h2>
+        <hr>
+        <p class="step" style="font-size: 32px; color: #cbd5e1;">寻找变量之间相依关系的特殊规律</p>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-equals"></i> 2.3.1 平稳过程 (Stationary Process)</h2>
+        <div class="content-area">
+            <p class="step">有一类重要的过程，它处于某种平稳状态，其主要性质与变量之间的时间间隔有关，<strong>与所考察的起始点无关</strong>，这样的过程称为平稳过程。</p>
+            <div class="step tile" style="margin-top: 20px; padding: 40px;">
+                <h3 style="font-size: 30px;"><i class="fas fa-lock" style="color: #2563eb;"></i> 定义 2.3.1: 严平稳过程</h3>
+                <p style="margin-top: 20px;">如果对任意 $t_1, t_2, \dots, t_n \in T$ 和任意的 $h$（使得 $t_i+h \in T$）有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px !important; padding: 25px;">
+                        \[(X(t_1+h), X(t_2+h), \dots, X(t_n+h)) \stackrel{\mathrm{d}}{=} (X(t_1), X(t_2), \dots, X(t_n))\]
+                    </div>
+                </div>
+                <p style="margin-top: 20px; color: #475569;">这表明有限维分布关于时间是平移不变的。则称 $\{X(t), t \in T\}$ 为严平稳的。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-compress-alt"></i> 定义 2.3.2: 宽平稳过程 (二阶平稳)</h2>
+        <div class="content-area">
+            <p class="step">条件 (2.3.1) 很强且不容易验证，所以引入宽平稳过程。</p>
+            <div class="step tile" style="border-top-color: #7c3aed; padding: 25px;">
+                <p>如果随机过程 $X(t)$ 的所有二阶矩都存在，并且：</p>
+                <ul class="bullet-list" style="margin-top: 10px;">
+                    <li>均值为常数：$E[X(t)] = \mu$</li>
+                    <li>协方差函数 $\gamma(t, s)$ 只与时间差 $t-s$ 有关</li>
+                </ul>
+                <p style="margin-top: 10px; font-weight: bold; color: #1e293b;">则称 $\{X(t), t \in T\}$ 为宽平稳过程或二阶平稳过程。</p>
+            </div>
+            <div class="step" style="margin-top: 15px;">
+                <p><strong>宽平稳过程的协方差特性：</strong>可以记为单变量函数 $\gamma(t-s)$。</p>
+                <ul class="bullet-list">
+                    <li>对称性：$\gamma(-t) = \gamma(t)$ (偶函数)</li>
+                    <li>最大值在原点：$\gamma(0) = \operatorname{Var}[X(t)]$，且 $|\gamma(t)| \le \gamma(0)$</li>
+                    <li>非负定性：$\sum_{i=1}^N \sum_{j=1}^N a_i a_j \gamma(t_i - t_j) \ge 0$</li>
+                </ul>
+            </div>
+            <p class="step" style="margin-top: 5px; color: #db2777; font-weight: bold;">本书中“平稳过程”默认指宽平稳过程。离散时间的称为平稳序列。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-wave-square"></i> 平稳序列的经典例子 (1)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px;">
+                <h3 style="font-size: 30px;"><i class="fas fa-bolt" style="color: #2563eb;"></i> 例 2.3.1：平稳白噪声序列</h3>
+                <p style="margin-top: 20px;">设 $\{X_n, n=0,1,\dots\}$ 为一个两两互不相关的随机变量序列，满足：</p>
+                <ul class="bullet-list">
+                    <li>$E(X_n) = 0 \quad (n=0,1,\dots)$</li>
+                    <li>且 $E(X_m X_n) = \begin{cases} 0, & m \ne n \\ \sigma^2, & m = n \end{cases}$</li>
+                </ul>
+                <p style="margin-top: 20px; font-weight: bold; color: #1e293b;">
+                    则 $\{X_n, n=0,1,\dots\}$ 为平稳序列。这是因为协方差函数 $\operatorname{Cov}(X_n, X_m) = E(X_n X_m)$ 只与 $m-n$ 有关。
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+    <!--
+    <div class="slide" id="slide-21">
+        <h2 class="slide-title"><i class="fas fa-sliders-h"></i> 平稳序列的经典例子 (2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; margin-bottom: 20px;">例 2.3.2：滑动平均序列</p>
+            <p class="step">设 $\{\varepsilon_n, n=0, \pm 1, \dots\}$ 为一个两两互不相关、有相同均值 $\mu$ 和相同方差 $\sigma^2$ 的随机变量序列。$a_1, a_2, \dots, a_k$ 为任意 $k$ 个实数。</p>
+            <p class="step">考虑如下定义的序列：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px !important; border-left-color: #db2777;">
+                    \[X_n = a_1 \varepsilon_n + a_2 \varepsilon_{n-1} + \cdots + a_k \varepsilon_{n-k+1}, \quad n=0, \pm 1, \pm 2, \dots\]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; font-size: 23px !important; font-weight: bold; margin-top: 20px;">则有 $\{X_n, n=0, \pm 1, \pm 2, \dots\}$ 为平稳序列。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-pencil-alt"></i> 例 2.3.2 证明 (1/3)：均值与去中心化</h2>
+        <div class="content-area">
+            <div class="step tile" style="margin-bottom: 20px;">
+                <p>首先易得均值函数为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="padding: 10px 20px;">\[E(X_n) = \mu(a_1 + a_2 + \cdots + a_k)\]</div>
+                </div>
+                <p style="text-align: center;">即均值函数为固定值。</p>
+            </div>
+            <div class="step tile" style="border-top-color: #7c3aed;">
+                <p>设 $\xi_j = \varepsilon_j - \mu$，且易得 $E[\xi_j]=0, E[\xi_i\xi_j]=\begin{cases}0, & i \ne j \\ \sigma^2, & i=j\end{cases}$。</p>
+                <p>协方差函数为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; padding: 15px;">
+                        \[
+                        \begin{aligned}
+                        & \gamma(n, n+\tau) \\
+                        =& E\left\{ [X_n - \mu(a_1+\dots+a_k)][X_{n+\tau} - \mu(a_1+\dots+a_k)] \right\}
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-pencil-alt"></i> 例 2.3.2 证明 (2/3)：协方差展开</h2>
+        <div class="content-area">
+            <div class="step tile" style="margin-top: 10px; border-top-color: #db2777;">
+                <p>将协方差展开为 $\xi$ 的形式：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 20px; padding: 20px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        \gamma(n, n+\tau) =& E\left[ (a_1\xi_n + a_2\xi_{n-1} + \dots + a_k\xi_{n-k+1}) \right. \\
+                        & \left. \times (a_1\xi_{n+\tau} + a_2\xi_{n+\tau-1} + \dots + a_k\xi_{n+\tau-k+1}) \right]
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+                <p style="margin-top: 15px; font-weight: bold;">当 $n-k+1+\tau > n$，即当 $\tau \ge k$ 时：</p>
+                <div class="math-center"><div class="math-box" style="padding: 10px;">\[\gamma(n, n+\tau) = 0\]</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-pencil-alt"></i> 例 2.3.2 证明 (3/3)：分类讨论</h2>
+        <div class="content-area">
+            <div class="step tile" style="margin-top: 20px;">
+                <p>当 $n-k+1 \le n-k+1+\tau \le n$，即当 $0 \le \tau \le k-1$ 时：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 20px; padding: 20px; text-align: left;">
+                        \[
+                        \begin{aligned}
+                        \gamma(n, n+\tau) =& E\left[ (a_{k-\tau}\xi_{n+\tau-k+1} + \dots + a_2\xi_{n-1} + a_1\xi_n) \right. \\
+                        & \left. \times (a_k\xi_{n+\tau-k+1} + \dots + a_{\tau+2}\xi_{n-1} + a_{\tau+1}\xi_n) \right] \\
+                        =& (a_{k-\tau}a_k + a_{k-\tau-1}a_{k-1} + \dots + a_2a_{\tau+2} + a_1a_{\tau+1}) \sigma^2
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+                <p style="margin-top: 20px; font-weight: bold; color: #2563eb; text-align: center;">
+                    即协方差函数仅与时间间隔 $\tau$ 有关，故 $\{X_n, n=0, \pm 1, \dots\}$ 为平稳序列。
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+-->
+
+<div class="slide" id="slide-13">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例：证明平稳过程</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <p class="step" style="font-size: 19px !important; line-height: 1.5;">
+            设随机过程\(X(t)=A\cos(\omega t+\Theta),\qquad -\infty\lt t \lt \infty,\)其中 \(A,\omega\) 为常数，\(\Theta\sim U(0,2\pi)\)。证明：\(\{X(t)\}\) 是平稳过程。
+        </p>
+
+        <div class="step two-column-top" style="gap: 18px;">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">（1）均值函数</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    \[
+                    E[X(t)]
+                    =A\,E[\cos(\omega t+\Theta)]
+                    \]
+                    由于 \(\Theta\sim U(0,2\pi)\)，
+                    \[
+                    E[\cos(\omega t+\Theta)]
+                    =\frac{1}{2\pi}\int_0^{2\pi}\cos(\omega t+\theta)\,d\theta=0
+                    \]
+                    因而
+                    \[
+                    E[X(t)]=0
+                    \]
+                    与 \(t\) 无关。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">（2）协方差函数</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    由于 \(E[X(t)]=0\)，
+                    \[
+                    C(s,t)=E[X(s)X(t)]
+                    \]
+                    即
+                    \[
+                    C(s,t)=A^2E[\cos(\omega s+\Theta)\cos(\omega t+\Theta)]
+                    \]
+                    利用
+                    \[
+                    \cos\alpha\cos\beta=\frac12[\cos(\alpha-\beta)+\cos(\alpha+\beta)]
+                    \]
+                    可得
+                    \[
+                    C(s,t)=\frac{A^2}{2}\cos\omega(s-t)
+                    \]
+                    它只与时间差 \(s-t\) 有关。
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+    <div class="slide" id="slide-25">
+        <h2 class="slide-title"><i class="fas fa-eye"></i> 遍历性 (Ergodicity) 背景引入</h2>
+        <div class="content-area">
+            <p class="step">考虑如下两个特殊的平稳过程：</p>
+            <div class="step two-column-top">
+                <div class="tile" style="border-top-color: #2563eb;">
+                    <h3>过程 1：$\{X_n, n \ge 0\}$</h3>
+                    <p>独立同分布序列，$E(X_n^2)<+\infty, E(X_n)=\mu$。</p>
+                    <p>由大数定律知，其<strong>时间平均</strong> $\frac{1}{n}(X_0 + \dots + X_{n-1})$ 以概率 1 收敛于常数 $\mu$。</p>
+                </div>
+                <div class="tile" style="border-top-color: #db2777;">
+                    <h3>过程 2：$\{Y_n = Y, n \ge 0\}$</h3>
+                    <p>$Y$ 是随机变量，$E(Y^2)<+\infty$。</p>
+                    <p>其<strong>时间平均</strong> $\frac{1}{n}(Y_0 + \dots + Y_{n-1}) = Y$。即经过对时间的平均后，随机性没有发生任何改变。</p>
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; background: #e0f2fe; border-left-color: #2563eb;">
+                <p style="font-size: 24px;"><i class="fas fa-question-circle"></i> 核心问题：</p>
+                <span style="font-size: 22px; color: #1e293b;">
+                    在何种条件下，平稳过程对时间的平均值可以等于过程的均值？这一问题称为平稳过程的<strong>遍历性</strong>，是平稳过程研究中的一个重要课题。
+                    <strong>“一条轨道，能不能代替很多条轨道？”</strong>
+                </span>
+                
+            </div>
+        </div>
+    </div>
+
+<div class="slide" id="slide-28">
+    <h2 class="slide-title"><i class="fas fa-users"></i> 用“学习状态”理解遍历性</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <p class="step" style="font-size: 19px !important; line-height: 1.5;">
+            设 \(X(t)\) 表示某学生在时刻 \(t\) 的学习状态，例如：
+            \(0\) 表示专心，\(1\) 表示疲惫，\(2\) 表示走神，\(3\) 表示下课倒计时。
+        </p>
+
+        <div class="step two-column-top" style="gap: 18px;">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">总体平均</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    在同一时刻 \(t\)，同时观察很多学生，
+                    把他们的学习状态取平均，得到
+                    \[
+                    E[X(t)]
+                    \]
+                    这表示全体学生在统计意义下的平均学习状态。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">时间平均</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    不观察很多学生，而是只盯着一个学生看很长时间，
+                    把他长期的学习状态取平均，这就是时间平均。
+                </p>
+                <div class="math-center" style="margin: 6px 0;">
+                    <div class="math-box" style="font-size: 16px !important; padding: 8px 12px;">
+                        \[
+                        \frac{1}{2T}\int_{-T}^{T}X(t)\,\mathrm{d}t
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="border-top-color: #2563eb; padding: 16px 18px;">
+            <h3 style="font-size: 22px; margin-bottom: 8px;">遍历性是什么意思？</h3>
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                如果一个学生在很长时间内的平均学习状态，能够接近全体学生的平均学习状态，
+                那么就说这个过程具有<strong>遍历性</strong>。
+            </p>
+            <div class="math-center" style="margin: 6px 0;">
+                <div class="math-box" style="font-size: 17px !important; padding: 8px 12px; line-height: 1.45;">
+                    \[
+                    \text{时间平均} \longrightarrow \text{总体平均}
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                也就是说：<strong>看一个人很久，可以代替看很多人一眼。</strong>
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin: 0; padding: 12px 16px;">
+            <p style="font-size: 18px;">
+                注意：平稳性强调“统计规律不随时间变”，遍历性强调“单条样本路径能代表整体规律”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+    <div class="slide" id="slide-26">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 估计平稳过程的数字特征</h2>
+        <div class="content-area">
+            <p class="step">对于平稳过程，重要的是确定它的均值 $\mu$ 和协方差函数 $\gamma(\tau)$。理论上必须作大量观察，用集均值估计：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px;">\[\hat{\mu} = \frac{1}{n}[X_1(t) + \dots + X_n(t)]\]</div>
+            </div>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px;">\[\hat{\gamma}(\tau) = \frac{1}{n} \sum_{k=1}^n [X_k(t+\tau)-\hat{\mu}][X_k(t)-\hat{\mu}]\]</div>
+            </div>
+            <p class="step" style="margin-top: 20px;">然而，作多次观察一般来说很难做到，容易的是作一次观察，获得<strong>一条样本路径</strong>。</p>
+            <p class="step" style="font-weight: bold; color: #db2777; text-align: center;">我们希望由这一次观察来估计 $\mu$ 和 $\gamma(\tau)$。只要加上一些条件，这就是遍历性定理。</p>
+        </div>
+    </div>
+
+   <div class="slide" id="slide-27">
+    <h2 class="slide-title"><i class="fas fa-sync"></i> 定义 2.3.3：遍历性 (1/2)</h2>
+    <div class="content-area" style="gap: 10px;">
+        <p class="step" style="font-size: 21px !important; line-height: 1.55;">
+            设 \(X=\{X(t),-\infty\lt t\lt +\infty\}\) 为一平稳过程（或平稳序列），均值为 \(\mu\)。如果时间平均收敛到总体均值 \(\mu\)，则称 \(X\) 的<strong>均值具有遍历性</strong>。
+        </p>
+
+        <div class="step two-column-top" style="gap: 18px; margin-top: 2px;">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 16px 18px;">
+                <h3 style="font-size: 23px; margin-bottom: 8px; text-align: center;">连续时间情形</h3>
+                <div class="math-center" style="margin: 4px 0;">
+                    <div class="math-box" style="font-size: 20px !important; padding: 10px 14px; line-height: 1.45;">
+                        \[
+                        \bar{X}
+                        =
+                        \lim_{T\to+\infty}
+                        \frac{1}{2T}\int_{-T}^{T}X(t)\,\mathrm{d}t
+                        =
+                        \mu
+                        \]
+                    </div>
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 16px 18px;">
+                <h3 style="font-size: 23px; margin-bottom: 8px; text-align: center;">离散时间情形</h3>
+                <div class="math-center" style="margin: 4px 0;">
+                    <div class="math-box" style="font-size: 20px !important; padding: 10px 14px; line-height: 1.45;">
+                        \[
+                        \bar{X}
+                        =
+                        \lim_{N\to+\infty}
+                        \frac{1}{2N+1}\sum_{k=-N}^{N}X(k)
+                        =
+                        \mu
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="step" style="font-size: 20px !important; line-height: 1.5; margin-top: 2px;">
+            这里的极限是指<strong>均方意义下的极限</strong>，即：
+        </p>
+
+        <div class="step math-center" style="margin-top: 0;">
+            <div class="math-box" style="font-size: 18px !important; padding: 10px 16px; line-height: 1.45;">
+                \[
+                \lim_{T\to+\infty}
+                E\left[
+                \left|
+                \frac{1}{2T}\int_{-T}^{T}X(t)\,\mathrm{d}t-\mu
+                \right|^2
+                \right]
+                =0
+                \]
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-sync"></i> 定义 2.3.3：遍历性 (2/2)</h2>
+        <div class="content-area">
+            <p class="step">如果</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px;">\[\bar{\gamma}(\tau) = \lim_{T \to +\infty} \frac{1}{2T} \int_{-T}^{T} [X(t)-\mu][X(t+\tau)-\mu]\mathrm{d}t = \gamma(\tau)\]</div>
+            </div>
+            <p class="step" style="text-align: center;">或</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px;">\[\bar{\gamma}(\tau) = \lim_{N \to +\infty} \frac{1}{2N+1} \sum_{k=-N}^N [X(k)-\mu][X(k+\tau)-\mu] = \gamma(\tau)\]</div>
+            </div>
+            <p class="step" style="text-align: center;">则称 $X$ 的<strong>协方差具有遍历性</strong>（同样指均方极限）。若两者都具有遍历性，则称此随机过程具有遍历性。</p>
+            <p class="step" style="margin-top: 10px; font-size: 22px; color: #64748b;">注：如果 $t$ 只取非负实数（非负整数），相应的积分与求和就限制在 $[0, +\infty)$ 上。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-29">
+    <h2 class="slide-title"><i class="fas fa-gavel"></i> 定理 2.3.1：均值遍历性定理</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <p class="step" style="font-size: 19px !important; line-height: 1.5;">
+            对平稳序列和平稳过程，均值是否具有遍历性，都可以通过协方差函数 \(\gamma(\tau)\) 来刻画。
+        </p>
+
+        <div class="step two-column-top" style="gap: 18px;">
+            <div class="tile" style="border-top-color: #2563eb; padding: 18px 20px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">（1）对于平稳序列</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    设
+                    \[
+                    X=\{X_n,\ n=0,\pm1,\dots\}
+                    \]
+                    是平稳序列，其协方差函数为 \(\gamma(\tau)\)，则
+                    \(X\) 的均值具有遍历性的充分必要条件是
+                </p>
+
+                <div class="math-center" style="margin: 6px 0;">
+                    <div class="math-box" style="font-size: 18px !important; padding: 10px 14px; line-height: 1.45;">
+                        \[
+                        \lim_{N\to+\infty}
+                        \frac{1}{N}
+                        \sum_{\tau=0}^{N-1}\gamma(\tau)=0
+                        \]
+                    </div>
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 18px 20px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">（2）对于平稳过程</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    设
+                    \[
+                    X=\{X_t,\ -\infty \lt t \lt+\infty\}
+                    \]
+                    是平稳过程，其协方差函数为 \(\gamma(\tau)\)，则
+                    \(X\) 的均值具有遍历性的充分必要条件是
+                </p>
+
+                <div class="math-center" style="margin: 6px 0;">
+                    <div class="math-box" style="font-size: 17px !important; padding: 10px 12px; line-height: 1.45;">
+                        \[
+                        \lim_{T\to+\infty}
+                        \frac{1}{T}
+                        \int_{0}^{2T}
+                        \left(1-\frac{\tau}{2T}\right)\gamma(\tau)\,\mathrm{d}\tau=0
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0; padding: 12px 16px;">
+            <p style="font-size: 18px;">
+                直观上：若协方差函数“平均起来趋于 0”，说明远处的相关性逐渐减弱，时间平均就更可能逼近总体均值。
+            </p>
+        </div>
+    </div>
+</div>
+
+    <div class="slide" id="slide-30">
+        <h2 class="slide-title"><i class="fas fa-pen-nib"></i> 定理 2.3.1 证明 (1/3)</h2>
+        <div class="content-area">
+            <p class="step">由于思路相同，这里只证明连续时间的均值遍历性定理。计算 $\bar{X}$ 的均值和方差。记 $\bar{X}_T = \frac{1}{2T} \int_{-T}^{T} X(t)\mathrm{d}t$。</p>
+            <div class="step tile" style="margin-top: 15px;">
+                <p>1. 期望一致：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px;">
+                        \[E(\bar{X}) = \lim_{T \to +\infty} E(\bar{X}_T) = \lim_{T \to +\infty} \frac{1}{2T} \int_{-T}^{T} E[X(t)]\mathrm{d}t = \mu\]
+                    </div>
+                </div>
+                <p>2. 方差推导：</p>
+                <div class="math-center">
+                    <div class="math-box" style="text-align: left; padding: 15px 30px; font-size: 20px;">
+                        \[
+                        \begin{aligned}
+                        \operatorname{Var}(\bar{X}) &= E\{[\bar{X} - E(\bar{X})]^2\} 
+                        = \lim_{T \to +\infty} \frac{1}{4T^2} E\left\{ \int_{-T}^{T}(X(t)-\mu)\mathrm{d}t \right\}^2 \\
+                        &= \lim_{T \to +\infty} \frac{1}{4T^2} \int_{-T}^{T}\int_{-T}^{T} E\{[X(t)-\mu][X(s)-\mu]\}\mathrm{d}t\mathrm{d}s 
+                        = \lim_{T \to +\infty} \frac{1}{4T^2} \int_{-T}^{T}\int_{-T}^{T} \gamma(t-s)\mathrm{d}t\mathrm{d}s
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-31">
+        <h2 class="slide-title"><i class="fas fa-pen-nib"></i> 定理 2.3.1 证明 (2/3)</h2>
+        <div class="content-area">
+            <p class="step">在上述二重积分中，做如下变换：</p>
+            <div class="step two-column" style="margin-top: 10px;">
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 30px;">
+                    <p>设 $\begin{cases} \tau = t - s \\ v = t + s \end{cases}$</p>
+                    <p style="margin-top: 15px;">则变换的 Jacobi 行列式的值为：</p>
+                    <div class="math-box" style="font-size: 20px; padding: 10px;">
+                        \[J = \left| \begin{matrix} 1 & -1 \\ 1 & 1 \end{matrix} \right|^{-1} = \frac{1}{2}\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #db2777; padding: 30px;">
+                    <p>积分区域变换为顶点分别在 $\tau$ 轴和 $v$ 轴上的菱形区域 $D$：</p>
+                    <div class="math-box" style="font-size: 20px; padding: 10px;">
+                        \[-2T \le \tau \pm v \le 2T\]
+                    </div>
+                    <p style="margin-top: 10px;">由于 $\gamma(\tau)$ 是偶函数，故进行积分化简。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-32">
+        <h2 class="slide-title"><i class="fas fa-pen-nib"></i> 定理 2.3.1 证明 (3/3)</h2>
+        <div class="content-area">
+            <p class="step">方差积分转换为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="text-align: left; padding: 20px 40px; font-size: 22px;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{Var}(\bar{X}) &= \lim_{T \to +\infty} \frac{1}{4T^2} \cdot \frac{1}{2} \iint_D \gamma(\tau)\mathrm{d}\tau\mathrm{d}v \\
+                    &= \lim_{T \to +\infty} \frac{1}{8T^2} \int_{-2T}^{2T} \gamma(\tau)\mathrm{d}\tau \int_{-(2T-|\tau|)}^{2T-|\tau|} \mathrm{d}v \\
+                    &= \lim_{T \to +\infty} \frac{1}{4T^2} \int_{-2T}^{2T} \gamma(\tau)(2T-|\tau|)\mathrm{d}\tau \\
+                    &= \lim_{T \to +\infty} \frac{1}{2T^2} \int_{0}^{2T} \gamma(\tau)(2T-\tau)\mathrm{d}\tau \\
+                    &= \lim_{T \to +\infty} \frac{1}{T} \int_{0}^{2T} \gamma(\tau)\left(1-\frac{\tau}{2T}\right)\mathrm{d}\tau
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; font-weight: bold; color: #10b981; margin-top: 20px;">
+                关于均值的遍历性定理就化为上式极限是否趋于零的问题。由均方收敛的定义知，这确实是等价的，定理得证。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-33">
+        <h2 class="slide-title"><i class="fas fa-bolt"></i> 均值遍历性定理的推论</h2>
+        <div class="content-area">
+            <p class="step">由此定理可以推出一些判断平稳过程的均值有遍历性的充分条件。</p>
+            <div class="two-column-top" style="margin-top: 15px;">
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 30px;">
+                    <h3 style="font-size: 24px;">推论 2.3.1 (绝对可积)</h3>
+                    <p style="font-size: 20px;">若 $\int_{-\infty}^{+\infty} |\gamma(\tau)| \mathrm{d}\tau < +\infty$，则均值遍历性定理成立。</p>
+                    <p style="font-size: 18px; margin-top: 10px;">证明：$\left| \left(1-\frac{\tau}{2T}\right)\gamma(\tau) \right| \le |\gamma(\tau)|$，因此：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[\frac{1}{T}\left| \int_0^{2T} \dots \right| \le \frac{1}{T}\int_0^{+\infty}|\gamma(\tau)|\mathrm{d}\tau \to 0\]
+                    </div>
+                </div>
+                <div class="step tile" style="border-top-color: #7c3aed; padding: 30px;">
+                    <h3 style="font-size: 24px;">推论 2.3.2 (衰减条件)</h3>
+                    <p style="font-size: 20px;">对于平稳序列而言，若 $\gamma(\tau) \to 0 (\tau \to +\infty)$，则均值遍历性定理成立。</p>
+                    <p style="font-size: 18px; margin-top: 10px;">证明：由 Stolz 定理知：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[\lim_{N\to\infty} \frac{1}{N}\sum_{\tau=0}^{N-1}\gamma(\tau) = \lim_{N\to\infty}\gamma(N-1) = 0\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-34">
+        <h2 class="slide-title"><i class="fas fa-copy"></i> 定理 2.3.2：协方差函数遍历性</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 22px;">对于平稳过程 $\{X(t), t \in T\}$ 的协方差函数的遍历性，考虑随机过程 $Y_\tau(t) = [X(t+\tau)-\mu][X(t)-\mu]$。</p>
+            <p class="step" style="font-size: 22px;">则 $E[Y_\tau(t)] = \gamma(\tau)$。协方差函数 $\gamma(\tau)$ 具有遍历性等价于 $\operatorname{Var}[\bar{\gamma}(\tau)] = 0$。于是有下面的定理。</p>
+            <div class="step tile" style="margin-top: 20px; padding: 30px; border-top-color: #db2777;">
+                <p style="font-size: 22px;"><strong>定理 2.3.2（协方差函数遍历性定理）</strong>设 $X=\{X_t, -\infty < t < +\infty\}$ 是平稳过程，其均值函数为零，则协方差函数具有遍历性的充分必要条件是：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 24px; padding: 20px; border-left-color: #db2777;">
+                        \[\lim_{T \to +\infty} \frac{1}{T} \int_{0}^{2T} \left(1 - \frac{\tau_1}{2T}\right) \left[ B(\tau_1) - \gamma^2(\tau) \right] \mathrm{d}\tau_1 = 0\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; margin-top: 10px;">其中</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 20px; background: transparent; box-shadow: none; color: #1e293b;">
+                        \[B(\tau_1) = E[X(t+\tau+\tau_1)X(t+\tau_1)X(t+\tau)X(t)]\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-35">
+        <h2 class="slide-title"><i class="fas fa-laptop-code"></i> 例 2.3.3：谐波过程的遍历性 (1/2)</h2>
+        <div class="content-area">
+            <p class="step">设 $X(t) = a \cos(wt + \theta)$，$\theta \sim U(0, 2\pi), w \ne 0$，则 $X$ 的均值有遍历性。</p>
+            <div class="step tile" style="margin-top: 15px;">
+                <p><strong>证明：</strong> 首先其均值函数为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 20px; padding: 10px;">
+                        \[E[X(t)] = \frac{1}{2\pi} \int_0^{2\pi} a \cos(wt + \theta) \mathrm{d}\theta = 0\]
+                    </div>
+                </div>
+                <p>其协方差函数为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 20px; text-align: left; padding: 15px;">
+                        \[
+                        \begin{aligned}
+                        E[X(t+\tau)X(t)] &= E\{a^2 \cos[w(t+\tau)+\theta] \cos(wt+\theta)\} \\
+                        &= \frac{a^2}{2\pi} \int_0^{2\pi} \cos[(t+\tau)w+\theta]\cos(tw+\theta)\mathrm{d}\theta \\
+                        &= \frac{a^2}{4\pi} \int_0^{2\pi} \{\cos[(2t+\tau)w+2\theta] + \cos(\tau w)\}\mathrm{d}\theta \\
+                        &= \frac{a^2}{2} \cos(\tau w)
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+                <p style="text-align: center; color: #10b981; font-weight: bold;">所以 $X$ 是平稳过程。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-36">
+    <h2 class="slide-title"><i class="fas fa-laptop-code"></i> 例 2.3.3：谐波过程的遍历性 (2/2)</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <p class="step" style="font-size: 19px !important; line-height: 1.5;">
+            下面验证该谐波过程满足均值遍历性的判定条件。
+        </p>
+
+        <div class="step two-column-top" style="gap: 18px;">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">推导</h3>
+                <div class="math-center" style="margin: 4px 0;">
+                    <div class="math-box" style="font-size: 16px !important; text-align: left; padding: 12px 14px; line-height: 1.45;">
+                        \[
+                        \begin{aligned}
+                        & \frac{1}{T}\int_0^{2T}\left(1-\frac{\tau}{2T}\right)\gamma(\tau)\,\mathrm{d}\tau \\
+                        =& \frac{a^2}{2T}\int_0^{2T}\left(1-\frac{\tau}{2T}\right)\cos(\omega\tau)\,\mathrm{d}\tau \\
+                        =& \frac{a^2}{2T}\cdot\frac{\sin 2T\omega}{\omega}
+                        -\frac{a^2}{4T^2}\int_0^{2T}\tau\cos(\omega\tau)\,\mathrm{d}\tau
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color: #ec4899; padding: 16px 18px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">估计与结论</h3>
+                <p style="font-size: 17px !important; line-height: 1.45;">
+                    由积分第二中值定理可知，存在 \(\xi\in(0,2T)\)，使得
+                </p>
+
+                <div class="math-center" style="margin: 4px 0;">
+                    <div class="math-box" style="font-size: 16px !important; padding: 10px 12px; line-height: 1.45;">
+                        \[
+                        \left|
+                        \int_0^{2T}\tau\cos(\omega\tau)\,\mathrm{d}\tau
+                        \right|
+                        =
+                        \left|
+                        2T\int_{\xi}^{2T}\cos(\omega\tau)\,\mathrm{d}\tau
+                        \right|
+                        \le \frac{4T}{\omega}
+                        \]
+                    </div>
+                </div>
+
+                <p style="font-size: 17px !important; line-height: 1.5; margin-top: 8px;">
+                    将上式代入，并令 \(T\to+\infty\)，可得
+                    \[
+                    \frac{1}{T}\int_0^{2T}\left(1-\frac{\tau}{2T}\right)\gamma(\tau)\,\mathrm{d}\tau \to 0
+                    \]
+                    因此由定理 2.3.1 知，<span style="color:#2563eb; font-weight:bold;">该过程的均值具有遍历性</span>。
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0; padding: 12px 16px;">
+            <p style="font-size: 18px;">
+                直观上：协方差函数经过长期平均后趋于 0，说明远处相关性影响减弱，因此时间平均能够逼近总体均值。
+            </p>
+        </div>
+    </div>
+</div>
+
+    <div class="slide" id="slide-37">
+        <h2 class="slide-title"><i class="fas fa-step-forward"></i> 2.3.2 独立增量过程</h2>
+        <div class="content-area">
+            <p class="step">虽然 $X(t)$ 之间常常不是相互独立的，但许多物理过程在<strong>非重叠时间段上的增量</strong>是相互独立的。</p>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #10b981; padding: 40px;">
+                <h3 style="font-size: 28px; margin-bottom: 20px;">定义 2.3.4</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li><strong>独立增量过程：</strong> 如果对任意 $t_1 < t_2 < \dots < t_n \in T$，随机变量 $X(t_2)-X(t_1), X(t_3)-X(t_2), \dots, X(t_n)-X(t_{n-1})$ 是相互独立的。</li>
+                    <li style="margin-top: 15px;"><strong>平稳增量过程：</strong> 如果对任意 $t_1, t_2$，有 $X(t_1+h) - X(t_1) \stackrel{\mathrm{d}}{=} X(t_2+h) - X(t_2)$。</li>
+                </ul>
+                <p style="margin-top: 20px; font-weight: bold; color: #1e293b; text-align: center;">兼有两者的称为“平稳独立增量过程”。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-38">
+        <h2 class="slide-title"><i class="fas fa-fingerprint"></i> 平稳增量的特征函数判定</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">假设随机过程 $X(t)$ 的特征函数为 $\psi_{X(t)}(a) = E[e^{\mathrm{i} a X(t)}]$，则有如下定理。</p>
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 40px; margin-top: 20px;">
+                <h3 style="font-size: 28px; margin-bottom: 20px;">定理 2.3.3</h3>
+                <p style="font-size: 24px; line-height: 1.8;">设 $\{X(t), t \ge 0\}$ 是一个独立增量过程，则 $X(t)$ 具有平稳增量的<strong>充分必要条件</strong>为：其特征函数具有可乘性，即</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 32px; padding: 25px; border-left-color: #8b5cf6;">
+                        \[\psi_{X(t+s)}(a) = \psi_{X(t)}(a) \psi_{X(s)}(a)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-39">
+        <h2 class="slide-title"><i class="fas fa-pencil-alt"></i> 定理 2.3.3 证明 (充分性)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">必要性显然，下证充分性。</p>
+            <div class="step tile" style="margin-top: 20px; padding: 40px;">
+                <p style="font-size: 22px;">由独立增量性，有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; text-align: left; padding: 20px 40px;">
+                        \[
+                        \begin{aligned}
+                        \psi_{X(t)}(a) \psi_{X(s)}(a) &= \psi_{X(t+s)}(a) \\
+                        &= E[e^{\mathrm{i} a X(t+s)}] \\
+                        &= E[e^{\mathrm{i} a (X(t+s) - X(s) + X(s))}] \\
+                        &= E\{e^{\mathrm{i} a [X(t+s) - X(s)]}\} E[e^{\mathrm{i} a X(s)}] \quad \text{(独立性)} \\
+                        &= E\{e^{\mathrm{i} a [X(t+s) - X(s)]}\} \psi_{X(s)}(a)
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-40">
+        <h2 class="slide-title"><i class="fas fa-pencil-alt"></i> 定理 2.3.3 证明续与本节启示</h2>
+        <div class="content-area">
+            <div class="step tile" style="margin-top: 20px; padding: 40px;">
+                <p style="font-size: 24px;">由此可得：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; border-left-color: #10b981; padding: 20px;">
+                        \[E\{e^{\mathrm{i} a [X(t+s) - X(s)]}\} = \psi_{X(t)}(a) = E[e^{\mathrm{i} a X(t)}]\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; text-align: center; color: #10b981; font-weight: bold; margin-top: 20px;">即该过程具有平稳增量！</p>
+            </div>
+            <div class="step info-box" style="margin-top: 30px;">
+                <p><i class="fas fa-lightbulb"></i> 启示：</p>
+                <span style="font-size: 22px; color: #334155;">不难证明，平稳独立增量过程的均值函数一定是时间 $t$ 的线性函数。本书后面将要介绍的 Poisson 过程和 Brown 运动都是这类过程。这两类过程是随机过程理论中的两个最重要的基石。</span>
+            </div>
+        </div>
+    </div>
+  
+  
+   
+
+
+    <div class="slide" id="slide-45">
+    <h2 class="slide-title"><i class="fas fa-shoe-prints"></i> 课堂例题：随机游走过程</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 20px 22px;">
+            
+            <p style="font-size: 19px !important; line-height: 1.55;">
+                设\(
+                X_0=0,\qquad X_n=\xi_1+\xi_2+\cdots+\xi_n,\quad n=1,2,\dots
+                \)
+                其中 \(\xi_1,\xi_2,\dots\) 相互独立且同分布。
+                证明：\(\{X_n,n\ge 0\}\) 是一个<strong>平稳独立增量过程</strong>。
+            </p>
+        </div>
+
+        <div class="step tile" style="border-top-color: #db2777; padding: 20px 22px;">
+            <h3 style="font-size: 24px; margin-bottom: 10px;">先证独立增量</h3>
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                任取
+                \(
+                0\le n_0 \lt n_1 \lt n_2 \lt \cdots \lt n_r,
+                \)
+                对应增量为
+                \[
+                X_{n_1}-X_{n_0},\quad X_{n_2}-X_{n_1},\quad \dots,\quad X_{n_r}-X_{n_{r-1}}.
+                \]
+            </p>
+
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                由于
+                \[
+                X_{n_1}-X_{n_0}=\xi_{n_0+1}+\cdots+\xi_{n_1},
+                \]
+                \[
+                X_{n_2}-X_{n_1}=\xi_{n_1+1}+\cdots+\xi_{n_2},
+                \]
+                依此类推，每个增量都由一段<strong>互不重叠</strong>的 \(\xi_k\) 之和构成。
+            </p>
+
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                而 \(\xi_1,\xi_2,\dots\) 相互独立，因此这些增量相互独立，
+                所以 \(\{X_n\}\) 具有<strong>独立增量</strong>。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin: 0;">
+            <p style="font-size: 19px;">下一步：利用特征函数的可乘性，证明它还具有平稳增量。</p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-46">
+    <h2 class="slide-title"><i class="fas fa-function"></i> 利用特征函数证明平稳增量</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <div class="step tile" style="border-top-color: #2563eb; padding: 20px 22px;">
+            <h3 style="font-size: 24px; margin-bottom: 10px;">证明平稳增量</h3>
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                对任意 \(0\le m \lt n\)，有
+                \(
+                X_n-X_m=\xi_{m+1}+\xi_{m+2}+\cdots+\xi_n.
+                \)
+                设每个 \(\xi_k\) 的特征函数为
+                \[
+                \varphi_\xi(u)=E(e^{iu\xi_1}).
+                \]
+            </p>
+
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                则由特征函数的可乘性，
+            </p>
+
+            <div class="math-center" style="margin: 6px 0;">
+                <div class="math-box" style="font-size: 18px !important; padding: 10px 14px; line-height: 1.45;">
+                    \[
+                    \varphi_{X_n-X_m}(u)
+                    =
+                    E\left(e^{iu(X_n-X_m)}\right)
+                    =
+                    \prod_{k=m+1}^{n}\varphi_\xi(u)
+                    =
+                    \big(\varphi_\xi(u)\big)^{\,n-m}
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                注意：该式只与 \(n-m\) 有关，而与起点 \(m\) 无关。
+            </p>
+
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                因此若
+                \(
+                n-m=q-p,
+                \)
+                则有
+                \[
+                \varphi_{X_n-X_m}(u)=\varphi_{X_q-X_p}(u).
+                \]
+                由特征函数唯一性可知
+                \[
+                X_n-X_m \overset{d}= X_q-X_p.
+                \]
+                所以 \(\{X_n\}\) 具有<strong>平稳增量</strong>。
+            </p>
+        </div>
+
+        <div class="step tile" style="border-top-color: #db2777; padding: 18px 20px;">
+            <h3 style="font-size: 22px; margin-bottom: 8px;">结论</h3>
+            <p style="font-size: 18px !important; line-height: 1.5;">
+                由于 \(\{X_n\}\) 同时具有<strong>独立增量</strong>与<strong>平稳增量</strong>，
+                因而
+                \[
+                \{X_n,n\ge 0\}
+                \]
+                是一个<strong>平稳独立增量过程</strong>。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin: 0;">
+            <p style="font-size: 19px;">
+                直观上：随机游走在任意长度相同的时间段里，其“总变化量”分布相同，而且不同时间段的变化彼此独立。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+    <div class="slide" id="slide-44">
+    <h2 class="slide-title"><i class="fas fa-clock"></i> 时齐、平稳增量与独立平稳增量过程</h2>
+    <div class="content-area" style="gap: 10px;">
+
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 18px 20px;">
+            <h3 style="font-size: 23px; margin-bottom: 8px;">时齐（齐次）过程</h3>
+            <p style="font-size: 18px !important; line-height: 1.55;">
+                设 \(\{X_t\}\) 是独立增量过程，若对任意的 \(t,t+\tau\in T\)，
+                增量
+                \[
+                X_{t+\tau}-X_t
+                \]
+                的概率分布只依赖于 \(\tau\) 而与 \(t\) 无关，则称随机过程
+                \(\{X_t\}\) 为<strong>齐次的</strong>或称<strong>时齐的</strong> 
+                （增量分布只与\(\tau\) 有关，而与时间起点\(t\)无关）。
+            </p>
+
+        </div>
+
+        <div class="step two-column-top" style="gap: 18px;">
+            <div class="tile" style="border-top-color: #2563eb; padding: 18px 20px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">平稳增量</h3>
+                <p style="font-size: 17px !important; line-height: 1.5;">
+                    若只要时间间隔 \(\tau\) 相同，那么增量服从的分布也相同，
+                    则称此过程具有<strong>平稳性</strong>（或称<strong>平稳增量</strong>）。
+                </p>
+                <p style="font-size: 17px !important; line-height: 1.5; margin-top: 8px;">
+                    也就是说，长度相同的两个时间区间，其增量分布相同。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #db2777; padding: 18px 20px;">
+                <h3 style="font-size: 22px; margin-bottom: 8px;">独立平稳增量过程</h3>
+                <p style="font-size: 17px !important; line-height: 1.5;">
+                    同时具有<strong>独立增量</strong>和<strong>平稳增量</strong>的过程
+                    \(\{X_t\}\)，称为<strong>独立平稳增量过程</strong>。
+                </p>
+                <p style="font-size: 17px !important; line-height: 1.5; margin-top: 8px;">
+                    常见的独立平稳增量过程有：
+                    <strong>Poisson 过程</strong> 和 <strong>Wiener（维纳）过程</strong>。
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin: 0;">
+            <p style="font-size: 19px;">
+                记忆：时齐强调“与起点无关”，平稳增量强调“只由时间间隔决定”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+    <!-- Slide 41: 课程总结 & 课后思考 -->
+    <div class="slide" id="slide-41">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第2章 课程总结与思考</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 35px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #2563eb;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 24px;">
+                    <li><span class="highlight-blue">基本概念：</span> 随机过程是定义在概率空间上的随机变量族，具有有限维分布族的对称性与相容性 (Kolmogorov定理)。</li>
+                    <li><span class="highlight-blue">平稳过程：</span> 均值不变，协方差仅依赖时间间隔。遍历性刻画了“时间平均等于空间平均”的条件。</li>
+                    <li><span class="highlight-blue">独立增量过程：</span> 不重叠时间段的增量独立。平稳增量可用特征函数可乘性判定。</li>
+                </ul>
+            </div>
+            
+            
+            <div class="step math-center" style="margin-top: 20px;">
+     <a href="https://mooc2-ans.chaoxing.com/mooc2-ans/mycourse/tch?courseid=262091860&clazzid=143392832&cpi=468232648&enc=68f98576c3108408264deda2ba965265&t=1774884421185&pageHeader=6&v=2&hideHead=0"
+       class="hw-btn"
+       target="_blank"
+       style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 35px; border-radius: 50px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); border: none; cursor: pointer;">
+        <i class="fas fa-laptop-code"></i> 本章作业 (Homework)
+    </a>
+</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progressBar = document.getElementById('progress-bar');
+        const slideCounter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+        let isSlideshowMode = false;
+
+        slides.forEach((slide, index) => {
+            slide.dataset.index = index;
+        });
+
+        function setBrowseVisibility() {
+            slides.forEach(slide => {
+                slide.classList.remove('active');
+                slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+            });
+        }
+
+        function setSlideInitialState(index) {
+            slides[index].querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+        }
+
+        function updateProgress() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progressBar.style.width = `${percent}%`;
+            slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function showSlide(index, resetSteps = true) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', isSlideshowMode && i === currentSlideIndex);
+            });
+            if (isSlideshowMode && resetSteps) {
+                setSlideInitialState(currentSlideIndex);
+            }
+            updateProgress();
+        }
+
+        function updateScale() {
+            if (!isSlideshowMode) {
+                container.style.transform = '';
+                return;
+            }
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function getCurrentBrowseSlideIndex() {
+            const viewportCenter = window.innerHeight / 2;
+            let bestIndex = currentSlideIndex;
+            let bestDistance = Infinity;
+            slides.forEach((slide, index) => {
+                const rect = slide.getBoundingClientRect();
+                const center = rect.top + rect.height / 2;
+                const distance = Math.abs(center - viewportCenter);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = index;
+                }
+            });
+            return bestIndex;
+        }
+
+        function enterSlideshow(startIndex = currentSlideIndex) {
+            currentSlideIndex = Math.max(0, Math.min(startIndex, slides.length - 1));
+            isSlideshowMode = true;
+            body.classList.add('slideshow-mode');
+            slides.forEach(slide => slide.classList.remove('active'));
+            showSlide(currentSlideIndex, true);
+            updateScale();
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        function exitSlideshow() {
+            isSlideshowMode = false;
+            body.classList.remove('slideshow-mode');
+            container.style.transform = '';
+            setBrowseVisibility();
+            slides[currentSlideIndex].scrollIntoView({ behavior: 'auto', block: 'start' });
+        }
+
+        function advance() {
+            if (!isSlideshowMode) return;
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1, true);
+            }
+        }
+
+        function goBack() {
+            if (!isSlideshowMode) return;
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                currentSlideIndex -= 1;
+                slides.forEach((slide, i) => slide.classList.toggle('active', i === currentSlideIndex));
+                slides[currentSlideIndex].querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+                updateProgress();
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!isSlideshowMode) return;
+            if (e.target.closest('a, button, input, label, textarea, select')) return;
+            advance();
+        }, true);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                const startIndex = isSlideshowMode ? currentSlideIndex : getCurrentBrowseSlideIndex();
+                enterSlideshow(startIndex);
+                return;
+            }
+            if (e.key === 'Escape' && isSlideshowMode) {
+                e.preventDefault();
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => exitSlideshow());
+                } else {
+                    exitSlideshow();
+                }
+                return;
+            }
+            if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                if (isSlideshowMode) {
+                    e.preventDefault();
+                    advance();
+                }
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                if (isSlideshowMode) {
+                    e.preventDefault();
+                    goBack();
+                }
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isSlideshowMode) {
+                exitSlideshow();
+            } else if (document.fullscreenElement && isSlideshowMode) {
+                updateScale();
+            }
+        });
+
+        window.addEventListener('resize', updateScale);
+        window.addEventListener('scroll', () => {
+            if (!isSlideshowMode) currentSlideIndex = getCurrentBrowseSlideIndex();
+        }, { passive: true });
+
+        setBrowseVisibility();
+        currentSlideIndex = 0;
+        updateProgress();
+    });
+
+
+    const maxStepsSlide7 = 50;
+    const xStepPxSlide7 = 600 / maxStepsSlide7;
+    const yUnitPxGraphSlide7 = 10;
+    const originYSlide7 = 150;
+
+    const spaceOriginXSlide7 = 200;
+    const spaceUnitPxSlide7 = 20;
+
+    let currentStepSlide7 = 0;
+    let currentPosSlide7 = 0;
+    let pathPointsSlide7 = "";
+    let animIntervalSlide7;
+    let probPSlide7 = 0.5;
+
+    const pathElSlide7 = document.getElementById('random-path-slide7');
+    const headElSlide7 = document.getElementById('path-head-slide7');
+    const drunkardElSlide7 = document.getElementById('drunkard-slide7');
+    const posTextSlide7 = document.getElementById('current-pos-slide7');
+    const stepTextSlide7 = document.getElementById('current-step-slide7');
+    const btnLeftSlide7 = document.getElementById('btn-left-slide7');
+    const btnRightSlide7 = document.getElementById('btn-right-slide7');
+
+    function updateProbDisplaySlide7() {
+        const slider = document.getElementById('probSlider-slide7');
+        const display = document.getElementById('probDisplay-slide7');
+        probPSlide7 = parseFloat(slider.value);
+        display.innerText = probPSlide7.toFixed(1);
+    }
+
+    function startSimulationSlide7() {
+        if (!pathElSlide7) return;
+
+        clearInterval(animIntervalSlide7);
+        currentStepSlide7 = 0;
+        currentPosSlide7 = 0;
+        pathPointsSlide7 = `0,${originYSlide7}`;
+
+        pathElSlide7.setAttribute("points", pathPointsSlide7);
+        headElSlide7.setAttribute("cx", 0);
+        headElSlide7.setAttribute("cy", originYSlide7);
+        drunkardElSlide7.setAttribute("transform", `translate(${spaceOriginXSlide7}, 75)`);
+
+        posTextSlide7.innerText = `X₀ = 0`;
+        stepTextSlide7.innerText = `Step: 0`;
+
+        btnLeftSlide7.style.background = "#ffffff";
+        btnLeftSlide7.style.borderColor = "#d1d5db";
+        btnLeftSlide7.style.color = "#9ca3af";
+
+        btnRightSlide7.style.background = "#ffffff";
+        btnRightSlide7.style.borderColor = "#d1d5db";
+        btnRightSlide7.style.color = "#9ca3af";
+
+        animIntervalSlide7 = setInterval(() => {
+            if (currentStepSlide7 >= maxStepsSlide7) {
+                clearInterval(animIntervalSlide7);
+                return;
+            }
+
+            currentStepSlide7++;
+
+            const stepVal = Math.random() < probPSlide7 ? 1 : -1;
+            currentPosSlide7 += stepVal;
+
+            if (stepVal === 1) {
+                btnRightSlide7.style.background = "#e0e7ff";
+                btnRightSlide7.style.borderColor = "#818cf8";
+                btnRightSlide7.style.color = "#4338ca";
+
+                btnLeftSlide7.style.background = "#ffffff";
+                btnLeftSlide7.style.borderColor = "#d1d5db";
+                btnLeftSlide7.style.color = "#9ca3af";
+            } else {
+                btnLeftSlide7.style.background = "#e0e7ff";
+                btnLeftSlide7.style.borderColor = "#818cf8";
+                btnLeftSlide7.style.color = "#4338ca";
+
+                btnRightSlide7.style.background = "#ffffff";
+                btnRightSlide7.style.borderColor = "#d1d5db";
+                btnRightSlide7.style.color = "#9ca3af";
+            }
+
+            const spaceX = spaceOriginXSlide7 + currentPosSlide7 * spaceUnitPxSlide7;
+            const clampedSpaceX = Math.max(20, Math.min(380, spaceX));
+            drunkardElSlide7.setAttribute("transform", `translate(${clampedSpaceX}, 75)`);
+
+            posTextSlide7.innerText = `X${toSubscriptSlide7(currentStepSlide7)} = ${currentPosSlide7}`;
+            stepTextSlide7.innerText = `Step: ${currentStepSlide7}`;
+
+            const graphX = currentStepSlide7 * xStepPxSlide7;
+            const graphY = originYSlide7 - currentPosSlide7 * yUnitPxGraphSlide7;
+
+            pathPointsSlide7 += ` ${graphX},${graphY}`;
+            pathElSlide7.setAttribute("points", pathPointsSlide7);
+            headElSlide7.setAttribute("cx", graphX);
+            headElSlide7.setAttribute("cy", graphY);
+
+        }, 250);
+    }
+
+    function toSubscriptSlide7(n) {
+        const subs = ['₀', '₁', '₂', '₃', '₄', '₅', '₆', '₇', '₈', '₉'];
+        return n.toString().split('').map(c => subs[parseInt(c)]).join('');
+    }
+
+    window.addEventListener('load', () => {
+        updateProbDisplaySlide7();
+        setTimeout(startSimulationSlide7, 800);
+    });
+</script>
+<script>
+    function randomGaussianSlide9(mean = 0, stdDev = 1) {
+        let u1 = Math.random();
+        let u2 = Math.random();
+        while (u1 === 0) u1 = Math.random();
+        const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+        return z0 * stdDev + mean;
+    }
+
+    const MAX_POINTS_SLIDE9 = 800;
+    let sigmaSlide9 = 1.5;
+    let pathDataSlide9 = [];
+    let animationIdSlide9 = null;
+
+    const canvas2dSlide9 = document.getElementById('canvas2d-slide9');
+    const canvasXSlide9 = document.getElementById('canvasX-slide9');
+    const canvasYSlide9 = document.getElementById('canvasY-slide9');
+    const particleElSlide9 = document.getElementById('particle-slide9');
+
+    const ctx2dSlide9 = canvas2dSlide9 ? canvas2dSlide9.getContext('2d') : null;
+    const ctxXSlide9 = canvasXSlide9 ? canvasXSlide9.getContext('2d') : null;
+    const ctxYSlide9 = canvasYSlide9 ? canvasYSlide9.getContext('2d') : null;
+
+    function resizeCanvasesSlide9() {
+        if (!canvasXSlide9 || !canvasYSlide9) return;
+
+        canvasXSlide9.width = canvasXSlide9.clientWidth;
+        canvasXSlide9.height = canvasXSlide9.clientHeight;
+
+        canvasYSlide9.width = canvasYSlide9.clientWidth;
+        canvasYSlide9.height = canvasYSlide9.clientHeight;
+    }
+
+    function updateTempDisplaySlide9() {
+        const slider = document.getElementById('tempSlider-slide9');
+        const display = document.getElementById('tempDisplay-slide9');
+        sigmaSlide9 = parseFloat(slider.value);
+        display.innerText = sigmaSlide9.toFixed(1);
+    }
+
+    function resetSimulationSlide9() {
+        if (!canvas2dSlide9 || !ctx2dSlide9 || !ctxXSlide9 || !ctxYSlide9) return;
+
+        cancelAnimationFrame(animationIdSlide9);
+        resizeCanvasesSlide9();
+
+        const startX = 160;
+        const startY = 160;
+
+        pathDataSlide9 = [{ x: startX, y: startY, rx: 0, ry: 0 }];
+
+        ctx2dSlide9.clearRect(0, 0, canvas2dSlide9.width, canvas2dSlide9.height);
+        ctxXSlide9.clearRect(0, 0, canvasXSlide9.width, canvasXSlide9.height);
+        ctxYSlide9.clearRect(0, 0, canvasYSlide9.width, canvasYSlide9.height);
+
+        particleElSlide9.style.left = startX + 'px';
+        particleElSlide9.style.top = startY + 'px';
+
+        animateSlide9();
+    }
+
+    function animateSlide9() {
+        const lastPoint = pathDataSlide9[pathDataSlide9.length - 1];
+
+        const dx = randomGaussianSlide9(0, sigmaSlide9);
+        const dy = randomGaussianSlide9(0, sigmaSlide9);
+
+        let newX = lastPoint.x + dx;
+        let newY = lastPoint.y + dy;
+
+        const r = Math.sqrt(Math.pow(newX - 160, 2) + Math.pow(newY - 160, 2));
+        if (r > 145) {
+            newX = lastPoint.x - dx * 0.5;
+            newY = lastPoint.y - dy * 0.5;
+        }
+
+        const rawX = lastPoint.rx + dx;
+        const rawY = lastPoint.ry + dy;
+
+        pathDataSlide9.push({ x: newX, y: newY, rx: rawX, ry: rawY });
+
+        if (pathDataSlide9.length > MAX_POINTS_SLIDE9) {
+            pathDataSlide9.shift();
+        }
+
+        draw2DSlide9();
+        drawGraphSlide9(ctxXSlide9, canvasXSlide9, pathDataSlide9.map(p => p.rx), '#e11d48');
+        drawGraphSlide9(ctxYSlide9, canvasYSlide9, pathDataSlide9.map(p => p.ry), '#2563eb');
+
+        particleElSlide9.style.left = newX + 'px';
+        particleElSlide9.style.top = newY + 'px';
+
+        animationIdSlide9 = requestAnimationFrame(animateSlide9);
+    }
+
+    function draw2DSlide9() {
+        ctx2dSlide9.clearRect(0, 0, canvas2dSlide9.width, canvas2dSlide9.height);
+        ctx2dSlide9.beginPath();
+        ctx2dSlide9.moveTo(pathDataSlide9[0].x, pathDataSlide9[0].y);
+        for (let i = 1; i < pathDataSlide9.length; i++) {
+            ctx2dSlide9.lineTo(pathDataSlide9[i].x, pathDataSlide9[i].y);
+        }
+        ctx2dSlide9.strokeStyle = 'rgba(245,158,11,0.45)';
+        ctx2dSlide9.lineWidth = 1.5;
+        ctx2dSlide9.stroke();
+    }
+
+    function drawGraphSlide9(ctx, canvas, dataStream, color) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const midY = canvas.height / 2;
+        ctx.beginPath();
+        ctx.moveTo(0, midY);
+        ctx.lineTo(canvas.width, midY);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (dataStream.length < 2) return;
+
+        const stepX = canvas.width / MAX_POINTS_SLIDE9;
+        const startIdx = Math.max(0, MAX_POINTS_SLIDE9 - dataStream.length);
+
+        let maxDev = 10;
+        for (const val of dataStream) {
+            if (Math.abs(val) > maxDev) maxDev = Math.abs(val);
+        }
+        const scaleY = (canvas.height / 2 - 10) / maxDev;
+
+        ctx.beginPath();
+        for (let i = 0; i < dataStream.length; i++) {
+            const px = (startIdx + i) * stepX;
+            const py = midY - dataStream[i] * scaleY;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const lastX = (startIdx + dataStream.length - 1) * stepX;
+        const lastY = midY - dataStream[dataStream.length - 1] * scaleY;
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    window.addEventListener('load', () => {
+        updateTempDisplaySlide9();
+        resizeCanvasesSlide9();
+        setTimeout(resetSimulationSlide9, 500);
+    });
+
+    window.addEventListener('resize', () => {
+        resetSimulationSlide9();
+    });
+</script>
+<script>
+    let lambdaSlide10 = 0.05;
+    let muSlide10 = 0.08;
+
+    let tSlide10 = 0;
+    let queueSlide10 = 0;
+    let serverBusySlide10 = false;
+
+    let historySlide10 = [{ time: 0, x: 0 }];
+    const MAX_HISTORY_POINTS_SLIDE10 = 300;
+    const MAX_QUEUE_VISUAL_SLIDE10 = 25;
+
+    const queueContainerSlide10 = document.getElementById('queue-container-slide10');
+    const overflowWarningSlide10 = document.getElementById('overflow-warning-slide10');
+    const serverBoxSlide10 = document.getElementById('server-box-slide10');
+    const serverStatusSlide10 = document.getElementById('server-status-slide10');
+    const processingBlockSlide10 = document.getElementById('processing-block-slide10');
+    const timeDisplaySlide10 = document.getElementById('time-display-slide10');
+    const xtDisplaySlide10 = document.getElementById('xt-display-slide10');
+    const canvasSlide10 = document.getElementById('graph-canvas-slide10');
+    const ctxSlide10 = canvasSlide10 ? canvasSlide10.getContext('2d') : null;
+
+    let simIntervalSlide10 = null;
+
+    function resizeCanvasSlide10() {
+        if (!canvasSlide10) return;
+        canvasSlide10.width = canvasSlide10.clientWidth;
+        canvasSlide10.height = canvasSlide10.clientHeight;
+        drawGraphSlide10();
+    }
+
+    function updateRatesSlide10() {
+        lambdaSlide10 = parseFloat(document.getElementById('lambdaSlider-slide10').value);
+        muSlide10 = parseFloat(document.getElementById('muSlider-slide10').value);
+        document.getElementById('lambdaDisplay-slide10').innerText = lambdaSlide10.toFixed(2);
+        document.getElementById('muDisplay-slide10').innerText = muSlide10.toFixed(2);
+    }
+
+    function resetSimulationSlide10() {
+        tSlide10 = 0;
+        queueSlide10 = 0;
+        serverBusySlide10 = false;
+        historySlide10 = [{ time: 0, x: 0 }];
+        updateVisualsSlide10();
+        drawGraphSlide10();
+    }
+
+    function createQueueBlockSlide10() {
+        const block = document.createElement('div');
+        block.style.width = '24px';
+        block.style.height = '24px';
+        block.style.background = '#a78bfa';
+        block.style.border = '1px solid #8b5cf6';
+        block.style.borderRadius = '6px';
+        block.style.boxShadow = '0 2px 6px rgba(139,92,246,0.18)';
+        block.style.flexShrink = '0';
+        block.style.opacity = '0';
+        block.style.transform = 'translateX(-12px)';
+        block.style.transition = 'all 0.25s ease';
+        requestAnimationFrame(() => {
+            block.style.opacity = '1';
+            block.style.transform = 'translateX(0)';
+        });
+        return block;
+    }
+
+    function updateVisualsSlide10() {
+        queueContainerSlide10.innerHTML = '';
+        const visualQueueCount = Math.min(queueSlide10, MAX_QUEUE_VISUAL_SLIDE10);
+        for (let i = 0; i < visualQueueCount; i++) {
+            queueContainerSlide10.appendChild(createQueueBlockSlide10());
+        }
+
+        overflowWarningSlide10.style.opacity = queueSlide10 >= MAX_QUEUE_VISUAL_SLIDE10 ? '1' : '0';
+
+        if (serverBusySlide10) {
+            serverBoxSlide10.style.background = '#f5f3ff';
+            serverBoxSlide10.style.borderColor = '#a78bfa';
+            serverBoxSlide10.style.boxShadow = '0 0 18px rgba(139,92,246,0.35)';
+            serverStatusSlide10.style.display = 'none';
+            processingBlockSlide10.style.display = 'flex';
+        } else {
+            serverBoxSlide10.style.background = '#ffffff';
+            serverBoxSlide10.style.borderColor = '#cbd5e1';
+            serverBoxSlide10.style.boxShadow = 'none';
+            serverStatusSlide10.style.display = 'block';
+            processingBlockSlide10.style.display = 'none';
+        }
+
+        const currentX = queueSlide10 + (serverBusySlide10 ? 1 : 0);
+        timeDisplaySlide10.innerText = (tSlide10 / 10).toFixed(1);
+        xtDisplaySlide10.innerText = currentX;
+    }
+
+    function drawGraphSlide10() {
+        if (!ctxSlide10 || !canvasSlide10) return;
+
+        ctxSlide10.clearRect(0, 0, canvasSlide10.width, canvasSlide10.height);
+        if (historySlide10.length === 0) return;
+
+        const padX = 42;
+        const padY = 30;
+        const width = canvasSlide10.width - padX * 2;
+        const height = canvasSlide10.height - padY * 2;
+        const originY = canvasSlide10.height - padY;
+
+        ctxSlide10.beginPath();
+        ctxSlide10.moveTo(padX, padY / 2);
+        ctxSlide10.lineTo(padX, originY);
+        ctxSlide10.lineTo(canvasSlide10.width - padX / 2, originY);
+        ctxSlide10.strokeStyle = '#94a3b8';
+        ctxSlide10.lineWidth = 2;
+        ctxSlide10.stroke();
+
+        ctxSlide10.fillStyle = '#64748b';
+        ctxSlide10.font = 'bold 12px sans-serif';
+        ctxSlide10.fillText('t', canvasSlide10.width - padX, originY + 20);
+        ctxSlide10.fillText('X(t)', padX - 28, padY);
+
+        let maxX = 5;
+        for (const h of historySlide10) {
+            if (h.x > maxX) maxX = h.x;
+        }
+        maxX += 2;
+
+        const scaleY = height / maxX;
+        const timeWindow = MAX_HISTORY_POINTS_SLIDE10;
+        const startTime = Math.max(0, tSlide10 - timeWindow);
+        const scaleX = width / timeWindow;
+
+        ctxSlide10.beginPath();
+        for (let i = 1; i <= maxX; i += (maxX > 20 ? 5 : 1)) {
+            const y = originY - i * scaleY;
+            ctxSlide10.moveTo(padX, y);
+            ctxSlide10.lineTo(canvasSlide10.width - padX, y);
+            ctxSlide10.fillText(i, padX - 20, y + 4);
+        }
+        ctxSlide10.strokeStyle = '#e2e8f0';
+        ctxSlide10.lineWidth = 1;
+        ctxSlide10.stroke();
+
+        ctxSlide10.beginPath();
+        let isFirst = true;
+
+        for (let i = 0; i < historySlide10.length; i++) {
+            const point = historySlide10[i];
+            if (point.time < startTime) continue;
+
+            const px = padX + (point.time - startTime) * scaleX;
+            const py = originY - point.x * scaleY;
+
+            if (isFirst) {
+                ctxSlide10.moveTo(px, py);
+                isFirst = false;
+            } else {
+                const prevPoint = historySlide10[i - 1];
+                const prevPy = originY - prevPoint.x * scaleY;
+                ctxSlide10.lineTo(px, prevPy);
+                ctxSlide10.lineTo(px, py);
+            }
+        }
+
+        if (!isFirst) {
+            const lastPoint = historySlide10[historySlide10.length - 1];
+            const currentPx = padX + (tSlide10 - startTime) * scaleX;
+            const lastPy = originY - lastPoint.x * scaleY;
+            ctxSlide10.lineTo(currentPx, lastPy);
+        }
+
+        ctxSlide10.strokeStyle = '#e11d48';
+        ctxSlide10.lineWidth = 2;
+        ctxSlide10.stroke();
+
+        if (!isFirst) {
+            const currentPx = padX + (tSlide10 - startTime) * scaleX;
+            const currentXval = queueSlide10 + (serverBusySlide10 ? 1 : 0);
+            const currentPy = originY - currentXval * scaleY;
+            ctxSlide10.beginPath();
+            ctxSlide10.arc(currentPx, currentPy, 4, 0, Math.PI * 2);
+            ctxSlide10.fillStyle = '#e11d48';
+            ctxSlide10.fill();
+        }
+    }
+
+    function simulationLoopSlide10() {
+        tSlide10++;
+        let stateChanged = false;
+        const currentX = queueSlide10 + (serverBusySlide10 ? 1 : 0);
+
+        if (serverBusySlide10 && Math.random() < muSlide10) {
+            serverBusySlide10 = false;
+            stateChanged = true;
+        }
+
+        if (Math.random() < lambdaSlide10) {
+            queueSlide10++;
+            stateChanged = true;
+        }
+
+        if (!serverBusySlide10 && queueSlide10 > 0) {
+            queueSlide10--;
+            serverBusySlide10 = true;
+            stateChanged = true;
+        }
+
+        const newX = queueSlide10 + (serverBusySlide10 ? 1 : 0);
+
+        if (newX !== currentX) {
+            historySlide10.push({ time: tSlide10, x: newX });
+            if (historySlide10.length > MAX_HISTORY_POINTS_SLIDE10 + 50) {
+                historySlide10.shift();
+            }
+        }
+
+        if (stateChanged || tSlide10 % 2 === 0) {
+            updateVisualsSlide10();
+            drawGraphSlide10();
+        }
+    }
+
+    window.addEventListener('load', () => {
+        updateRatesSlide10();
+        resizeCanvasSlide10();
+        updateVisualsSlide10();
+
+        if (simIntervalSlide10) clearInterval(simIntervalSlide10);
+        simIntervalSlide10 = setInterval(simulationLoopSlide10, 50);
+    });
+
+    window.addEventListener('resize', () => {
+        resizeCanvasSlide10();
+    });
+</script>
+</body>
+</html>
