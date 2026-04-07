@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计导论</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide::before { display: none; }
+
+        .title-slide h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 72px;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .title-slide p {
+            color: #94a3b8;
+            font-size: 32px;
+            font-weight: 300;
+        }
+
+        .title-slide .badge {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid #3b82f6;
+            color: #60a5fa;
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-size: 20px;
+            margin-bottom: 40px;
+            display: inline-block;
+        }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 42px;
+            color: #1e293b;
+            margin: 50px 80px 20px 80px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        .slide-title i { color: #3b82f6; }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 35px 80px 75px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        p {
+            font-size: 24px;
+            color: #334155;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .bullet-list {
+            list-style: none;
+            margin-left: 10px;
+        }
+
+        .bullet-list li {
+            font-size: 22px;
+            color: #475569;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 35px;
+            line-height: 1.5;
+        }
+
+        .bullet-list li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 5px;
+            color: #3b82f6;
+            font-size: 22px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .two-column-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: flex-start;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tiled-content {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            width: 100%;
+        }
+
+        .tile {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            border-top: 5px solid #3b82f6;
+        }
+
+        .tile h3 {
+            font-size: 26px;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .tile p {
+            font-size: 18px;
+            margin-bottom: 0;
+            color: #64748b;
+        }
+
+        .image-wrapper {
+            width: 100%;
+            height: 380px;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #f8fafc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #cbd5e1;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .math-box {
+            background: #1e293b;
+            color: #a5b4fc;
+            padding: 20px;
+            border-radius: 12px;
+            font-family: monospace;
+            font-size: 22px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+            text-align: center;
+            border: none;
+        }
+
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+
+        .btn-corner {
+            position: absolute;
+            right: 40px;
+            bottom: 28px;
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.2;
+            z-index: 20;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-corner:hover {
+            background-color: #2563eb;
+        }
+
+        .footer {
+            position: absolute;
+            right: 38px;
+            bottom: 20px;
+            font-size: 18px;
+            color: #94a3b8;
+            z-index: 12;
+            font-weight: 700;
+        }
+
+        .divider {
+            width: 120px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #60a5fa, #c084fc);
+            margin: 28px auto 24px auto;
+        }
+
+        .example-box {
+            background: #eff6ff;
+            border-left: 6px solid #3b82f6;
+            padding: 24px 28px;
+            border-radius: 12px;
+            margin-top: 24px;
+        }
+
+        .example-box p {
+            margin-bottom: 12px;
+        }
+
+        .example-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        @page {
+            size: 13.333in 7.5in;
+            margin: 0;
+        }
+
+        @media print {
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                width: auto !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            body {
+                display: block !important;
+            }
+
+            .slide {
+                display: block !important;
+                width: 13.333in !important;
+                height: 7.5in !important;
+                margin: 0.12in auto 0 auto !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                overflow: hidden !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .slide + .slide {
+                page-break-before: always !important;
+                break-before: page !important;
+            }
+        }
+
+        /* ===== 放映模式 ===== */
+        .deck {
+            position: relative;
+            width: 100%;
+        }
+
+        .slides-viewport {
+            width: 100%;
+        }
+
+        .slides-track {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide-wrap {
+            width: 1280px;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            display: none;
+        }
+
+        body.presentation-mode {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #000 !important;
+            overflow: hidden !important;
+            display: block !important;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .deck {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slides-viewport {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slides-track {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        body.presentation-mode .slide-wrap {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        body.presentation-mode .slide-wrap.active-slide {
+            display: block;
+        }
+
+        body.presentation-mode .slide {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            margin: 0 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .btn-corner {
+            z-index: 40;
+        }
+    </style>
+</head>
+<body>
+
+<div class="deck">
+    <button class="nav-btn prev" aria-label="上一页"><i class="fas fa-chevron-left"></i></button>
+
+    <div class="slides-viewport">
+        <div class="slides-track" id="slidesTrack">
+
+            <section class="slide-wrap">
+                <div class="slide title-slide">
+                    <div class="content-area">
+                        <div class="badge"><i class="fas fa-chart-line"></i> 导论篇 · 研究生课堂导入</div>
+                        <h1>应用多元统计分析</h1>
+                        <p>Applied Multivariate Statistical Analysis</p>
+                        <div class="divider"></div>
+                        <p style="font-style: italic; color: #93c5fd; font-size: 28px;">“单个变量告诉你局部，多变量结构才逼近问题本身。”</p>
+                        <div class="math-box" style="background: rgba(255,255,255,0.08); box-shadow: none; color: #eff6ff; margin-top: 28px; font-size: 28px;">
+                            $$ \mathbf{X}=(X_1,X_2,\dots,X_p)^\top,\quad \text{研究重点不仅是每个变量，更是它们之间的联合结构} $$
+                        </div>
+                    </div>
+                    <div class="footer">01</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-circle-question"></i> 为什么研究生阶段更要学这门课？</div>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div class="tile">
+                                <h3><i class="fas fa-flask"></i> 面向研究问题</h3>
+                                <ul class="bullet-list">
+                                    <li>真实数据往往同时包含多个响应变量、多个解释变量与复杂关联结构。</li>
+                                    <li>很多论文问题并不是“算一个均值”就结束，而是需要识别变量间的<span class="highlight-blue">共同变化模式</span>。</li>
+                                    <li>研究设计、变量筛选、模型解释与结果可视化，常常都离不开多元方法。</li>
+                                </ul>
+                            </div>
+                            <div class="tile" style="border-top-color:#8b5cf6;">
+                                <h3><i class="fas fa-graduation-cap"></i> 面向学术训练</h3>
+                                <ul class="bullet-list">
+                                    <li>训练从“单指标比较”转向“系统结构分析”的思维方式。</li>
+                                    <li>培养把实际问题翻译成<span class="highlight">矩阵、协方差、特征值、潜变量</span>等统计语言的能力。</li>
+                                    <li>为后续机器学习、计量建模、可靠性分析、生物统计等课程打基础。</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">02</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-microscope"></i> 一个典型研究场景：不是变量多，而是关系难</div>
+                    <div class="content-area">
+                        <p>设想我们研究“城市高质量发展”“消费者购买意愿”或“学生综合素质”，每个对象都可能由经济、教育、环境、行为、态度等多个指标共同刻画。真正棘手的地方，不是表格有多少列，而是这些变量之间往往<span class="highlight-blue">相关、冗余、分层、甚至隐藏着不可直接观测的潜在结构</span>。</p>
+                        <div class="example-box">
+                            <p><strong>研究生视角下的问题意识：</strong></p>
+                            <p>我们关心的通常不是“某个变量大不大”，而是：</p>
+                            <p>（1）哪些变量在表达同一类信息？（2）能否把高维数据压缩成少数几个综合因子？（3）样本能否自然分成若干类型？（4）两组变量之间是否存在系统性的关联？</p>
+                        </div>
+                        <div class="math-box" style="margin-top:20px;">
+                            $$ \text{数据复杂性} \neq \text{变量个数多而已} \quad ; \quad \text{关键在于联合分布结构与解释目标} $$
+                        </div>
+                    </div>
+                    <div class="footer">03</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-sitemap"></i> 这门课到底研究什么？</div>
+                    <div class="content-area">
+                        <div class="tiled-content">
+                            <div class="tile">
+                                <h3><i class="fas fa-project-diagram"></i> 相关结构</h3>
+                                <p>研究多个变量之间如何共同变化，核心对象包括均值向量、协方差矩阵、相关矩阵与联合分布。</p>
+                            </div>
+                            <div class="tile" style="border-top-color:#8b5cf6;">
+                                <h3><i class="fas fa-compress"></i> 信息压缩</h3>
+                                <p>当变量太多、信息重叠严重时，考虑降维、提取主成分或公共因子，把复杂问题变得可解释。</p>
+                            </div>
+                            <div class="tile" style="border-top-color:#ec4899;">
+                                <h3><i class="fas fa-layer-group"></i> 结构识别</h3>
+                                <p>从样本之间的相似性出发做聚类，从已知类别出发做判别，让数据自己暴露其组织方式。</p>
+                            </div>
+                        </div>
+                        <div class="tiled-content" style="margin-top:28px;">
+                            <div class="tile" style="border-top-color:#10b981;">
+                                <h3><i class="fas fa-link"></i> 关联映射</h3>
+                                <p>分析两组变量之间的系统联系，如典型相关分析、对应分析等，寻找变量组层面的耦合关系。</p>
+                            </div>
+                            <div class="tile" style="border-top-color:#f59e0b;">
+                                <h3><i class="fas fa-shapes"></i> 定性数据</h3>
+                                <p>很多研究并不是纯连续变量世界，还要处理分类变量、列联表以及离散响应模型。</p>
+                            </div>
+                            <div class="tile" style="border-top-color:#6366f1;">
+                                <h3><i class="fas fa-lightbulb"></i> 解释与决策</h3>
+                                <p>多元方法不是为了把公式写满黑板，而是为了支持解释、比较、预测与决策。公式只是你通往结论的过路费。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">04</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-route"></i> 课程主线：从分布假设到方法体系</div>
+                    <div class="content-area">
+                        <div class="two-column-top">
+                            <div class="tile">
+                                <h3><i class="fas fa-superscript"></i> 理论起点</h3>
+                                <ul class="bullet-list">
+                                    <li>多元正态分布</li>
+                                    <li>均值向量与协方差矩阵</li>
+                                    <li>样本均值向量、样本协方差矩阵</li>
+                                    <li>统计推断中的矩阵表达</li>
+                                </ul>
+                            </div>
+                            <div class="tile" style="border-top-color:#8b5cf6;">
+                                <h3><i class="fas fa-cubes"></i> 方法展开</h3>
+                                <ul class="bullet-list">
+                                    <li>均值向量与协方差矩阵检验</li>
+                                    <li>主成分分析与因子分析</li>
+                                    <li>聚类分析与判别分析</li>
+                                    <li>对应分析、典型相关分析、定性数据建模</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="math-box" style="margin-top:28px;">
+                            $$ \text{联合分布假设} \rightarrow \text{参数估计与检验} \rightarrow \text{降维/分类/解释/关联分析} $$
+                        </div>
+                        <p style="margin-top:20px;">所以这门课不是零散拼盘，它有一条非常清楚的主线：先理解多元数据的概率结构，再发展处理复杂数据的具体方法。课程逻辑终于在这个世界里争取到一点尊严。</p>
+                    </div>
+                    <div class="footer">05</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-briefcase"></i> 对研究生最实用的几类能力</div>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div>
+                                <div class="example-box" style="margin-top:0;">
+                                    <p><strong>能力 1：读论文不只看结果图</strong></p>
+                                    <p>能看懂变量降维、聚类分组、判别规则、因子载荷、典型变量等分析结果背后的统计含义。</p>
+                                </div>
+                                <div class="example-box">
+                                    <p><strong>能力 2：做研究不只会跑软件</strong></p>
+                                    <p>知道什么时候该标准化、什么时候不能；知道为什么某些变量要删、某些结果不能硬解释。</p>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="example-box" style="margin-top:0; border-left-color:#8b5cf6; background:#f5f3ff;">
+                                    <p><strong>能力 3：把复杂问题组织成可分析对象</strong></p>
+                                    <p>明确“样本是什么、变量是什么、研究目标是什么、方法假设是什么”，这是研究训练的核心。</p>
+                                </div>
+                                <div class="example-box" style="border-left-color:#ec4899; background:#fdf2f8;">
+                                    <p><strong>能力 4：让结论更有解释力</strong></p>
+                                    <p>从“这个变量显著”提升到“这组变量共同刻画了某种潜在机制”，层次立刻不一样。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">06</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-triangle-exclamation"></i> 学这门课最容易踩的坑</div>
+                    <div class="content-area">
+                        <ul class="bullet-list" style="margin-top:10px;">
+                            <li><strong>把方法当按钮：</strong> 点一下软件得到输出，就以为完成了分析。真正的问题是方法前提、变量处理与结论解释。</li>
+                            <li><strong>只盯显著性，不看结构：</strong> 多元分析的价值常常体现在整体关系，而不是某一个 <span class="highlight-blue">p</span> 值。</li>
+                            <li><strong>忽视数据预处理：</strong> 量纲差异、异常值、缺失值、变量类型混杂，都会直接影响结果。</li>
+                            <li><strong>把“降维”理解成“删变量”：</strong> 主成分和因子分析并不是粗暴删列，它们是在重构信息表达。</li>
+                            <li><strong>图会看，话不会说：</strong> 很多人能画二维散点图，却说不清主成分、聚类结果或因子载荷到底意味着什么。</li>
+                        </ul>
+                        <div class="example-box" style="margin-top:26px;">
+                            <p><strong>课堂要求的重点：</strong> 会算，会看，会解释，会质疑。</p>
+                            <p>不只是“怎么做”，还要知道“为什么这样做”以及“什么时候不能这样做”。</p>
+                        </div>
+                    </div>
+                    <div class="footer">07</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-bullseye"></i> 本课程的学习目标</div>
+                    <div class="content-area">
+                        <div class="tiled-content">
+                            <div class="tile">
+                                <h3 style="font-size:24px;">目标一</h3>
+                                <p>建立多元数据分析的整体框架，理解常见方法之间的联系，而不是把它们记成若干孤立章节。</p>
+                            </div>
+                            <div class="tile" style="border-top-color:#8b5cf6;">
+                                <h3 style="font-size:24px;">目标二</h3>
+                                <p>掌握典型多元统计方法的基本思想、适用场景、计算逻辑与结果解释。</p>
+                            </div>
+                            <div class="tile" style="border-top-color:#ec4899;">
+                                <h3 style="font-size:24px;">目标三</h3>
+                                <p>能够结合专业问题，自主选择合理方法处理实际数据，并形成规范分析报告。</p>
+                            </div>
+                        </div>
+                        <div class="math-box" style="margin-top:34px;">
+                            $$ \text{理论理解} + \text{方法选择} + \text{软件实现} + \text{学术表达} $$
+                        </div>
+                    </div>
+                    <div class="footer">08</div>
+                </div>
+            </section>
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-seedling"></i> 开课寄语：从“会做题”走向“会分析”</div>
+                    <div class="content-area">
+                        <p>本科阶段更强调方法入门，研究生阶段则更强调问题意识、模型意识和解释能力。学这门课，不只是为了考试时把 Hotelling \(T^2\)、PCA、聚类分析背得滚瓜烂熟，而是为了在面对一份复杂数据时，知道该如何提问、如何建模、如何解释、如何保持审慎。</p>
+                        <div class="example-box">
+                            <p><strong>这门课真正训练的是一种能力：</strong></p>
+                            <p>当数据不再整整齐齐、变量不再彼此独立、结论不再一眼看穿时，你仍然能够用统计的语言把问题拆开、看清、说透。</p>
+                        </div>
+                        <p style="text-align:center; margin-top:34px; font-size:28px; color:#1e293b; font-weight:700;">
+                            多元统计分析，本质上是在复杂世界里训练一种有组织的判断力。
+                        </p>
+                    </div>
+                    <div class="footer">09</div>
+                </div>
+            </section>
+
+                <section class="slide-wrap">
+    <div class="slide">
+        <div class="slide-title"><i class="fas fa-book"></i> 教材参考资料</div>
+        <div class="content-area">
+            <div class="two-column" style="gap: 42px; align-items: center;">
+                
+                <div class="tile" style="padding: 32px 30px;">
+                    <h3 style="font-size: 30px; margin-bottom: 18px;">
+                        <i class="fas fa-thumbtack"></i> 指定教材
+                    </h3>
+                    <p style="font-size: 30px; color: #1e293b; margin-bottom: 16px;">
+                        <strong>《应用多元统计分析》</strong>
+                    </p>
+                    <p style="font-size: 22px; color: #475569; margin-bottom: 10px;">
+                        邓光明，蒋远营 编
+                    </p>
+                    <p style="font-size: 20px; color: #64748b; margin-bottom: 18px;">
+                        西北工业大学出版社
+                    </p>
+
+                    
+                </div>
+
+                <div class="tile" style="padding: 28px 24px; display: flex; justify-content: center; align-items: center; min-height: 420px;">
+                    <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                        <img src="book1.png" alt="教材1封面" style="width: 230px; height: auto; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,0.15); object-fit: contain; margin-bottom: 20px;">
+                        
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="footer">04</div>
+          </div>
+         </section>
+          
+
+            <section class="slide-wrap">
+                <div class="slide">
+                    <div class="slide-title"><i class="fas fa-tasks"></i> 成绩构成与考核要求</div>
+                    <div class="content-area">
+                        <div class="two-column">
+                            <div class="tile">
+                                <h3><i class="fas fa-chart-pie"></i> 评分比例</h3>
+                                <ul class="bullet-list">
+                                    <li><i class="fas fa-file-alt"></i>期末考试：60%</li>
+                                    <li><i class="fas fa-user-check"></i>平常成绩：40%</li>
+                                </ul>
+                                <p style="font-size: 18px; color: #64748b; margin-top: 12px; padding-left: 42px;">（包含出勤、作业、上课表现）</p>
+                            </div>
+                            <div class="tile">
+                                <h3><i class="fas fa-seedling"></i> 教学寄语</h3>
+                                <p>多一份努力，多一份收成。</p>
+                                <p>上面的数学表达式其实很诚实地说明了一个道理：<span class="highlight">量变会堆出质变</span>。</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="footer">02</div>
+                </div>
+            </section>
+</div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const slideWraps = Array.from(document.querySelectorAll('.slide-wrap'));
+    let currentIndex = 0;
+
+    function isPresentationMode() {
+        return document.body.classList.contains('presentation-mode');
+    }
+
+    function getCurrentVisibleSlideIndex() {
+        let bestIndex = 0;
+        let bestScore = Infinity;
+
+        slideWraps.forEach((wrap, index) => {
+            const rect = wrap.getBoundingClientRect();
+            const center = rect.top + rect.height / 2;
+            const score = Math.abs(center - window.innerHeight / 2);
+            if (score < bestScore) {
+                bestScore = score;
+                bestIndex = index;
+            }
+        });
+
+        return bestIndex;
+    }
+
+    function applyScale() {
+        if (!isPresentationMode()) return;
+        const activeWrap = slideWraps[currentIndex];
+        if (!activeWrap) return;
+
+        const slide = activeWrap.querySelector('.slide');
+        if (!slide) return;
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scale = Math.min(vw / 1280, vh / 720);
+
+        slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function showSlide(index) {
+        slideWraps.forEach(wrap => wrap.classList.remove('active-slide'));
+        if (!slideWraps[index]) return;
+        slideWraps[index].classList.add('active-slide');
+        currentIndex = index;
+        applyScale();
+    }
+
+    function nextSlide() {
+        if (currentIndex < slideWraps.length - 1) {
+            showSlide(currentIndex + 1);
+        }
+    }
+
+    function prevSlide() {
+        if (currentIndex > 0) {
+            showSlide(currentIndex - 1);
+        }
+    }
+
+    function enterPresentationMode(fromCurrent = true) {
+        currentIndex = fromCurrent ? getCurrentVisibleSlideIndex() : 0;
+        document.body.classList.add('presentation-mode');
+        showSlide(currentIndex);
+
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function exitPresentationMode() {
+        document.body.classList.remove('presentation-mode');
+        slideWraps.forEach(wrap => wrap.classList.remove('active-slide'));
+        slideWraps.forEach(wrap => {
+            const slide = wrap.querySelector('.slide');
+            if (slide) slide.style.transform = '';
+        });
+
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'F5') {
+            e.preventDefault();
+            if (!isPresentationMode()) {
+                enterPresentationMode(true);
+            } else {
+                exitPresentationMode();
+            }
+            return;
+        }
+
+        if (!isPresentationMode()) return;
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            exitPresentationMode();
+            return;
+        }
+
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            nextSlide();
+            return;
+        }
+
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            prevSlide();
+            return;
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!isPresentationMode()) return;
+        const target = e.target;
+        if (target.closest('.btn-corner') || target.closest('a')) return;
+        nextSlide();
+    });
+
+    window.addEventListener('resize', function () {
+        applyScale();
+    });
+
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement && isPresentationMode()) {
+            exitPresentationMode();
+        }
+    });
+});
+</script>
+
+</body>
+</html>
