@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第1章 多元正态分布</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.1 /* 略微放大公式整体比例 */
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            min-height: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0;
+            padding: 40px 0;
+        }
+
+        /* -------------------------------------------------------------
+           默认浏览模式：可下拉浏览所有幻灯片
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: relative;
+            width: 1280px;
+            margin: 0 auto;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+        }
+
+        /* 浏览模式下，每页像独立 PPT */
+        .slide {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 60px;
+            background-color: #ffffff;
+            overflow: hidden;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .slide.active { z-index: 10; }
+
+        /* 浏览模式下全部内容直接可见 */
+        .step {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* -------------------------------------------------------------
+           放映模式：恢复单页全屏显示
+           ------------------------------------------------------------- */
+        body.presentation-mode,
+        html.presentation-mode {
+            background-color: #1e293b;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        body.presentation-mode #presentation-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            margin: 0;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+            display: block;
+        }
+
+        /* 顶部彩色装饰条 */
+        body.presentation-mode #presentation-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        body.presentation-mode .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1280px;
+            height: 720px;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 60px;
+            overflow: hidden;
+            background-color: #ffffff;
+        }
+
+        body.presentation-mode .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        /* 步进动画控制类 */
+        body.presentation-mode .step {
+            opacity: 0;
+            transform: none;
+            transition: opacity 0.25s ease;
+        }
+
+        body.presentation-mode .step.visible {
+            opacity: 1;
+            transform: none;
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 46px; color: #0f172a;
+            margin: 0 0 25px 0; padding-bottom: 15px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 70px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 20px; 
+            justify-content: flex-start; /* 严格顶部对齐 */
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 28px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 15px; font-size: 28px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 26px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 35px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 32px; color: #0f172a; margin-bottom: 20px; font-family: 'Noto Serif SC', serif;}
+
+        /* 数据表格样式 */
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 26px; }
+        th, td { border: 2px solid #cbd5e1; padding: 15px; text-align: center; }
+        th { background-color: #f1f5f9; color: #0f172a; }
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 15px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 15px 30px;
+            /* 强制内部一切颜色为黑色 */
+            color: #000000 !important; 
+            font-size: 28px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        
+        /* 强制 MathJax 生成的公式颜色为纯黑 */
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 4px 12px; font-size: 28px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 25px 35px; border-radius: 8px; margin: 20px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 28px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+        .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+        /* =========================
+           A4 横向打印：每页 1 张 slide
+           ========================= */
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        @media print {
+            html, body {
+                width: auto !important;
+                height: auto !important;
+                min-height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                overflow: visible !important;
+            }
+
+            body.presentation-mode,
+            html.presentation-mode {
+                width: auto !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: #ffffff !important;
+            }
+
+            #presentation-container {
+                position: static !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+                transform: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+
+            #presentation-container::before {
+                display: none !important;
+            }
+
+            .slide {
+                position: relative !important;
+                width: 297mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                padding: 12mm 14mm !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .slide:not(:first-of-type) {
+                page-break-before: always !important;
+                break-before: page !important;
+            }
+
+            .step,
+            .step.visible {
+                opacity: 1 !important;
+                transform: none !important;
+                transition: none !important;
+            }
+
+            .progress-bar,
+            .slide-counter,
+            .hw-btn {
+                display: none !important;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-book"></i> 应用多元统计分析</div>
+            <h1>第一章<span>多元正态分布 (Multivariate Normal Distribution)</span></h1>
+
+        </div>
+    </div>
+
+    <!-- ==================== 目录 ==================== -->
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 第一章 课程大纲</h2>
+        <div class="content-area" style="justify-content: center; align-items: center;">
+            <div class="tiled-content" style="width: 90%;">
+                <div class="tile step" style="border-top-color: #2563eb; grid-column: span 2;">
+                    <h3>1.1 多元分布的基本概念</h3>
+                   
+                </div>
+                <div class="tile step" style="border-top-color: #7c3aed; grid-column: span 2;">
+                    <h3>1.2 多元正态分布</h3>
+                   
+                </div>
+                <div class="tile step" style="border-top-color: #db2777; grid-column: span 2;">
+                    <h3>1.3 均值向量与协差阵的估计</h3>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 1.1 节 ==================== -->
+    <div class="slide section-slide" id="slide-2">
+        <h2>1.1 多元分布的基本概念</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">从单变量到多指标联合观测</p>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-search-chart"></i> 为什么要引入多元统计分析？</h2>
+        <div class="content-area">
+            <p class="step">在研究社会、经济现象和许多实际问题时，经常遇到的是<strong>多指标</strong>的问题。</p>
+            <div class="step tile" style="margin-top: 20px;">
+                <h3><i class="fas fa-building"></i> 案例一：公司运营情况</h3>
+                <p>全面评价，必须考虑：获利能力、资金周转能力、竞争能力以及偿债能力等财务指标。</p>
+            </div>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #ec4899;">
+                <h3><i class="fas fa-landmark"></i> 案例二：国家财政收入</h3>
+                <p>考察：税收收入、企业收入、债务收入、建设基金收入、基本建设贷款归还收入等。</p>
+            </div>
+            <p class="step" style="margin-top: 25px; text-align: center; font-weight: bold; color: #2563eb; font-size: 30px;">
+                显然，只研究一个指标或将指标割裂开，无法从整体上把握事物实质。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 正态分布在多元统计中的核心地位</h2>
+        <div class="content-area">
+            <p class="step" style="line-height: 1.8;">
+                在实用中遇到的随机向量常常是服从正态分布或近似正态分布的，或虽本身不是正态分布，但它的<strong>样本均值近似于正态分布</strong>（中心极限定理）。
+            </p>
+            <div class="step info-box" style="margin-top: 30px; padding: 40px;">
+                <p style="font-size: 32px;"><i class="fas fa-crown"></i> 多元正态的统治力</p>
+                <span style="font-size: 28px; color: #334155; line-height: 1.8; display: block; margin-top: 15px; font-weight: normal;">
+                    现实世界中许多实际问题的解决办法都是以总体服从正态分布或近似正态分布为前提的。在多元统计分析中，多元正态分布占有很重要的地位，本书所介绍的方法<strong>大都假定数据来自多元正态分布</strong>。
+                </span>
+            </div>
+            <p class="step" style="margin-top: 20px; text-align: center;">为此，本章首要任务是介绍多元正态分布的定义和有关性质。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-vector-square"></i> 1.1.1 随机向量的概念</h2>
+        <div class="content-area">
+            <p class="step">假设我们所讨论的是多个变量的总体，所研究的数据是同时观测 $p$ 个指标（变量），又进行了 $n$ 次观测得到的。我们把这 $p$ 个指标表示为 $X_1, X_2, \cdots, X_p$，常用向量</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 10px 10px;">
+                    \[\boldsymbol{X} = (X_1, X_2, \cdots, X_p)^{\prime}\]
+                </div>
+            </div>
+            <p class="step" style="margin-top: 10px;">表示对同一个体观测的 $p$ 个变量。</p>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #8b5cf6;">
+                <p><strong>定义 1.1</strong>：将 $p$ 个随机变量 $X_1, X_2, \cdots, X_p$ 的整体称为 <strong>$p$ 维随机向量</strong>。如果构成总体的个体是具有 $p$ 个需要观测指标的个体，我们称这样的总体为 <strong>$p$ 维总体</strong>（或 $p$ 元总体）。这里“维”（或“元”）表示共有几个分量。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 数据的矩阵表示 (表 1.1)</h2>
+        <div class="content-area">
+                <table style="width: 80%;">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">序号</th>
+                            <th colspan="4">变量</th>
+                        </tr>
+                        <tr>
+                            <th>$X_1$</th>
+                            <th>$X_2$</th>
+                            <th>$\cdots$</th>
+                            <th>$X_p$</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>$X_{11}$</td><td>$X_{12}$</td><td>$\cdots$</td><td>$X_{1p}$</td></tr>
+                        <tr><td>2</td><td>$X_{21}$</td><td>$X_{22}$</td><td>$\cdots$</td><td>$X_{2p}$</td></tr>
+                        <tr><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td><td>$\vdots$</td></tr>
+                        <tr><td>$n$</td><td>$X_{n1}$</td><td>$X_{n2}$</td><td>$\cdots$</td><td>$X_{np}$</td></tr>
+                    </tbody>
+                </table>
+            
+        </div>
+    </div>
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-th"></i> 行向量与列向量的几何意义</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="step tile" style="padding: 30px;">
+                    <h3>横看：单个样品的观测</h3>
+                    <p style="margin-bottom: 20px;">记第 $i$ 行元素为：</p>
+                    <div class="math-box">
+                        \[\boldsymbol{X}_{(i)} = (X_{i1}, X_{i2}, \cdots, X_{ip})^{\prime}\]
+                    </div>
+                    <p style="margin-top: 20px;">它表示第 $i$ 个个体（样品）在所有 $p$ 个指标上的完整表现。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #ec4899; padding: 30px;">
+                    <h3>竖看：单个指标的样本</h3>
+                    <p style="margin-bottom: 20px;">记第 $j$ 列元素为：</p>
+                    <div class="math-box" style="border-left-color: #ec4899;">
+                        \[\boldsymbol{X}_j = (X_{1j}, X_{2j}, \cdots, X_{nj})^{\prime}\]
+                    </div>
+                    <p style="margin-top: 20px;">它表示总体中第 $j$ 个变量在 $n$ 次观测中得到的所有数值序列。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-border-all"></i> 数据矩阵 $\boldsymbol{X}$</h2>
+        <div class="content-area">
+            <p class="step">表 1.1 所反映出的样本资料可以完美地用一个 $n \times p$ 的矩阵表示：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 30px 40px; text-align: left;">
+                    \[
+                    \begin{aligned}
+                    \boldsymbol{X} &= \left[\begin{array}{cccc}
+                    X_{11} & X_{12} & \cdots & X_{1 p} \\
+                    X_{21} & X_{22} & \cdots & X_{2 p} \\
+                    \vdots & \vdots & & \vdots \\
+                    X_{n 1} & X_{n 2} & \cdots & X_{n p}
+                    \end{array}\right] 
+                    = \left[\begin{array}{llll} \boldsymbol{X}_1 & \boldsymbol{X}_2 & \cdots & \boldsymbol{X}_p \end{array}\right] 
+                    = \left[\begin{array}{c} \boldsymbol{X}_{(1)}^{\prime} \\ \boldsymbol{X}_{(2)}^{\prime} \\ \vdots \\ \boldsymbol{X}_{(n)}^{\prime} \end{array}\right] = (X_{ij})_{n \times p}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 20px;">简记为数据矩阵 $\boldsymbol{X}$。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 1.1.2 随机向量的数字特征 (1) 均值</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px;">
+                <h3>定义 1.2：均值向量</h3>
+                <p>设 $\boldsymbol{X} = (X_1, X_2, \cdots, X_p)^{\prime}$，若 $E(X_i)$ 存在且有限，则称：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 30px; padding: 20px 40px;">
+                        \[E(\boldsymbol{X}) = (E(X_1), E(X_2), \cdots, E(X_p))^{\prime}\]
+                    </div>
+                </div>
+                <p style="margin-top: 20px;">为 $\boldsymbol{X}$ 的均值（向量）或数学期望。</p>
+                <p style="margin-top: 15px;">有时把 $E(\boldsymbol{X})$ 和 $E(X_i)$ 分别记为 $\boldsymbol{\mu}$ 和 $\mu_i$，即 $\boldsymbol{\mu} = (\mu_1, \mu_2, \cdots, \mu_p)^{\prime}$。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 均值向量的线性性质</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 30px;">均值运算属于线性算子，它直接作用于矩阵内部，因此具有以下重要性质：</p>
+            <div class="step tile" style="border-top-color: #10b981; padding: 40px;">
+                <p>设 $\boldsymbol{X}, \boldsymbol{Y}$ 为随机向量；$\boldsymbol{A}, \boldsymbol{B}$ 为大小适合运算的常数矩阵。</p>
+                <ul class="bullet-list" style="margin-top: 25px; line-height: 2.5;">
+                    <li>(1)  $E(\boldsymbol{A} \boldsymbol{X}) = \boldsymbol{A} E(\boldsymbol{X})$</li>
+                    <li>(2)  $E(\boldsymbol{A} \boldsymbol{X} \boldsymbol{B}) = \boldsymbol{A} E(\boldsymbol{X}) \boldsymbol{B}$</li>
+                    <li>(3)  $E(\boldsymbol{A} \boldsymbol{X} + \boldsymbol{B} \boldsymbol{Y}) = \boldsymbol{A} E(\boldsymbol{X}) + \boldsymbol{B} E(\boldsymbol{Y})$</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    
+
+   
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-network-wired"></i> 1.1.2 数字特征 (3) 两向量间的协方差阵</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 30px;">
+                <h3>定义 1.4：两个随机向量的协方差阵</h3>
+                <p>设 $\boldsymbol{X} = (X_1, \cdots, X_p)^{\prime}$，$\boldsymbol{Y} = (Y_1, \cdots, Y_p)^{\prime}$，称：</p>
+                <div class="math-center">
+                    <div class="math-box" style="text-align: left; padding: 10px; font-size: 21px;">
+                        \[
+                        \begin{aligned}
+                        \operatorname{Cov}(\boldsymbol{X}, \boldsymbol{Y}) &\stackrel{\text{def}}{=} E\left[(\boldsymbol{X}-E(\boldsymbol{X}))(\boldsymbol{Y}-E(\boldsymbol{Y}))^{\prime}\right] \\
+                        &= \left[\begin{array}{ccc}
+                        \operatorname{Cov}(X_1, Y_1) & \cdots & \operatorname{Cov}(X_1, Y_p) \\
+                        \vdots & \ddots & \vdots \\
+                        \operatorname{Cov}(X_p, Y_1) & \cdots & \operatorname{Cov}(X_p, Y_p)
+                        \end{array}\right]
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+                <p style="margin-top: 15px;">当 $\boldsymbol{X} = \boldsymbol{Y}$ 时，即退化为 $D(\boldsymbol{X})$。 <p class="step" style="font-size: 30px;">称 $D(\boldsymbol{X})$ 为 $\boldsymbol{X}$ 的方差阵或协差阵。</p></p>
+            </div>
+        </div>
+    </div>
+
+
+     <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-tag"></i> 协差阵的符号说明</h2>
+        <div class="content-area">
+           
+            <div class="step tile" style="margin-top: 10px; border-top-color: #8b5cf6; padding: 40px;">
+                <p style="margin-bottom: 20px;">通常：</p>
+                <ul class="bullet-list" style="line-height: 2.2;">
+                    <li>把 $D(\boldsymbol{X})$ 简记为 $\boldsymbol{\Sigma}$ (Sigma)</li>
+                    <li>把元素 $\operatorname{Cov}(X_i, X_j)$ 简记为 $\sigma_{ij}$</li>
+                </ul>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 32px; border-left-color: #8b5cf6; padding: 20px 40px; margin-top: 20px;">
+                        \[\boldsymbol{\Sigma} = (\sigma_{ij})_{p \times p}\]
+                    </div>
+                </div>
+                <p style="margin-top: 20px; color: #475569;">注意：对角线元素 $\sigma_{ii}$ 就是各变量自身的方差 $\operatorname{Var}(X_i)$。</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-unlink"></i> 不相关与独立的区别</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; margin-bottom: 30px;">若 $\operatorname{Cov}(\boldsymbol{X}, \boldsymbol{Y}) = \boldsymbol{O}$（零矩阵），则称 $\boldsymbol{X}$ 和 $\boldsymbol{Y}$ <strong>不相关</strong>。</p>
+            
+            <div class="step info-box" style="padding: 40px; background: #fff1f2; border-left-color: #f43f5e;">
+                <p style="color: #be123c; font-size: 32px; margin-bottom: 20px;"><i class="fas fa-exclamation-triangle"></i> 核心辨析：</p>
+                <ul class="bullet-list" style="font-size: 28px; line-height: 2;">
+                    <li>由 $\boldsymbol{X}$ 和 $\boldsymbol{Y}$ 相互独立，<strong>必定可以推得</strong> $\operatorname{Cov}(\boldsymbol{X}, \boldsymbol{Y}) = \boldsymbol{O}$（即独立必不相关）。</li>
+                    <li>但反过来，当 $\boldsymbol{X}$ 和 $\boldsymbol{Y}$ 不相关时，<strong>一般不能推知它们独立！</strong></li>
+                </ul>
+                <p style="margin-top: 20px; font-size: 24px; color: #881337;">（注：不相关只代表没有“线性”相依关系，可能存在非线性关系。但在正态分布中二者等价，后文会讲到。）</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 协方差阵的代数性质 (1/2)</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 20px;">当 $\boldsymbol{A}, \boldsymbol{B}$ 为常数矩阵时，由定义可以推出协方差阵有如下性质：</p>
+            <div class="tiled-content">
+                <div class="step tile">
+                    <h3>(1) 平移不变性</h3>
+                    <p>对于常数向量 $\boldsymbol{a}$，平移不改变波动：</p>
+                    <div class="math-box" style="margin-top: 20px; padding: 15px;">
+                        \[D(\boldsymbol{X} + \boldsymbol{a}) = D(\boldsymbol{X})\]
+                    </div>
+                </div>
+                <div class="step tile" style="border-top-color: #8b5cf6;">
+                    <h3>(2) 线性变换的方差</h3>
+                    <p>乘积变换会带出常数矩阵的转置（类似于一维的 $D(aX) = a^2 DX$）：</p>
+                    <div class="math-box" style="margin-top: 20px; padding: 15px; border-left-color: #8b5cf6;">
+                        \[D(\boldsymbol{A} \boldsymbol{X}) = \boldsymbol{A} D(\boldsymbol{X}) \boldsymbol{A}^{\prime} = \boldsymbol{A} \boldsymbol{\Sigma} \boldsymbol{A}^{\prime}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-16">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 协方差阵的代数性质 (2/2)</h2>
+        <div class="content-area">
+            <div class="step tile" style="margin-bottom: 10px; border-top-color: #ec4899;">
+                <h3>(3) 双线性变换的协方差</h3>
+                <div class="math-box" style="padding: 10px; border-left-color: #ec4899;">
+                    \[\operatorname{Cov}(\boldsymbol{A} \boldsymbol{X}, \boldsymbol{B} \boldsymbol{Y}) = \boldsymbol{A} \operatorname{Cov}(\boldsymbol{X}, \boldsymbol{Y}) \boldsymbol{B}^{\prime}\]
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color: #10b981;">
+                <h3>(4) 二次型的期望定理 (迹技巧)</h3>
+                <p>设 $\boldsymbol{X}$ 为 $n$ 维，$\boldsymbol{\mu}=E(\boldsymbol{X}), \boldsymbol{\Sigma}=D(\boldsymbol{X})$，$\boldsymbol{A}$ 为 $n \times n$ 阶常数阵，则：</p>
+                <div class="math-box" style="padding: 10px 10px; border-left-color: #10b981; margin-top: 20px;">
+                    \[E(\boldsymbol{X}^{\prime} \boldsymbol{A} \boldsymbol{X}) = \operatorname{tr}(\boldsymbol{A} \boldsymbol{\Sigma}) + \boldsymbol{\mu}^{\prime} \boldsymbol{A} \boldsymbol{\mu}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-shield-alt"></i> 协差阵的正定性</h2>
+        <div class="content-area">
+            <div class="step info-box" style="padding: 40px; margin-top: 30px;">
+                <p style="font-size: 32px; margin-bottom: 20px;"><i class="fas fa-check-double"></i> 矩阵属性铁律</p>
+                <span style="font-size: 28px; color: #334155; line-height: 2; display: block;">
+                    对于任何的随机向量 $\boldsymbol{X} = (X_1, X_2, \cdots, X_p)^{\prime}$ 来说：<br><br>
+                    其协差阵 $\boldsymbol{\Sigma}$ 都是<strong>对称阵</strong>，同时总是<strong>非负定（半正定）的</strong>。<br><br>
+                    在实际研究中，如果变量之间没有严格的线性相关冗余，大多数情况 $\boldsymbol{\Sigma}$ 都是<strong>正定的</strong>（可逆）。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-percentage"></i> 1.1.2 数字特征 (4) 相关阵</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px;">
+                <h3>定义 1.5：相关阵 (Correlation Matrix)</h3>
+                <p style="margin-top: 5px;">设 $\boldsymbol{X}$ 的协差阵存在，且每个分量的方差大于零。为了消除量纲（绝对数值大小）的影响，定义相关阵：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 40px;">
+                        \[\boldsymbol{R} = \operatorname{corr}(\boldsymbol{X}) = (\rho_{ij})_{p \times p}\]
+                    </div>
+                </div>
+                <p style="margin-top: 10px;">式中元素是由协方差除以标准差得到的皮尔逊相关系数：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 30px; border-left-color: #10b981;">
+                        \[\rho_{ij} = \frac{\operatorname{Cov}(X_i, X_j)}{\sqrt{D(X_i)} \sqrt{D(X_j)}} = \frac{\sigma_{ij}}{\sqrt{\sigma_{ii}} \sqrt{\sigma_{jj}}}, \quad i, j=1,\dots,p\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 1.1.2 数字特征 (5) 数据的标准化变换</h2>
+        <div class="content-area">
+            <p class="step">在数据处理时，为了克服由于指标量纲不同对统计分析结果带来的影响，常需要将每个指标<strong>“标准化”</strong>（使其均值为0，方差为1）：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 10px 40px;">
+                    \[X_j^* = \frac{X_j - E(X_j)}{\sqrt{D(X_j)}}, \quad j=1,2,\dots,p\]
+                </div>
+            </div>
+            <p class="step" style="margin-top: 10px;">使用矩阵形式，记 $\boldsymbol{X}^* = (X_1^*, \dots, X_p^*)^{\prime}$，并构造标准差对角阵 $\boldsymbol{C} = \operatorname{diag}(\sqrt{\sigma_{11}}, \dots, \sqrt{\sigma_{pp}})$，则：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 10px 40px; border-left-color: #ec4899;">
+                    \[\boldsymbol{X}^* = \boldsymbol{C}^{-1}(\boldsymbol{X} - E(\boldsymbol{X}))\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-check-square"></i> 标准化向量的优良性质</h2>
+        <div class="content-area">
+            <p class="step">我们来验证变换后向量的均值和协方差阵：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 26px; text-align: left; padding: 10px 40px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    E(\boldsymbol{X}^*) &= E[\boldsymbol{C}^{-1}(\boldsymbol{X} - E(\boldsymbol{X}))] 
+                    = \boldsymbol{C}^{-1} E(\boldsymbol{X} - E(\boldsymbol{X})) = \mathbf{0} \\[10pt]
+                    D(\boldsymbol{X}^*) &= D[\boldsymbol{C}^{-1}(\boldsymbol{X} - E(\boldsymbol{X}))] 
+                    = \boldsymbol{C}^{-1} D(\boldsymbol{X} - E(\boldsymbol{X})) (\boldsymbol{C}^{-1})^{\prime} \\
+                    &= \boldsymbol{C}^{-1} D(\boldsymbol{X}) \boldsymbol{C}^{-1} = \boldsymbol{C}^{-1} \boldsymbol{\Sigma} \boldsymbol{C}^{-1} = \boldsymbol{R}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px;">
+                <p><i class="fas fa-gem"></i> 完美结论：</p>
+                <span style="font-size: 24px; color: #334155; margin-top: 10px; display: block;">
+                    标准化后的数据，均值向量化为零向量，而其<strong>协方差阵正好就是原指标的相关阵 $\boldsymbol{R}$</strong>！
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 1.2 节 ==================== -->
+    <div class="slide section-slide" id="slide-21">
+        <h2>1.2 多元正态分布</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">统计推断的最强地基</p>
+    </div>
+
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-history"></i> 1.2.1 定义的自然过渡：从一元到多元</h2>
+        <div class="content-area">
+            <p class="step">回顾概率论知识，一元正态分布 $N(\mu, \sigma^2)$ 的密度函数为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px;">
+                    \[f(x) = \frac{1}{\sqrt{2\pi}\sigma} \mathrm{e}^{-\frac{(x-\mu)^2}{2\sigma^2}}, \quad \sigma > 0\]
+                </div>
+            </div>
+            <p class="step" style="margin-top: 10px;">为了推广到矩阵形式，我们刻意将其改写为含有倒数和转置的形式：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 10px 40px; border-left-color: #ec4899;">
+                    \[f(x) = (2\pi)^{-1/2} (\sigma^2)^{-1/2} \exp\left\{ -\frac{1}{2} (x-\mu)^{\prime} (\sigma^2)^{-1} (x-\mu) \right\}\]
+                </div>
+            </div>
+           
+        </div>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-cube"></i> 定义 1.6：多元正态分布 (Multivariate Normal)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px 50px; border-top-color: #3b82f6;">
+                <p style="font-size: 28px; margin-bottom: 25px;">若 $p$ 元随机向量 $\boldsymbol{X} = (X_1, \dots, X_p)^{\prime}$ 的密度函数为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 32px; padding: 30px; border-left-color: #3b82f6; width: 100%;">
+                        \[f(\boldsymbol{x}) = (2\pi)^{-p/2} |\boldsymbol{\Sigma}|^{-1/2} \exp\left\{ -\frac{1}{2} (\boldsymbol{x}-\boldsymbol{\mu})^{\prime} \boldsymbol{\Sigma}^{-1} (\boldsymbol{x}-\boldsymbol{\mu}) \right\}\]
+                    </div>
+                </div>
+                <p style="font-size: 26px; margin-top: 25px; text-align: center;">
+                    则称 $\boldsymbol{X}$ 服从 <strong>$p$ 元正态分布</strong>，记为 $\boldsymbol{X} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-list"></i> 参数矩阵的结构</h2>
+        <div class="content-area">
+            <p class="step">在 $N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ 中，$\boldsymbol{\mu}$ 是 $p$ 维均值向量，$\boldsymbol{\Sigma}$ 是 $p \times p$ 阶协方差阵且必须正定（行列式 $|\boldsymbol{\Sigma}| \ne 0$ 以保证逆矩阵存在）：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 10px;">
+                    \[
+                    \boldsymbol{\mu} = \left[\begin{array}{c} \mu_1 \\ \mu_2 \\ \vdots \\ \mu_p \end{array}\right], \quad 
+                    \boldsymbol{\Sigma} = \left[\begin{array}{cccc}
+                    \sigma_{11}^2 & \sigma_{12}^2 & \cdots & \sigma_{1p}^2 \\
+                    \sigma_{21}^2 & \sigma_{22}^2 & \cdots & \sigma_{2p}^2 \\
+                    \vdots & \vdots & \ddots & \vdots \\
+                    \sigma_{p1}^2 & \sigma_{p2}^2 & \cdots & \sigma_{pp}^2
+                    \end{array}\right]
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 10px; border-top-color: #10b981; padding: 10px;">
+
+                <p>若 $\boldsymbol{\mu} = \mathbf{0}$，$\boldsymbol{\Sigma} = \operatorname{diag}(1,1,\dots,1) = \boldsymbol{I}$，则称 $\boldsymbol{X}$ 服从 <strong>$p$ 元标准正态分布</strong>，记为 $\boldsymbol{X} \sim N_p(\mathbf{0}, \boldsymbol{I})$。</p>
+            </div>
+        </div>
+    </div>
+
+   
+
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 二元正态分布公式</h2>
+        <div class="content-area">
+            <p class="step">二元正态分布的联合密度函数：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; padding: 30px 40px; border-left: 8px solid #ec4899; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    f(x_1, x_2) &= \frac{1}{2\pi \sigma_1 \sigma_2 \sqrt{1-r^2}} \cdot \\
+                    & \exp\left\{ \frac{-1}{2(1-r^2)} \left[ \frac{(x_1-\mu_1)^2}{\sigma_1^2} - 2r \frac{(x_1-\mu_1)(x_2-\mu_2)}{\sigma_1 \sigma_2} + \frac{(x_2-\mu_2)^2}{\sigma_2^2} \right] \right\}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            
+            
+        </div>
+    </div>
+
+    <div class="slide" id="slide-29">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 1.2.2 多元正态分布的四大核心性质 (1/3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 10px;">
+                <h3 style="color: #3b82f6;">性质 (1) 线性组合降维</h3>
+                <p>若 $\boldsymbol{X} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$，则 $\boldsymbol{X}$ 的任意线性组合 $\boldsymbol{a}^{\prime} \boldsymbol{X}$ 必然退化服从<strong>一元正态分布</strong>。</p>
+                <div class="math-box" style="margin-top: 10px;">\[\boldsymbol{a}^{\prime} \boldsymbol{X} \sim N(\boldsymbol{a}^{\prime}\boldsymbol{\mu}, \boldsymbol{a}^{\prime}\boldsymbol{\Sigma}\boldsymbol{a})\]</div>
+            </div>
+            
+            <div class="step tile" style="margin-top: 30px; border-top-color: #8b5cf6; padding: 10px;">
+                <h3 style="color: #8b5cf6;">性质 (2) 独立性等价判定</h3>
+                <p>若正态随机向量 $\boldsymbol{X} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$，且其协方差阵 $\boldsymbol{\Sigma}$ 是<strong>对角阵</strong>，则 $\boldsymbol{X}$ 的各分量 $X_1, X_2, \dots, X_p$ 完全<strong>相互独立</strong>。</p>
+                <p style="margin-top: 15px; font-size: 22px; color: #64748b;">(对于非正态分布，协方差为 0 并不意味着独立！)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-30">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 多元正态分布的四大核心性质 (2/3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 10px; border-top-color: #ec4899;">
+                <h3 style="color: #ec4899;">性质 (3) 边缘分布的封闭性</h3>
+                <p>多元正态随机向量 $\boldsymbol{X}$ 的任一分量子集（边缘分布）仍然服从正态分布。将 $\boldsymbol{X}$ 及其参数进行分块划分：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; text-align: left; padding: 5px 40px;">
+                        \[
+                        \boldsymbol{X} = \left[\begin{array}{c} X^{(1)} \\ X^{(2)} \end{array}\right], \quad 
+                        \boldsymbol{\mu} = \left[\begin{array}{c} \mu^{(1)} \\ \mu^{(2)} \end{array}\right], \quad 
+                        \boldsymbol{\Sigma} = \left[\begin{array}{cc} \Sigma_{11} & \Sigma_{12} \\ \Sigma_{21} & \Sigma_{22} \end{array}\right]
+                        \]
+                    </div>
+                </div>
+                <p style="margin-top: 20px;">则必定有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="border-left-color: #ec4899; padding: 5px 30px;">
+                        \[X^{(1)} \sim N_q(\mu^{(1)}, \Sigma_{11}), \quad X^{(2)} \sim N_{p-q}(\mu^{(2)}, \Sigma_{22})\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-31">
+        <h2 class="slide-title"><i class="fas fa-exclamation-triangle"></i> 性质 (3) 补充注记</h2>
+        <div class="content-area">
+            <div class="step info-box" style="padding: 40px; background: #fff1f2; border-left-color: #f43f5e;">
+                <p style="color: #be123c; font-size: 32px; margin-bottom: 20px;">需要特别指出的是：</p>
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2;">
+                    <li><span style="font-weight: bold; color: #1e293b;">第一点：不可逆推。</span>多元正态分布的任意边缘分布仍为正态分布，但<strong>反之不真</strong>（两个一元正态拼起来未必是二元正态）。</li>
+                    <li><span style="font-weight: bold; color: #1e293b;">第二点：不相关即独立。</span>因为 $\Sigma_{12} = \operatorname{Cov}(X^{(1)}, X^{(2)})$，若 $\Sigma_{12} = \boldsymbol{O}$，则子块间不相关。对于多元正态分布来说，<strong>不相关与独立是完全等价的</strong>。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-32">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 多元正态分布的四大核心性质 (3/3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 10px; border-top-color: #10b981;">
+                <h3 style="color: #10b981; font-size: 21px; margin-bottom: 15px;">性质 (4) 仿射变换的封闭性</h3>
+                <p style="font-size: 28px; line-height: 1.8;">多元正态随机向量 $\boldsymbol{X}$ 的<strong>任意线性组合</strong>仍然服从正态分布。</p>
+                <p style="font-size: 26px; margin-top: 20px;">设 $\boldsymbol{X} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$，构建 $m$ 维随机向量：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 50px;">\[\boldsymbol{Z} = \boldsymbol{A}\boldsymbol{X} + \boldsymbol{b}\]</div>
+                </div>
+                <p style="font-size: 26px; margin-top: 20px;">其中 $\boldsymbol{A}$ 是 $m \times p$ 的常数矩阵，$\boldsymbol{b}$ 是 $m$ 维常向量。则 $\boldsymbol{Z}$ 也是正态的，且：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 50px; border-left-color: #10b981;">
+                        \[\boldsymbol{Z} \sim N_m(\boldsymbol{A}\boldsymbol{\mu} + \boldsymbol{b}, \ \boldsymbol{A}\boldsymbol{\Sigma}\boldsymbol{A}^{\prime})\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 1.3 节 ==================== -->
+    <div class="slide section-slide" id="slide-33">
+        <h2>1.3 均值向量与协差阵的估计</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">从总体参数到样本统计量</p>
+    </div>
+
+    <div class="slide" id="slide-34">
+        <h2 class="slide-title"><i class="fas fa-search"></i> 为什么要进行估计？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; line-height: 1.8;">
+                在实际问题中，我们通常假定被研究对象服从多元正态分布，但决定分布形状的<strong>“灵魂”——均值向量 $\boldsymbol{\mu}$ 和协差阵 $\boldsymbol{\Sigma}$ 通常是未知的</strong>。
+            </p>
+            <div class="step tile" style="margin-top: 10px; padding: 10px; text-align: center;">
+                <i class="fas fa-tools" style="font-size: 80px; color: #3b82f6; margin-bottom: 30px;"></i>
+                <h3 style="justify-content: center; font-size: 36px;">一般的做法是：通过抽取“样本”来进行估计。</h3>
+                <p style="margin-top: 10px; font-size: 26px; color: #475569;">这引出了我们下一部分的统计推断理论。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-35">
+        <h2 class="slide-title"><i class="fas fa-border-all"></i> 1.3.1 多元随机样本与观测矩阵</h2>
+        <div class="content-area">
+            <p class="step">设进行 $n$ 次观测，样本资料可用矩阵表示为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 10px 40px; text-align: left;">
+                    \[
+                    \boldsymbol{X} = \left[\begin{array}{cccc}
+                    X_{11} & X_{12} & \cdots & X_{1 p} \\
+                    X_{21} & X_{22} & \cdots & X_{2 p} \\
+                    \vdots & \vdots & & \vdots \\
+                    X_{n 1} & X_{n 2} & \cdots & X_{n p}
+                    \end{array}\right]
+                    = \left[\begin{array}{c} \boldsymbol{X}_{(1)}^{\prime} \\ \boldsymbol{X}_{(2)}^{\prime} \\ \vdots \\ \boldsymbol{X}_{(n)}^{\prime} \end{array}\right]
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="padding: 10px; margin-top: 30px;">
+                <p style="font-size: 26px;"><i class="fas fa-lightbulb"></i> 随机矩阵 vs 数据矩阵</p>
+                <span style="font-size: 24px; color: #334155; line-height: 1.8; display: block; margin-top: 15px;">
+                    每个观测在<strong>抽样前</strong>不能确定，故 $\boldsymbol{X}$ 是一个<strong>随机矩阵</strong>，称为观测矩阵。<br>
+                    <strong>一旦观测值取定</strong>（拿到手了），$\boldsymbol{X}$ 就变成了全是具体数值的<strong>数据矩阵</strong>。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-36">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 定义 1.7 样本统计量 (1/2)</h2>
+        <div class="content-area">
+            
+            <div class="step tile" style="padding: 5px;">
+                <h3>(1) 样本均值向量</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 30px;">
+                        \[
+                        \overline{\boldsymbol{X}} = \frac{1}{n} \sum_{i=1}^n \boldsymbol{X}_{(i)} = \frac{1}{n} \left[\begin{array}{c} \sum X_{i1} \\ \vdots \\ \sum X_{ip} \end{array}\right] = \left[\begin{array}{c} \bar{X}_1 \\ \vdots \\ \bar{X}_p \end{array}\right]
+                        \]
+                    </div>
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px; margin-top: 10px;">
+                <h3>(2) 样本离差阵 </h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 30px; border-left-color: #8b5cf6;">
+                        \[\boldsymbol{S} = \sum_{i=1}^n (\boldsymbol{X}_{(i)} - \overline{\boldsymbol{X}}) (\boldsymbol{X}_{(i)} - \overline{\boldsymbol{X}})^{\prime} = (s_{ij})_{p \times p}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-37">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 定义 1.7 样本统计量 (2/2)</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 10px;">继续基于样本离差阵 $\boldsymbol{S}$ 派生其他统计量：</p>
+            <div class="step tile" style="border-top-color: #ec4899; padding: 5px;">
+                <h3>(3) 样本协差阵 ($\boldsymbol{V}$)</h3>
+              
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left-color: #ec4899;">
+                        \[\boldsymbol{V} = \frac{1}{n} \boldsymbol{S} = (v_{ij})_{p \times p}\]
+                    </div>
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color: #10b981; padding: 5px; margin-top: 30px;">
+                <h3>(4) 样本相关阵 ($\boldsymbol{R}$)</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left-color: #10b981;">
+                        \[\boldsymbol{R} = (r_{ij})_{p \times p}, \quad \text{其中 } r_{ij} = \frac{v_{ij}}{\sqrt{v_{ii}}\sqrt{v_{jj}}} = \frac{s_{ij}}{\sqrt{s_{ii}}\sqrt{s_{jj}}}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-38">
+        <h2 class="slide-title"><i class="fas fa-magnet"></i> 1.3.2 极大似然估计 (MLE) 引入</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">参数估计的原则和方法很多，在多元统计中最常用且具有优良性质的是<strong>最大似然法 (Maximum Likelihood Estimation)</strong>。</p>
+            <div class="step tile" style="padding: 40px; margin-top: 30px; border-top-color: #3b82f6;">
+                
+                <p style="font-size: 24px; line-height: 1.8;">设 $\boldsymbol{X}_{(1)}, \dots, \boldsymbol{X}_{(n)}$ 是来自总体 $N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ (且 $n>p, \boldsymbol{\Sigma}>0$) 的简单样本，则 $\boldsymbol{\mu}$ 和 $\boldsymbol{\Sigma}$ 的最大似然估计正是：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 50px; margin-top: 15px;">
+                        \[\hat{\boldsymbol{\mu}} = \overline{\boldsymbol{X}}, \qquad \hat{\boldsymbol{\Sigma}} = \frac{1}{n} \boldsymbol{S}\]
+                    </div>
+                </div>
+             </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-39">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> MLE 推导 (1/4)：构造似然函数</h2>
+        <div class="content-area">
+            <p class="step">由于样本独立同分布，其联合密度等于各个密度的乘积。构造似然函数 $L(\boldsymbol{\mu}, \boldsymbol{\Sigma})$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; text-align: left; padding: 25px 40px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    L(\boldsymbol{\mu}, \boldsymbol{\Sigma}) &= \prod_{i=1}^n f(\boldsymbol{X}_i, \boldsymbol{\mu}, \boldsymbol{\Sigma}) \\
+                    &= \prod_{i=1}^n \left( \frac{1}{(2\pi)^{p/2} |\boldsymbol{\Sigma}|^{1/2}} \exp\left\{-\frac{1}{2} (\boldsymbol{X}_i-\boldsymbol{\mu})^{\prime} \boldsymbol{\Sigma}^{-1} (\boldsymbol{X}_i-\boldsymbol{\mu})\right\} \right) \\
+                    &= \frac{1}{(2\pi)^{pn/2} |\boldsymbol{\Sigma}|^{n/2}} \exp\left\{-\frac{1}{2} \sum_{i=1}^n (\boldsymbol{X}_i-\boldsymbol{\mu})^{\prime} \boldsymbol{\Sigma}^{-1} (\boldsymbol{X}_i-\boldsymbol{\mu})\right\}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-40">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> MLE 推导 (2/4)：取对数似然</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 20px;">为了将乘积转化为加法以方便求导，对似然函数取自然对数：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; text-align: left; padding: 30px 40px; border-left-color: #ec4899;">
+                    \[
+                    \ln L(\boldsymbol{\mu}, \boldsymbol{\Sigma}) = -\frac{1}{2}pn \ln(2\pi) - \frac{n}{2}\ln|\boldsymbol{\Sigma}| - \frac{1}{2} \sum_{i=1}^n (\boldsymbol{X}_i-\boldsymbol{\mu})^{\prime} \boldsymbol{\Sigma}^{-1} (\boldsymbol{X}_i-\boldsymbol{\mu})
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="padding: 25px; border-left-color: #ec4899; background: #fce7f3; margin-top: 30px;">
+                <p style="color: #9d174d; font-size: 24px;"><i class="fas fa-info-circle"></i> 为什么可以取对数？</p>
+                <span style="font-size: 22px; color: #831843; line-height: 1.6; display: block; margin-top: 10px;">
+                    因为对数函数是<strong>严格单调递增</strong>的，原函数取极值的位置（自变量 $\boldsymbol{\mu}, \boldsymbol{\Sigma}$ 的取值）与对数函数取极值的位置完全一致。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-41">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> MLE 推导 (3/4)：矩阵求导法则</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">对上式求偏导，我们需要用到高级矩阵代数理论。对于实对称矩阵 $\boldsymbol{A}$，存在以下优美的求导公式：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; text-align: left; padding: 5px 50px; line-height: 2.2;">
+                    \[\frac{\partial (\boldsymbol{X}^{\prime} \boldsymbol{A} \boldsymbol{X})}{\partial \boldsymbol{X}} = 2\boldsymbol{A}\boldsymbol{X}\]
+                    <br>
+                    \[\frac{\partial (\boldsymbol{X}^{\prime} \boldsymbol{A} \boldsymbol{X})}{\partial \boldsymbol{A}} = \boldsymbol{X}\boldsymbol{X}^{\prime}\]
+                    <br>
+                    \[\frac{\partial \ln|\boldsymbol{A}|}{\partial \boldsymbol{A}} = (\boldsymbol{A}^{-1})^{\prime} = \boldsymbol{A}^{-1}\]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; color: #475569; font-size: 22px; margin-top: 15px;">这些是多元统计分析中“徒手拆炸弹”必备的核武器。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-42">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> MLE 推导 (4/4)：偏导数等于零</h2>
+        <div class="content-area">
+            <p class="step">运用法则，分别对 $\boldsymbol{\mu}$ 和 $\boldsymbol{\Sigma}$ 求偏导并令其等于 $0$ 矩阵：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 18px; text-align: left; padding: 5px 40px; line-height: 2;">
+                    \[
+                    \begin{cases}
+                    \displaystyle \frac{\partial \ln L}{\partial \boldsymbol{\mu}} = \sum_{i=1}^n \boldsymbol{\Sigma}^{-1} (\boldsymbol{X}_i - \boldsymbol{\mu}) = \mathbf{0} \\[15pt]
+                    \displaystyle \frac{\partial \ln L}{\partial \boldsymbol{\Sigma}^{-1}} = \frac{n}{2} \boldsymbol{\Sigma} - \frac{1}{2} \sum_{i=1}^n (\boldsymbol{X}_i - \boldsymbol{\mu})(\boldsymbol{X}_i - \boldsymbol{\mu})^{\prime} = \mathbf{0}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left-color: #10b981;">
+                    \[
+                    \begin{cases}
+                    \hat{\boldsymbol{\mu}} = \frac{1}{n} \sum_{i=1}^n \boldsymbol{X}_i = \overline{\boldsymbol{X}} \\[15pt]
+                    \hat{\boldsymbol{\Sigma}} = \frac{1}{n} \sum_{i=1}^n (\boldsymbol{X}_i - \overline{\boldsymbol{X}})(\boldsymbol{X}_i - \overline{\boldsymbol{X}})^{\prime} = \frac{1}{n} \boldsymbol{S}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-43">
+        <h2 class="slide-title"><i class="fas fa-balance-scale-right"></i> 估计量的无偏性探讨</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px;">
+               
+                <p>无偏性定理:我们关心估计量是否会有系统性偏差。理论证明：$\overline{\boldsymbol{X}}$ 是 $\boldsymbol{\mu}$ 的无偏估计，而 $\frac{1}{n-1}\boldsymbol{S}$ 是 $\boldsymbol{\Sigma}$ 的无偏估计。</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 40px;">
+                        \[E(\overline{\boldsymbol{X}}) = \boldsymbol{\mu}, \qquad E\left(\frac{1}{n-1}\boldsymbol{S}\right) = \boldsymbol{\Sigma}\]
+                    </div>
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 10px; padding: 10px; border-left-color: #ef4444; background: #fef2f2;">
+                <p style="color: #b91c1c; font-size: 26px;"><i class="fas fa-exclamation-triangle"></i> 注意 MLE 的有偏性：</p>
+                <span style="font-size: 24px; color: #7f1d1d; line-height: 1.6; display: block; margin-top: 15px;">
+                    最大似然估计给出的 $\hat{\boldsymbol{\Sigma}} = \frac{1}{n}\boldsymbol{S}$ 并不是无偏的，因其期望为 $\frac{n-1}{n}\boldsymbol{\Sigma}$。<br>
+                    <strong>在实际应用中，为了得到无偏估计，我们常用 $\hat{\boldsymbol{\Sigma}}_{unbiased} = \frac{1}{n-1}\boldsymbol{S}$ 作为总体协差阵的估计。</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-44">
+        <h2 class="slide-title"><i class="fas fa-crown"></i> 抽样分布的四大终极定理</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">样本均值向量和样本离差阵在多元统计推断中具有十分重要的作用。</p>
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 40px;">
+                <p style="font-size: 24px; margin-bottom: 20px;">设 $\overline{\boldsymbol{X}}$ 和 $\boldsymbol{S}$ 分别是正态总体 $N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ 的样本均值向量和离差阵，则：</p>
+                <ul class="bullet-list" style="line-height: 2.2; font-size: 24px;">
+                    <li><strong>(1) 分布属性：</strong> $\overline{\boldsymbol{X}} \sim N_p\left(\boldsymbol{\mu}, \frac{1}{n}\boldsymbol{\Sigma}\right)$</li>
+                    <li><strong>(2) 威沙特分布 (Wishart)：</strong> $\boldsymbol{S}$ 可以表示为独立同分布 $N_p(\mathbf{0}, \boldsymbol{\Sigma})$ 向量外积的和：$\boldsymbol{S} = \sum_{i=1}^{n-1} Z_i Z_i^{\prime}$</li>
+                    <li class="highlight-blue" style="font-size: 26px;"><strong>(3) Fisher 独立性定理：</strong> $\overline{\boldsymbol{X}}$ 与 $\boldsymbol{S}$ 完全相互独立。</li>
+                    <li><strong>(4) 正定性条件：</strong> 离差阵 $\boldsymbol{S}$ 严格正定 $\iff n > p$（样本量必须大于特征维度）。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-45">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 1 章 本章总结</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 26px;">
+                    <li><span class="highlight-blue">矩阵化表达：</span> 将多指标观测转化为数据矩阵，利用期望和协方差矩阵刻画总体的中心位置与波动相关结构。</li>
+                    <li><span class="highlight-blue">多元正态分布：</span> 其密度函数通过协方差的逆阵进行缩放。它拥有极好的性质：线性组合仍正态、边缘分布仍正态、不相关即独立。</li>
+                    <li><span class="highlight-blue">参数估计：</span> 利用最大似然法结合矩阵求导推导出 $\overline{\boldsymbol{X}}$ 和 $\frac{1}{n}\boldsymbol{S}$。实际工程中采用无偏修正 $\frac{1}{n-1}\boldsymbol{S}$。</li>
+                    <li><span class="highlight-blue">抽样定理：</span> $\overline{\boldsymbol{X}}$ 和 $\boldsymbol{S}$ 的独立性是后续一切假设检验和置信区间构造的支柱。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-46">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课后思考与作业</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 50px;">
+                <h3 style="font-size: 32px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 课后思考探索</h3>
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2; margin-top: 20px;">
+                    <li>在多元正态分布中，为什么说“不相关等价于相互独立”？这对于非正态分布成立吗？请尝试举出反例。</li>
+                    <li>当样本容量 $n$ 小于变量维度 $p$ 时（高维小样本问题），样本协差阵 $\boldsymbol{S}$ 不再正定（不可逆）。这对传统统计算法有何致命影响？现代机器学习是如何解决这一维数灾难的？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 10px;">
+                <a href="#" class="hw-btn" ; return false;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结束页 ==================== -->
+  
+    <!-- 底部进度与提示 -->
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progress = document.getElementById('progress-bar');
+    const counter = document.getElementById('slide-counter');
+
+    let currentSlideIndex = 0;
+
+    function isPresentationMode() {
+        return document.body.classList.contains('presentation-mode');
+    }
+
+    function getCurrentVisibleSlideIndex() {
+        let bestIndex = 0;
+        let bestScore = Infinity;
+        const viewportCenter = window.innerHeight / 2;
+
+        slides.forEach((slide, index) => {
+            const rect = slide.getBoundingClientRect();
+            const slideCenter = rect.top + rect.height / 2;
+            const score = Math.abs(slideCenter - viewportCenter);
+            if (score < bestScore) {
+                bestScore = score;
+                bestIndex = index;
+            }
+        });
+
+        return bestIndex;
+    }
+
+    function updateProgressBar() {
+        const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+        progress.style.width = percent + '%';
+        counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+    }
+
+    function resetStepsForPresentation() {
+        slides.forEach(slide => {
+            slide.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('visible');
+            });
+        });
+    }
+
+    function showSlide(index) {
+        currentSlideIndex = index;
+        slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === index);
+        });
+        updateProgressBar();
+    }
+
+    function showAllSlidesMode() {
+        document.body.classList.remove('presentation-mode');
+        document.documentElement.classList.remove('presentation-mode');
+
+        slides.forEach(slide => {
+            slide.classList.add('active');
+            slide.querySelectorAll('.step').forEach(step => {
+                step.classList.add('visible');
+            });
+        });
+
+        progress.style.display = 'none';
+        counter.style.display = 'none';
+        container.style.transform = '';
+    }
+
+    function updateScale() {
+        if (!isPresentationMode()) return;
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function enterPresentationMode(startIndex = null) {
+        const targetIndex = startIndex === null ? getCurrentVisibleSlideIndex() : startIndex;
+
+        document.body.classList.add('presentation-mode');
+        document.documentElement.classList.add('presentation-mode');
+
+        progress.style.display = 'block';
+        counter.style.display = 'block';
+
+        resetStepsForPresentation();
+        showSlide(targetIndex);
+        updateScale();
+
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function exitPresentationMode() {
+        if (document.fullscreenElement) {
+            document.exitFullscreen().catch(() => {});
+        }
+        showAllSlidesMode();
+    }
+
+    function advance() {
+        if (!isPresentationMode()) return;
+
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            return;
+        }
+
+        if (currentSlideIndex < slides.length - 1) {
+            showSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode()) return;
+
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            return;
+        }
+
+        if (currentSlideIndex > 0) {
+            showSlide(currentSlideIndex - 1);
+            slides[currentSlideIndex].querySelectorAll('.step').forEach(step => {
+                step.classList.add('visible');
+            });
+        }
+    }
+
+    window.addEventListener('resize', updateScale);
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode()) {
+            showAllSlidesMode();
+        }
+    });
+
+    container.addEventListener('click', (e) => {
+        if (!isPresentationMode()) return;
+        if (e.target.closest('.hw-btn')) return;
+        advance();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5') {
+            e.preventDefault();
+            if (isPresentationMode()) {
+                exitPresentationMode();
+            } else {
+                enterPresentationMode();
+            }
+            return;
+        }
+
+        if (e.key === 'Escape' && isPresentationMode()) {
+            e.preventDefault();
+            exitPresentationMode();
+            return;
+        }
+
+        if (!isPresentationMode()) return;
+
+        if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+            e.preventDefault();
+            advance();
+            return;
+        }
+
+        if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+            e.preventDefault();
+            goBack();
+        }
+    });
+
+    showAllSlidesMode();
+});
+</script>
+</body>
+
+</html>
