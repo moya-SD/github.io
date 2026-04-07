@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第2章 均值向量和协方差阵的检验</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.1 /* 略微放大公式整体比例 */
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            min-height: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0;
+            padding: 40px 0;
+        }
+
+        /* -------------------------------------------------------------
+           默认浏览模式：可下拉浏览所有幻灯片
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: relative;
+            width: 1280px;
+            margin: 0 auto;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            overflow: visible;
+            display: flex;
+            flex-direction: column;
+            gap: 60px;
+        }
+
+        /* 顶部彩色装饰条只在放映模式显示 */
+        #presentation-container::before {
+            display: none;
+        }
+
+        /* -------------------------------------------------------------
+           浏览模式下的单页结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 60px;
+            opacity: 1;
+            pointer-events: auto;
+            background-color: #ffffff;
+            overflow: hidden;
+            margin: 0 auto;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+            flex-shrink: 0;
+        }
+        .slide.active { z-index: 10; }
+
+        /* 浏览模式下全部内容直接可见 */
+        .step,
+        .step.visible {
+            opacity: 1;
+            transform: none;
+            transition: none;
+        }
+
+        /* -------------------------------------------------------------
+           放映模式：恢复原来的单页放映视觉
+           ------------------------------------------------------------- */
+        body.presentation-mode,
+        html.presentation-mode {
+            background-color: #1e293b;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        body.presentation-mode #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+            display: block;
+        }
+
+        body.presentation-mode #presentation-container::before {
+            display: block;
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* 放映模式保留原来的步进动画 */
+        body.presentation-mode .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        body.presentation-mode .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* =========================
+           A4 横向打印：每页 1 张 slide
+           ========================= */
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        @media print {
+            html, body {
+                width: auto !important;
+                height: auto !important;
+                min-height: auto !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                overflow: visible !important;
+            }
+
+            body.presentation-mode,
+            html.presentation-mode {
+                width: auto !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: #ffffff !important;
+            }
+
+            #presentation-container {
+                position: static !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+                transform: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+
+            #presentation-container::before {
+                display: none !important;
+            }
+
+            .slide {
+                position: relative !important;
+                width: 297mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                padding: 12mm 14mm !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                background: #ffffff !important;
+                overflow: hidden !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .slide:not(:first-of-type) {
+                page-break-before: always !important;
+                break-before: page !important;
+            }
+
+            .step,
+            .step.visible {
+                opacity: 1 !important;
+                transform: none !important;
+                transition: none !important;
+            }
+
+            .progress-bar,
+            .slide-counter,
+            .hw-btn {
+                display: none !important;
+            }
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 46px; color: #0f172a;
+            margin: 0 0 25px 0; padding-bottom: 15px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 70px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 20px; 
+            justify-content: flex-start; /* 严格顶部对齐 */
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 28px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 15px; font-size: 28px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 26px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 35px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 32px; color: #0f172a; margin-bottom: 20px; font-family: 'Noto Serif SC', serif;}
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 15px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 15px 30px;
+            /* 强制内部一切颜色为黑色 */
+            color: #000000 !important; 
+            font-size: 28px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        
+        /* 强制 MathJax 生成的公式颜色为纯黑 */
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 4px 12px; font-size: 28px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 25px 35px; border-radius: 8px; margin: 20px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 28px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+        .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-book"></i> 应用多元统计分析</div>
+            <h1><span>第2章</span>均值向量和协方差阵的检验</h1>
+           
+            
+           
+        </div>
+    </div>
+
+   <!-- ==================== 导入 1 ==================== -->
+    <div class="slide" id="slide-intro-1">
+        <h2 class="slide-title"><i class="fas fa-search-chart"></i> 为什么要研究均值向量和协方差阵的检验？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">
+                在实际研究中，我们面对的往往不是单一指标，而是由多个变量共同刻画的复杂研究对象。
+            </p>
+
+            <div class="two-column-top" style="margin-top: 20px;">
+                <div class="step tile" style="padding: 30px;">
+                    <h3><i class="fas fa-city"></i> 例 1：区域发展比较</h3>
+                    <p style="font-size: 24px; line-height: 1.8;">
+                        比较两个地区的发展水平时，不能只看 GDP。通常需要<strong>同时考察</strong>人均 GDP、居民消费水平、城镇化率、产业结构等多个指标构成的综合状况。
+                    </p>
+                </div>
+
+                <div class="step tile" style="padding: 30px; border-top-color: #ec4899;">
+                    <h3 style="color: #ec4899;"><i class="fas fa-heartbeat"></i> 例 2：医学指标比较</h3>
+                    <p style="font-size: 24px; line-height: 1.8;">
+                        在评估一种新药的疗效时，常常需要<strong>同时比较</strong>实验组与对照组的血压、血糖、血脂、心率等多项生理指标，而不是孤立地看某一个。
+                    </p>
+                </div>
+            </div>
+
+            <p class="step" style="margin-top: 30px; font-weight: bold; color: #2563eb; text-align: center; font-size: 28px;">
+                因此，我们关心的不再是“某一个均值”，而是“多个指标构成的整体特征”。
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== 导入 2 ==================== -->
+    <div class="slide" id="slide-intro-2">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 为什么不能把多个一元检验简单拼起来？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">
+                在一元统计分析中，我们研究的是总体均值 $\mu$ 和方差 $\sigma^2$ 的检验；<br>
+                但在多元情形下，研究对象变成了高维的<strong>均值向量</strong>和<strong>协方差阵</strong>：
+            </p>
+
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 50px; border-left: 6px solid #3b82f6;">
+                    \[
+                    \boldsymbol{\mu}=(\mu_1,\mu_2,\cdots,\mu_p)^{\prime}, \qquad
+                    \boldsymbol{\Sigma}=(\sigma_{ij})_{p\times p}
+                    \]
+                </div>
+            </div>
+
+            <div class="step tile" style="margin-top: 10px; border-top-color: #ef4444; background: #fef2f2;">
+                <h3 style="color: #b91c1c; font-size: 23px;"><i class="fas fa-exclamation-triangle"></i> 直接分别做多个一元 t 检验会有什么严重问题？</h3>
+                <ul class="bullet-list" style="margin-top: 10px; line-height: 2.2; font-size: 20px; color: #7f1d1d;">
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 完全忽略了变量之间的<strong>相关性</strong>（比如血压和心率往往是联动的）。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 多次独立检验会导致<strong>第一类错误（假阳性）概率急剧累积爆炸</strong>。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 无法从宏观上判断多元总体的<strong>中心位置</strong>和<strong>变异结构</strong>。</li>
+                </ul>
+            </div>
+
+            <p class="step" style="margin-top: 15px; text-align: center; color: #db2777; font-weight: bold; font-size: 28px;">
+                多元检验不是若干个一元检验的散装堆叠，而是对联合结构的整体判定！
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== 导入 3 ==================== -->
+    <div class="slide" id="slide-intro-3">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 本章主要研究什么？</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="step tile" style="padding: 10px; border-top-color: #10b981;">
+                    <h3 style="font-size: 24px;"><i class="fas fa-bullseye"></i> 2.1 均值向量的检验</h3>
+                    <p style="margin-bottom: 24px; font-size: 21px; color: #1e293b;">
+                        研究“总体的宏观中心位置是否相同”。
+                    </p>
+                    <ul class="bullet-list" style="line-height: 2.2; font-size: 21px;">
+                        <li>一个总体的均值向量是否等于给定基准值</li>
+                        <li>两个总体的均值向量是否相等</li>
+                        <li>多个总体的均值向量是否相等 (MANOVA)</li>
+                    </ul>
+                    <p style="margin-top: 10px; color: #059669; font-weight: bold; font-size: 26px; border-left: 4px solid #10b981; padding-left: 15px;">
+                        核心数学工具：Hotelling \(T^2\) 分布
+                    </p>
+                </div>
+
+                <div class="step tile" style="padding: 10px; border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 24px; color: #8b5cf6;"><i class="fas fa-wave-square"></i> 2.2 协方差阵的检验</h3>
+                    <p style="margin-bottom: 10px; font-size: 24px; color: #1e293b;">
+                        研究“变量之间的内部波动与相关结构是否一致”。
+                    </p>
+                    <ul class="bullet-list" style="line-height: 2.2; font-size: 21px;">
+                        <li>协方差阵是否为单位阵 (变量独立且标准)</li>
+                        <li>协方差阵是否等于给定结构矩阵</li>
+                        <li>多个总体的协方差阵是否相等 (齐方差检验)</li>
+                    </ul>
+                    <p style="margin-top: 10px; color: #6d28d9; font-weight: bold; font-size: 21px; border-left: 4px solid #8b5cf6; padding-left: 15px;">
+                        核心思想：似然比检验与渐近 \(\chi^2\)
+                    </p>
+                </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+   
+    <!-- ==================== 引言 ==================== -->
+  
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 假设检验的基本思想与步骤</h2>
+        <div class="content-area">
+            <p class="step">不管是多元还是一元，假设检验的基本思想和步骤均可归纳为以下四步：</p>
+            <div class="step tile" style="margin-top: 20px; padding: 40px; background: #f8fafc;">
+                <ul class="bullet-list" style="line-height: 2.2;">
+                    <li><span class="highlight-blue">（1）提出假设：</span> 提出待检验的假设 $H_0$ (原假设) 和 $H_1$ (备择假设)；</li>
+                    <li><span class="highlight-blue">（2）构造统计量：</span> 给出检验的统计量及其在 $H_0$ 成立时服从的分布；</li>
+                    <li><span class="highlight-blue">（3）确定拒绝域：</span> 给定检验水平 $\alpha$，查统计量的分布表，确定相应的临界值，从而得到拒绝域；</li>
+                    <li><span class="highlight-blue">（4）做出决策：</span> 根据样本观测值计算出统计量的值，看是否落入拒绝域中，以便对待判假设做出决策（拒绝或接受）。</li>
+                </ul>
+            </div>
+            <p class="step" style="margin-top: 25px; color: #ec4899; font-weight: bold; text-align: center;">
+                在多元检验中，关键在于选取合理的统计量。本章侧重于解释选取统计量的合理性。
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== 2.1 节 ==================== -->
+    <div class="slide section-slide" id="slide-4">
+        <h2>2.1 均值向量的检验</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">从单变量 t 检验到多变量 Hotelling $T^2$ 检验</p>
+    </div>
+
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-history"></i> 2.1.1 单个指标检验的回顾 (方差已知)</h2>
+        <div class="content-area">
+            <p class="step">在单一变量的检验问题中，设 $X_1, X_2, \cdots, X_n$ 来自总体 $N(\mu, \sigma^2)$ 的样本。我们要检验假设：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 40px;">
+                    \[H_0: \mu = \mu_0 \quad ; \quad H_1: \mu \neq \mu_0\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 10px; border-top-color: #10b981;">
+                <h3 style="color: #10b981;">当 $\sigma^2$ 已知时 (Z 检验)</h3>
+                <p>用统计量 $Z = \frac{(\bar{X}-\mu_0)}{\sigma} \sqrt{n}$ 做检验，其中 $\bar{X} = \frac{1}{n} \sum_{i=1}^n X_i$。</p>
+                <p style="margin-top: 15px;">当 $H_0$ 成立时，$Z \sim N(0,1)$，从而拒绝域为 $|Z| > z_{\alpha/2}$，其中 $z_{\alpha/2}$ 为 $N(0,1)$ 的上 $\alpha/2$ 分位点。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-history"></i> 2.1.1 单个指标检验的回顾 (方差未知)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #ec4899; padding: 5px;">
+                <h3 style="color: #ec4899;">当 $\sigma^2$ 未知时 (t 检验)</h3>
+                <p>用 $S^2 = \frac{1}{n-1} \sum_{i=1}^n (X_i - \bar{X})^2$ 作为 $\sigma^2$ 的无偏估计量。</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px;padding: 5px;">
+                        \[t = \frac{(\bar{X}-\mu_0)}{S} \sqrt{n}\]
+                    </div>
+                </div>
+                <p style="margin-top: 15px;">当 $H_0$ 成立时，$t \sim t(n-1)$。拒绝域为 $|t| > t_{\alpha/2}(n-1)$。</p>
+            </div>
+            <p class="step" style="margin-top: 15px; font-weight: bold;">这里我们应该注意到，为方便向多元推广，上述 $t$ 统计量平方可以表示为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left: 6px solid #ec4899;">
+                    \[t^2 = n(\bar{X}-\mu_0)^2 (S^2)^{-1} = n(\bar{X}-\mu_0)^{\prime} (S^2)^{-1} (\bar{X}-\mu_0)\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-cube"></i> 定义 2.1：Hotelling $T^2$ 分布</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 20px;">对于多元变量而言，可以将一元的 $t^2$ 分布推广为著名的 <strong>Hotelling $T^2$ 分布</strong>。</p>
+            <div class="step tile" style="padding: 40px; border-top-color: #3b82f6;">
+                <p style="font-size: 30px; line-height: 1.8;">
+                    设 $\boldsymbol{X} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma}), \boldsymbol{S} \sim W_p(n, \boldsymbol{\Sigma})$ 且 $\boldsymbol{X}$ 与 $\boldsymbol{S}$ 相互独立，$n \geqslant p$。
+                </p>
+                <p style="font-size: 30px; margin-top: 15px; line-height: 1.8;">
+                    则称统计量 $T^2 = n \boldsymbol{X}^{\prime} \boldsymbol{S}^{-1} \boldsymbol{X}$ 的分布为<strong>非中心 Hotelling $T^2$ 分布</strong>，记为 $T^2 \sim T^2(p, n, \boldsymbol{\mu})$。
+                </p>
+                <p style="font-size: 30px; margin-top: 15px; font-weight: bold; color: #2563eb;">
+                    当 $\boldsymbol{\mu} = \mathbf{0}$ 时，称 $T^2$ 服从（中心）Hotelling $T^2$ 分布，记为 $T^2(p, n)$。
+                </p>
+            </div>
+            <p class="step" style="margin-top: 20px; font-size: 24px; color: #64748b;">
+                * 这一统计量由 Harold Hotelling 提出。我国著名统计学家许宝禄先生在1938年用不同方法也导出了 $T^2$ 分布的密度函数。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 定理 2.1：$T^2$ 分布与 $F$ 分布的关系</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 20px;">在一元统计中，$t \sim t(n-1) \Rightarrow t^2 \sim F(1, n-1)$。在多元中，$T^2$ 统计量也具有类似的性质，可以转化为 $F$ 统计量处理。</p>
+            <div class="step tile" style="padding: 40px; border-top-color: #8b5cf6;">
+                <p style="font-size: 28px;"><strong>定理 2.1:</strong>若 $\boldsymbol{X} \sim N_p(\mathbf{0}, \boldsymbol{\Sigma}), \boldsymbol{S} \sim W_p(n, \boldsymbol{\Sigma})$ 且 $\boldsymbol{X}$ 与 $\boldsymbol{S}$ 相互独立，</p>
+                <p style="font-size: 23px; margin-top: 10px;">令 $T^2 = n \boldsymbol{X}^{\prime} \boldsymbol{S}^{-1} \boldsymbol{X}$，则：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 50px; border-left: 6px solid #8b5cf6;">
+                        \[\frac{n-p+1}{n p} T^2 \sim F(p, n-p+1)\]
+                    </div>
+                </div>
+            </div>
+           
+        </div>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 2.1.2 一个正态总体均值向量的检验 (1/4)</h2>
+        <div class="content-area">
+            <p class="step" style="margin-bottom: 10px;">设 $\boldsymbol{X}_{(1)}, \boldsymbol{X}_{(2)}, \cdots, \boldsymbol{X}_{(n)}$ 是来自 $p$ 维总体 $N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ 的样本。
+            样本均值 $\overline{\boldsymbol{X}} = \frac{1}{n} \sum_{\alpha=1}^n \boldsymbol{X}_{(\alpha)}$，样本离差阵 $\boldsymbol{S} = \sum_{\alpha=1}^n (\boldsymbol{X}_{(\alpha)}-\overline{\boldsymbol{X}})(\boldsymbol{X}_{(\alpha)}-\overline{\boldsymbol{X}})^{\prime}$。</p>
+            
+            <div class="step tile" style="border-top-color: #10b981; padding: 10px; margin-top: 10px;">
+                <h3 style="color: #10b981; font-size: 23px;">情形 1：协差阵 $\boldsymbol{\Sigma}$ 已知时均值向量的检验</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px;">
+                        \[H_0: \boldsymbol{\mu} = \boldsymbol{\mu}_0 \quad (\boldsymbol{\mu}_0 \text{ 已知}) \quad ; \quad H_1: \boldsymbol{\mu} \neq \boldsymbol{\mu}_0\]
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 23px;">假设 $H_0$ 成立，检验统计量为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; border-left: 6px solid #10b981; padding: 10px 40px;">
+                        \[T_0^2 = n(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)^{\prime} \boldsymbol{\Sigma}^{-1} (\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0) \sim \chi^2(p)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> $T_0^2$ 为什么服从 $\chi^2(p)$ 分布？ (2/4)</h2>
+        <div class="content-area">
+            <p class="step">我们来解释一下统计量 $T_0^2$ 的选取合理性。</p>
+            <div class="step tile" style="padding: 40px;">
+                <p style="font-size: 26px;">根据二次型分布定理：若 $\boldsymbol{Y} \sim N_p(\mathbf{0}, \boldsymbol{\Sigma})$，则 $\boldsymbol{Y}^{\prime} \boldsymbol{\Sigma}^{-1} \boldsymbol{Y} \sim \chi^2(p)$。
+               显然，$T_0^2$ 可以改写为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 30px;">
+                        \[
+                        \begin{aligned}
+                        T_0^2 &= n(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)^{\prime} \boldsymbol{\Sigma}^{-1} (\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0) \\
+                        &= \big[\sqrt{n}(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)\big]^{\prime} \boldsymbol{\Sigma}^{-1} \big[\sqrt{n}(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)\big] \\
+                        &= \boldsymbol{Y}^{\prime} \boldsymbol{\Sigma}^{-1} \boldsymbol{Y}
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+                <p style="font-size: 21px; margin-top: 5px;">在 $H_0$ 成立时，$\boldsymbol{Y} = \sqrt{n}(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0) \sim N_p(\mathbf{0}, \boldsymbol{\Sigma})$，因此 $T_0^2 \sim \chi^2(p)$。</p>
+            </div>
+            <p class="step" style="margin-top: 3px; font-weight: bold; color: #ec4899; text-align: center;">决策规则：若计算出的 $T_0^2 > \chi_\alpha^2(p)$，则拒绝 $H_0$。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 2.1.2 一个正态总体均值向量的检验 (3/4)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #ec4899; padding: 5px;">
+                <h3 style="color: #ec4899; font-size: 26px;">情形 2：协差阵 $\boldsymbol{\Sigma}$ 未知时均值向量的检验</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px;padding: 5px;">
+                        \[H_0: \boldsymbol{\mu} = \boldsymbol{\mu}_0 \quad ; \quad H_1: \boldsymbol{\mu} \neq \boldsymbol{\mu}_0\]
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 23px;">由于 $\boldsymbol{\Sigma}$ 未知，用样本协差阵 $\frac{1}{n-1}\boldsymbol{S}$ 取代。构造统计量 $T^2$：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 40px;">
+                        \[T^2 = (n-1) \Big[ \sqrt{n}(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)^{\prime} \boldsymbol{S}^{-1} \sqrt{n}(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0) \Big]\]
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 23px;">假设 $H_0$ 成立，检验统计量转化为 $F$ 分布：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; border-left: 6px solid #ec4899; padding: 3px 40px;">
+                        \[F = \frac{(n-1)-p+1}{(n-1) p} T^2 \sim F(p, n-p)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> $F$ 统计量的理论解释 (4/4)</h2>
+        <div class="content-area">
+            <p class="step">为什么转化后服从 $F(p, n-p)$？利用抽样分布定理：</p>
+            <div class="step tile" style="padding: 5px;">
+                <p style="font-size: 23px; margin-bottom: 15px;">样本离差阵和均值在正态下独立，上述二次型构造恰好满足 Hotelling $T^2$ 的定义,有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; text-align: left; padding: 5px 30px;">
+                        \[\boldsymbol{S} \sim W_p(n-1, \boldsymbol{\Sigma})\]
+                        \[\sqrt{n}(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0) \sim N_p(\mathbf{0}, \boldsymbol{\Sigma}) \quad (\text{在 } H_0 \text{ 下})\]
+                         \[T^2 \sim T^2(p, n-1)\]
+                    </div>
+                </div>
+               
+              
+                <p style="font-size: 21px; margin-top: 5px;">再由定理 2.1 (将参数 $n$ 替换为 $n-1$)，必然有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; border-left: 6px solid #8b5cf6;">
+                        \[\frac{n-p}{(n-1)p} T^2 \sim F(p, n-p)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-ex1-1">
+    <h2 class="slide-title"><i class="fas fa-bullseye"></i> 例 1：一个正态总体均值向量的检验</h2>
+    <div class="content-area">
+        <p class="step">
+            某高校想了解研究生在《数理统计》和《回归分析》两门课程上的总体水平是否达到培养目标。
+        </p>
+        <div class="step tile" style="margin-top: 5px;">
+            <h3><i class="fas fa-book"></i> 已知条件</h3>
+            <p>培养目标对应的均值向量为:
+                    \(
+                    \boldsymbol{\mu}_0=
+                    \begin{pmatrix}
+                    75\\
+                    80
+                    \end{pmatrix}
+                    \)
+            </p>
+            <p style="margin-top: 5px;">随机抽取 \(n=10\) 名学生，得到
+                    \(
+                    \overline{\boldsymbol{X}}=
+                    \begin{pmatrix}
+                    78\\
+                    84
+                    \end{pmatrix},
+                    \qquad
+                    \boldsymbol{S}=
+                    \begin{pmatrix}
+                    90 & 36\\
+                    36 & 64
+                    \end{pmatrix}
+                    \)
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 5px;">
+            <p>
+                检验假设：
+                \(
+                H_0:\boldsymbol{\mu}=\boldsymbol{\mu}_0,
+                \qquad
+                H_1:\boldsymbol{\mu}\neq \boldsymbol{\mu}_0
+                \),
+                取显著性水平 \(\alpha=0.05\)。
+            </p>
+        </div>
+    </div>
+</div>
+  <div class="slide" id="slide-ex1-2">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 1：统计量计算</h2>
+    <div class="content-area">
+        <p class="step">
+            采用 Hotelling \(T^2\) 统计量：
+                \(
+                T^2=n(\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)^{\prime}
+                \boldsymbol{S}^{-1}
+                (\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)
+                \)
+        </p>
+        <div class="step tile" style="margin-top: 5px;">
+            <p>
+                先算均值差：
+                    \(
+                    \overline{\boldsymbol{X}}-\boldsymbol{\mu}_0
+                    =
+                    \begin{pmatrix}
+                    3\\4
+                    \end{pmatrix}
+                    \)
+            </p>
+
+            <p style="margin-top: 5px;">
+                再求协差阵逆矩阵：
+            </p>
+            <div class="math-center">
+                <div class="math-box" style="font-size: 18px; text-align: left; line-height: 1.9;">
+                    \[
+                    |\boldsymbol{S}|=90\times64-36^2=4464
+                    \]
+                    \[
+                    \boldsymbol{S}^{-1}
+                    =
+                    \frac{1}{4464}
+                    \begin{pmatrix}
+                    64 & -36\\
+                    -36 & 90
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+
+            <p style="margin-top: 5px;">
+                于是,
+                    \(
+                    (\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)^{\prime}
+                    \boldsymbol{S}^{-1}
+                    (\overline{\boldsymbol{X}}-\boldsymbol{\mu}_0)
+                    \approx 0.2581
+                    \),
+                    \(
+                    T^2=10\times 0.2581=2.581
+                    \)
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-ex1-3">
+    <h2 class="slide-title"><i class="fas fa-check-double"></i> 例 1：检验结论</h2>
+    <div class="content-area">
+        <p class="step">
+            因为 \(p=2,\ n=10\)，所以
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 20px;">
+                \[
+                F=\frac{n-p}{p(n-1)}T^2
+                =
+                \frac{10-2}{2(10-1)}\times 2.581
+                \approx 1.147
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 10px; border-top-color: #10b981;">
+            <p>
+                在 \(H_0\) 下，
+                \(
+                F\sim F(2,8)
+                \),
+                查表得
+                \(
+                F_{0.05}(2,8)\approx 4.46
+                \)
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 10px;">
+            <p>
+                因为
+                \(
+                1.147 \lt 4.46
+                \)
+                所以不能拒绝原假设 \(H_0\)。
+            </p>
+        </div>
+
+        <p class="step" style="margin-top: 1px; text-align: center; color: #2563eb; font-weight: bold;">
+            结论：没有充分证据认为该校研究生两门课程的总体平均水平与培养目标存在显著差异。
+        </p>
+    </div>
+</div>
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-users"></i> 2.1.3 两个正态总体均值向量的检验 (1/4)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px; margin-bottom: 10px;">设来自总体 $N_p(\boldsymbol{\mu}_1, \boldsymbol{\Sigma}_1)$ 和 $N_p(\boldsymbol{\mu}_2, \boldsymbol{\Sigma}_2)$ 的两组独立样本，容量分别为 $n$ 和 $m$。待检验假设：$H_0: \boldsymbol{\mu}_1 = \boldsymbol{\mu}_2$。</p>
+            <div class="step tile" style="border-top-color: #3b82f6; padding: 10px;">
+                <h3 style="color: #3b82f6; font-size: 30px;">情形 1.1：共同且已知的协差阵 $\boldsymbol{\Sigma}_1 = \boldsymbol{\Sigma}_2 = \boldsymbol{\Sigma}$</h3>
+                <p style="margin-top: 10px; font-size: 23px;">利用两样本均值差 $\overline{\boldsymbol{X}} - \overline{\boldsymbol{Y}}$，构造统计量：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 15px 40px; border-left: 6px solid #3b82f6;">
+                        \[T_0^2 = \frac{n m}{n+m} (\overline{\boldsymbol{X}}-\overline{\boldsymbol{Y}})^{\prime} \boldsymbol{\Sigma}^{-1} (\overline{\boldsymbol{X}}-\overline{\boldsymbol{Y}}) \sim \chi^2(p)\]
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 21px; color: #475569;">
+                    (因为 $\overline{\boldsymbol{X}} - \overline{\boldsymbol{Y}} \sim N_p(\mathbf{0}, (\frac{1}{n}+\frac{1}{m})\boldsymbol{\Sigma})$，标准化后凑成 $\chi^2$ 二次型)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-users"></i> 2.1.3 两个正态总体均值向量的检验 (2/4)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px;">
+                <h3 style="color: #8b5cf6; font-size: 30px;">情形 1.2：共同但未知的协差阵 $\boldsymbol{\Sigma}_1 = \boldsymbol{\Sigma}_2 = \boldsymbol{\Sigma}$</h3>
+                <p style="margin-top: 15px; font-size: 23px;">需要用两组样本的<strong>合并离差阵 (Pooled Scatter)</strong> $\boldsymbol{S} = \boldsymbol{S}_x + \boldsymbol{S}_y$ 来估计 $\boldsymbol{\Sigma}$。</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 15px 30px;">
+                        \[T^2 = (n+m-2) \left[ \frac{n m}{n+m} (\overline{\boldsymbol{X}}-\overline{\boldsymbol{Y}})^{\prime} \boldsymbol{S}^{-1} (\overline{\boldsymbol{X}}-\overline{\boldsymbol{Y}}) \right]\]
+                    </div>
+                </div>
+                <p style="margin-top: 15px; font-size: 23px;">由 Hotelling 定理转化为 F 统计量（此时自由度总数为 $n+m-2$）：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 40px; border-left: 6px solid #8b5cf6;">
+                        \[F = \frac{n+m-p-1}{(n+m-2) p} T^2 \sim F(p, n+m-p-1)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-not-equal"></i> 2.1.3 两个正态总体均值向量的检验 (3/4)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 5px;">当两总体协差阵<strong>不等</strong>时 ($\boldsymbol{\Sigma}_1 \neq \boldsymbol{\Sigma}_2$)：</p>
+            <div class="step tile" style="border-top-color: #ec4899; padding: 10px;">
+                <h3 style="color: #ec4899; font-size: 30px;">情形 2.1：样本量相等 $n = m$ (配对构造)</h3>
+                <p style="margin-top: 15px; font-size: 22px;">令差值向量 $\boldsymbol{Z}_{(i)} = \boldsymbol{X}_{(i)} - \boldsymbol{Y}_{(i)}$。问题转化为单样本检验。</p>
+                <p style="margin-top: 15px; font-size: 22px;">样本均值 $\overline{\boldsymbol{Z}} = \overline{\boldsymbol{X}} - \overline{\boldsymbol{Y}}$，离差阵 $\boldsymbol{S} = \sum_{i=1}^n (\boldsymbol{Z}_{(i)}-\overline{\boldsymbol{Z}})(\boldsymbol{Z}_{(i)}-\overline{\boldsymbol{Z}})^{\prime}$。</p>
+                <p style="margin-top: 15px; font-size: 22px;">构造检验统计量为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left: 6px solid #ec4899;">
+                        \[F = \frac{(n-p) n}{p} \overline{\boldsymbol{Z}}^{\prime} \boldsymbol{S}^{-1} \overline{\boldsymbol{Z}} \sim F(p, n-p)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" id="slide-ex2-1">
+    <h2 class="slide-title"><i class="fas fa-users"></i> 例 2：两个正态总体均值向量的检验</h2>
+    <div class="content-area" style="gap: 14px;">
+        <p class="step" style="font-size: 22px; line-height: 1.6;">
+            比较 A 班和 B 班学生在“统计软件应用”和“多元统计分析”两门课程上的整体表现是否有差异。
+        </p>
+
+        <div class="step tile" style="margin-top: 8px; padding: 18px 24px;">
+            <h3 style="font-size: 24px; margin-bottom: 12px;"><i class="fas fa-database"></i> 样本信息</h3>
+            <div class="math-center">
+                <div class="math-box" style="font-size: 18px; padding: 12px 18px; line-height: 1.8;">
+                    \[
+                    \overline{\boldsymbol{X}}_1=
+                    \begin{pmatrix}
+                    82\\78
+                    \end{pmatrix},
+                    \qquad
+                    \overline{\boldsymbol{X}}_2=
+                    \begin{pmatrix}
+                    76\\72
+                    \end{pmatrix}
+                    \]
+                    \[
+                    \boldsymbol{S}_1=
+                    \begin{pmatrix}
+                    70 & 20\\
+                    20 & 50
+                    \end{pmatrix},
+                    \qquad
+                    \boldsymbol{S}_2=
+                    \begin{pmatrix}
+                    54 & 18\\
+                    18 & 46
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+            <p style="margin-top: 8px; font-size: 20px; line-height: 1.6;">
+                其中 \(n_1=n_2=8\)，并假定两个总体协差阵相等但未知。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 8px; padding: 16px 22px;">
+            <p style="font-size: 21px; line-height: 1.6;">
+                检验假设：
+                \[
+                H_0:\boldsymbol{\mu}_1=\boldsymbol{\mu}_2,
+                \qquad
+                H_1:\boldsymbol{\mu}_1\neq \boldsymbol{\mu}_2
+                \]
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-ex2-2">
+    <h2 class="slide-title"><i class="fas fa-cogs"></i> 例 2：计算 Hotelling \(T^2\)</h2>
+    <div class="content-area" style="gap: 12px;">
+        <p class="step" style="font-size: 21px; line-height: 1.6;">
+            先求合并离差阵：
+                \(
+                \boldsymbol{S}=\boldsymbol{S}_1+\boldsymbol{S}_2
+                =
+                \begin{pmatrix}
+                124 & 38\\
+                38 & 96
+                \end{pmatrix}
+                \)
+         </p>
+
+        <p class="step" style="font-size: 21px; line-height: 1.6;">
+            样本均值差为
+                \(
+                \overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2
+                =
+                \begin{pmatrix}
+                6\\6
+                \end{pmatrix}
+                \)
+        </p>
+
+        <div class="step tile" style="margin-top: 6px; padding: 16px 22px;">
+            <p style="font-size: 18px; line-height: 1.6;">
+                由公式
+            </p>
+            <div class="math-center" style="margin: 8px 0;">
+                <div class="math-box" style="font-size: 17px; text-align: left; line-height: 1.8; padding: 5px 16px;">
+                    \[
+                    T^2=(n_1+n_2-2)\cdot \frac{n_1n_2}{n_1+n_2}
+                    (\overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2)^{\prime}
+                    \boldsymbol{S}^{-1}
+                    (\overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2)
+                    \]
+                    \[
+                    =14\times 4 \times
+                    (\overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2)^{\prime}
+                    \boldsymbol{S}^{-1}
+                    (\overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2)
+                    \]
+                </div>
+            </div>
+
+            <p style="margin-top: 6px; font-size: 20px; line-height: 1.6;">
+                计算得
+            </p>
+            <div class="math-center" style="margin: 8px 0 0 0;">
+                <div class="math-box" style="font-size: 18px; padding: 10px 16px; line-height: 1.8;">
+                    \[
+                    (\overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2)^{\prime}
+                    \boldsymbol{S}^{-1}
+                    (\overline{\boldsymbol{X}}_1-\overline{\boldsymbol{X}}_2)
+                    \approx 0.4956
+                    \]
+                    \[
+                    T^2\approx 56\times 0.4956=27.754
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-ex2-3">
+    <h2 class="slide-title"><i class="fas fa-check-circle"></i> 例 2：检验结论</h2>
+    <div class="content-area" style="gap: 14px;">
+        <p class="step" style="font-size: 21px; line-height: 1.6;">
+            因为 \(n_1=n_2=8,\ p=2\)，所以
+        </p>
+
+        <div class="step math-center" style="margin: 4px 0;">
+            <div class="math-box" style="font-size: 19px; padding: 12px 18px; line-height: 1.8;">
+                \[
+                F=\frac{n_1+n_2-p-1}{(n_1+n_2-2)p}T^2
+                =
+                \frac{13}{28}\times 27.754
+                \approx 12.89
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 8px; border-top-color: #8b5cf6; padding: 16px 22px;">
+            <p style="font-size: 20px; line-height: 1.6;">
+                在 \(H_0\) 下，
+                \(
+                F\sim F(2,13)
+                \),
+                查表得
+                \(
+                F_{0.05}(2,13)\approx 3.81
+                \)
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 8px; padding: 16px 22px;">
+            <p style="font-size: 21px; line-height: 1.6;">
+                因为
+                \(
+                12.89 > 3.81
+                \)
+                所以拒绝原假设 \(H_0\)。
+            </p>
+        </div>
+
+        <p class="step" style="margin-top: 8px; text-align: center; color: #ec4899; font-weight: bold; font-size: 22px; line-height: 1.6;">
+            结论：A 班与 B 班在两门课程构成的整体均值向量上存在显著差异。
+        </p>
+    </div>
+</div>
+
+    <div class="slide" id="slide-16">
+        <h2 class="slide-title"><i class="fas fa-not-equal"></i> 2.1.3 两个正态总体均值向量的检验 (4/4 - 1)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #10b981; padding: 15px;">
+                <h3 style="color: #10b981; font-size: 30px;">情形 2.2：样本量不等 $n \neq m$</h3>
+                <p style="margin-top: 15px; font-size: 24px;">不妨假设 $n < m$。此时直接相减会浪费数据，需要构造特殊的“伪差值”向量 $\boldsymbol{Z}_{(i)}$ ($i=1,\dots,n$) 保留 $H_0$ 的特征：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px; text-align: left; line-height: 2;">
+                        \[
+                        \boldsymbol{Z}_{(i)} = \boldsymbol{X}_{(i)} - \sqrt{\frac{n}{m}} \boldsymbol{Y}_{(i)} + \frac{1}{\sqrt{n \cdot m}} \sum_{j=1}^n \boldsymbol{Y}_{(j)} - \frac{1}{m} \sum_{j=1}^m \boldsymbol{Y}_{(j)}
+                        \]
+                    </div>
+                </div>
+                <p style="margin-top: 15px; font-size: 24px;">这样巧妙构造后，均值依然保持：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 10px 30px;">
+                        \[\overline{\boldsymbol{Z}} = \frac{1}{n} \sum_{i=1}^n \boldsymbol{Z}_{(i)} = \overline{\boldsymbol{X}} - \overline{\boldsymbol{Y}}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  <!-- ==================== 推断过程 1 ==================== -->
+<div class="slide" id="slide-extra-1">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 伪差值向量的构造与样本均值</h2>
+    <div class="content-area">
+      
+
+        <p class="step" style="margin-top: 5px;">
+            取样本均值：
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 15px; padding: 5px 20px; text-align: left; line-height: 2;">
+                \[
+                \begin{aligned}
+                \overline{\boldsymbol{Z}}
+                &= \frac{1}{n}\sum_{i=1}^{n}\boldsymbol{Z}_{(i)} \\
+                &= \frac{1}{n}\sum_{i=1}^{n}\boldsymbol{X}_{(i)}
+                -\frac{1}{n}\sum_{i=1}^{n}\sqrt{\frac{n}{m}}\boldsymbol{Y}_{(i)}
+                +\frac{1}{n}\sum_{i=1}^{n}\left(
+                \frac{1}{\sqrt{nm}}\sum_{j=1}^{n}\boldsymbol{Y}_{(j)}
+                -\frac{1}{m}\sum_{j=1}^{m}\boldsymbol{Y}_{(j)}
+                \right) \\
+                &= \overline{\boldsymbol{X}}
+                -\sqrt{\frac{n}{m}}\cdot \frac{1}{n}\sum_{i=1}^{n}\boldsymbol{Y}_{(i)}
+                +\frac{1}{\sqrt{nm}}\sum_{j=1}^{n}\boldsymbol{Y}_{(j)}
+                -\frac{1}{m}\sum_{j=1}^{m}\boldsymbol{Y}_{(j)}
+                \end{aligned}
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 10px;">
+            <p>
+                由于
+                \(
+                \sqrt{\frac{n}{m}}\cdot \frac{1}{n}=\frac{1}{\sqrt{nm}},
+                \)
+                中间两项恰好抵消，因此
+                \(
+                \overline{\boldsymbol{Z}}
+                =
+                \overline{\boldsymbol{X}}-\overline{\boldsymbol{Y}}.
+                \)
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 推断过程 2 ==================== -->
+<div class="slide" id="slide-extra-2">
+    <h2 class="slide-title"><i class="fas fa-bullseye"></i> 在 \(H_0\) 下的均值与检验统计量</h2>
+    <div class="content-area">
+        <p class="step">
+            在原假设
+            \(
+            H_0:\boldsymbol{\mu}_1=\boldsymbol{\mu}_2
+            \)
+            下，记共同均值为 \(\boldsymbol{\mu}\)，则\(
+                E(\boldsymbol{X}_{(i)})=\boldsymbol{\mu},
+               
+                E(\boldsymbol{Y}_{(i)})=\boldsymbol{\mu}
+                \)。于是
+        </p>
+
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 15px; padding: 5px 20px; text-align: left; line-height: 2;">
+                \[
+                \begin{aligned}
+                E(\boldsymbol{Z}_{(i)})
+                &=
+                E(\boldsymbol{X}_{(i)})
+                -\sqrt{\frac{n}{m}}E(\boldsymbol{Y}_{(i)})
+                +\frac{1}{\sqrt{nm}}\sum_{j=1}^{n}E(\boldsymbol{Y}_{(j)})
+                -\frac{1}{m}\sum_{j=1}^{m}E(\boldsymbol{Y}_{(j)}) \\
+                &=
+                \boldsymbol{\mu}
+                -\sqrt{\frac{n}{m}}\boldsymbol{\mu}
+                +\frac{n}{\sqrt{nm}}\boldsymbol{\mu}
+                -\boldsymbol{\mu} \\
+                &= \mathbf{0}
+                \end{aligned}
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 5px; border-top-color: #10b981; padding: 5px;">
+            <p style="font-size: 18px; line-height: 1.9;">
+                因此，原问题
+                “检验 \(\boldsymbol{\mu}_1=\boldsymbol{\mu}_2\)”
+                就转化为
+                “检验新样本 \(\boldsymbol{Z}_{(1)},\dots,\boldsymbol{Z}_{(n)}\) 的均值向量是否为 \(\mathbf{0}\)”。
+            </p>
+
+            <div class="math-center" style="margin-top: 5px;">
+                <div class="math-box" style="font-size: 15px; padding: 5px 25px; border-left-color: #10b981;">
+                    \[
+                    F=\frac{(n-p)n}{p}\,\overline{\boldsymbol{Z}}^{\prime}\boldsymbol{S}^{-1}\overline{\boldsymbol{Z}}
+                    \sim F(p,n-p)
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <p class="step" style="margin-top: 12px; text-align: center; color: #2563eb; font-weight: bold;">
+            这说明：通过构造 \(\boldsymbol{Z}_{(i)}\)，可将样本量不等时的双总体均值检验化为单总体均值向量检验。
+        </p>
+    </div>
+</div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-not-equal"></i> 2.1.3 两个正态总体均值向量的检验 (4/4 - 2)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #10b981; padding: 10px;">
+                <p style="font-size: 26px;">据此计算出的复杂离差阵 $\boldsymbol{S}$ 为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; padding: 10px; text-align: left; line-height: 2;">
+                        \[
+                        \begin{aligned}
+                        \boldsymbol{S} &= \sum_{i=1}^n (\boldsymbol{Z}_{(i)}-\overline{\boldsymbol{Z}})(\boldsymbol{Z}_{(i)}-\overline{\boldsymbol{Z}})^{\prime} \\
+                        &= \sum_{i=1}^n \left[ (\boldsymbol{X}_{(i)}-\overline{\boldsymbol{X}}) - \sqrt{\frac{n}{m}} \Big(\boldsymbol{Y}_{(i)}-\frac{1}{n} \sum_{j=1}^n \boldsymbol{Y}_{(j)}\Big) \right] \times \dots (\text{转置})
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 26px;">在 $H_0$ 成立时，最终依然可以构造出结构优美的 F 统计量：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; padding: 10px 40px; border-left: 6px solid #10b981;">
+                        \[F = \frac{(n-p) n}{p} \overline{\boldsymbol{Z}}^{\prime} \boldsymbol{S}^{-1} \overline{\boldsymbol{Z}} \sim F(p, n-p)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 2.1.4 多个正态总体均值向量的检验 (MANOVA)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">解决多个总体的均值检验，实际上应用到<strong>多元方差分析 (MANOVA)</strong>。先回顾一元方差分析 (ANOVA)：</p>
+            <div class="step tile" style="padding: 5px; border-top-color: #3b82f6;">
+               
+                <p style="font-size: 22px;">$H_0: \mu_1 = \mu_2 = \cdots = \mu_k$。总变异被分解为组间和组内：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 18px; padding: 5px; text-align: left;">
+                        \[\mathrm{SSA} = \sum_{i=1}^k n_i (\bar{X}_i - \bar{X})^2 \quad \text{(组间)}\]
+                        \[\mathrm{SSE} = \sum_{i=1}^k \sum_{j=1}^{n_i} (X_j^{(i)} - \bar{X}_i)^2 \quad \text{(组内)}\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; margin-top: 5px;">构造 F 统计量：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 18px; padding: 5px 30px;">
+                        \[F = \frac{\mathrm{SSA} / (k-1)}{\mathrm{SSE} / (n-k)} \sim F(k-1, n-k)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-expand-arrows-alt"></i> 多元方差分析的核心工具</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px;">在多元推广中，平方和变成了离差矩阵。为了衡量多维分布的“体积/散度”，引入广义方差：</p>
+            <div class="step tile" style="padding: 5px; border-top-color: #8b5cf6;">
+                <h3 style="font-size: 28px; color: #8b5cf6;">定义 2.2：广义方差</h3>
+                <p style="font-size: 24px; line-height: 1.8;">
+                    若 $\boldsymbol{X} \sim N_p(\mathbf{0}, \boldsymbol{\Sigma})$，则称协差阵的行列式 $|\boldsymbol{\Sigma}|$ 为 $\boldsymbol{X}$ 的<strong>广义方差</strong>。
+                    称 $\left|\frac{1}{n} \boldsymbol{S}\right|$ 为样本广义方差。
+                </p>
+            </div>
+            
+            <div class="step tile" style="margin-top: 25px; padding:5px; border-top-color: #ec4899;">
+                <h3 style="font-size: 22px; color: #ec4899;">定义 2.3：Wilks 统计量</h3>
+                <p style="font-size: 22px; line-height: 1.8;">
+                    基于广义方差的比值，定义 Wilks 分布（记为 $\Lambda \sim \Lambda(p, n_1, n_2)$）：
+                </p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left: 6px solid #ec4899;">
+                        \[\Lambda = \frac{|\boldsymbol{A}_1|}{|\boldsymbol{A}_1 + \boldsymbol{A}_2|}\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; color: #475569; margin-top: 10px;">在 MANOVA 中，$\boldsymbol{A}_1$ 对应误差离差阵(SSE阵)，$\boldsymbol{A}_2$ 对应效应离差阵(SSA阵)。应用中常将它化为 $T^2$ 或 $F$ 处理。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2.2 节 ==================== -->
+    <div class="slide section-slide" id="slide-20">
+        <h2>2.2 协方差阵的检验</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">探究多维变量波动结构的真面目</p>
+    </div>
+
+    <div class="slide" id="slide-21">
+        <h2 class="slide-title"><i class="fas fa-check-circle"></i> 2.2.1 一个正态总体协方差阵的检验 (1/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">设 $\boldsymbol{X}_{(a)}$ 来自 $p$ 维总体 $N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})$ 的样本，$\boldsymbol{\Sigma}$ 未知。</p>
+            <div class="step tile" style="padding: 10px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 30px; color: #3b82f6;">假设一：检验是否为单位阵（即各变量标准且独立）</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 40px;">
+                        \[H_0: \boldsymbol{\Sigma} = \boldsymbol{I}_p \quad ; \quad H_1: \boldsymbol{\Sigma} \neq \boldsymbol{I}_p\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 10px;">基于似然比原理，构造出的检验统计量为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 40px; border-left: 6px solid #3b82f6;">
+                        \[\lambda = \exp\left\{-\frac{1}{2} \operatorname{tr} \boldsymbol{S}\right\} |\boldsymbol{S}|^{n/2} \left(\frac{\mathrm{e}}{2}\right)^{np/2}\]
+                    </div>
+                </div>
+                <p style="font-size: 20px; color: #475569; text-align: center;">(其中 $\boldsymbol{S}$ 为样本离差阵)</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 2.2.1 检验协差阵为特定矩阵 (2/3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px; border-top-color: #10b981;">
+                <h3 style="font-size: 30px; color: #10b981;">假设二：检验是否等于某已知矩阵 $\boldsymbol{\Sigma}_0$</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 30px;">
+                        \[H_0: \boldsymbol{\Sigma} = \boldsymbol{\Sigma}_0 \neq \boldsymbol{I}_p \quad ; \quad H_1: \boldsymbol{\Sigma} \neq \boldsymbol{\Sigma}_0 \neq \boldsymbol{I}_p\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 20px;">因为 $\boldsymbol{\Sigma}_0 > \mathbf{0}$，可进行“白化”变换：存在非奇异阵 $\boldsymbol{D}$，使得 $\boldsymbol{D} \boldsymbol{\Sigma}_0 \boldsymbol{D}^{\prime} = \boldsymbol{I}_p$。</p>
+                <p style="font-size: 24px; margin-top: 15px;">令变换后的样本 $\boldsymbol{Y}_{(a)} = \boldsymbol{D} \boldsymbol{X}_{(a)}$，此时：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 30px;">
+                        \[\boldsymbol{Y}_{(a)} \sim N_p(\boldsymbol{D}\boldsymbol{\mu}, \boldsymbol{D}\boldsymbol{\Sigma}\boldsymbol{D}^{\prime}) = N_p(\boldsymbol{\mu}^*, \boldsymbol{\Sigma}^*)\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 15px; font-weight: bold; color: #065f46;">
+                    检验 $\boldsymbol{\Sigma} = \boldsymbol{\Sigma}_0$ 完全等价于检验变换后的 $\boldsymbol{\Sigma}^* = \boldsymbol{I}_p$！
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 2.2.1 统计量分布与临界值计算 (3/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">沿用前页的等价变换，新的统计量为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left: 6px solid #ec4899;">
+                    \[\lambda = \exp\left\{-\frac{1}{2} \operatorname{tr} \boldsymbol{S}^*\right\} |\boldsymbol{S}^*|^{n/2} \left(\frac{\mathrm{e}}{2}\right)^{np/2}\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 10px; padding: 5px;">
+                <h3 style="font-size: 23px;">如何进行拒绝判决？</h3>
+                <p style="font-size: 22px;">直接通过似然比统计量 $\lambda$ 的精确分布计算临界值极其困难。</p>
+                <p style="font-size: 22px; margin-top: 5px;">利用大样本理论，在 $H_0$ 成立且 $n \gg p$ 时，有著名的大样本近似定理：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding:5px 30px;">
+                        \[-2 \ln \lambda \xrightarrow{d} \chi^2(p(p+1)/2)\]
+                    </div>
+                </div>
+                <p style="font-size: 21px; color: #ef4444; font-weight: bold; text-align: center; margin-top: 5px;">
+                    决策规则：若 $-2 \ln \lambda > \chi_\alpha^2$，即 $\lambda < \mathrm{e}^{-\chi_\alpha^2/2}$，则拒绝 $H_0$。
+                </p>
+            </div>
+        </div>
+    </div>
+   
+
+    <div class="slide" id="slide-ex3-1">
+    <h2 class="slide-title"><i class="fas fa-wave-square"></i> 例 3：一个正态总体协方差阵的检验</h2>
+    <div class="content-area" style="gap: 14px;">
+        <p class="step" style="font-size: 22px; line-height: 1.6;">
+            某研究者对 3 个标准化经济指标进行分析，希望检验这些变量是否可看作彼此独立且方差均为 1。
+        </p>
+
+        <div class="step info-box" style="margin-top: 8px; padding: 16px 22px;">
+            <p style="font-size: 21px; line-height: 1.6;">
+                即检验
+                \[
+                H_0:\boldsymbol{\Sigma}=\boldsymbol{I}_3,
+                \qquad
+                H_1:\boldsymbol{\Sigma}\neq \boldsymbol{I}_3
+                \]
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 8px; padding: 18px 24px;">
+            <h3 style="font-size: 24px; margin-bottom: 12px;"><i class="fas fa-table"></i> 样本信息</h3>
+            <p style="font-size: 20px; line-height: 1.6;">设样本容量 \(n=20\)，样本协差阵为</p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 18px; padding: 12px 18px; line-height: 1.8;">
+                    \[
+                    \boldsymbol{A}=
+                    \begin{pmatrix}
+                    1.20 & 0.35 & 0.10\\
+                    0.35 & 0.95 & 0.28\\
+                    0.10 & 0.28 & 1.10
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-ex3-2">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 3：统计量计算</h2>
+    <div class="content-area" style="gap: 12px;">
+        <p class="step" style="font-size: 21px; line-height: 1.6;">
+            采用似然比检验的大样本近似统计量：
+        </p>
+
+        <div class="step math-center" style="margin: 4px 0;">
+            <div class="math-box" style="font-size: 20px; padding: 12px 18px;">
+                \[
+                -2\ln\Lambda
+                =
+                n\left[\operatorname{tr}(\boldsymbol{A})-\ln|\boldsymbol{A}|-p\right]
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 8px; padding: 16px 22px;">
+            <p style="font-size: 20px; line-height: 1.6;">
+                这里 \(p=3,\ n=20\)。先求迹：\(
+                    \operatorname{tr}(\boldsymbol{A})=1.20+0.95+1.10=3.25
+                    \)
+            </p>
+
+
+            <p style="margin-top: 8px; font-size: 20px; line-height: 1.6;">
+                再求行列式，计算得
+            </p>
+            <div class="math-center" style="margin: 6px 0;">
+                <div class="math-box" style="font-size: 18px; padding: 10px 16px; line-height: 1.8;">
+                    \[
+                    |\boldsymbol{A}|\approx 1.03527
+                    \]
+                    \[
+                    \ln|\boldsymbol{A}|\approx 0.03466
+                    \]
+                </div>
+            </div>
+
+            <p style="margin-top: 8px; font-size: 20px; line-height: 1.6;">
+                因而
+            </p>
+            <div class="math-center" style="margin: 6px 0 0 0;">
+                <div class="math-box" style="font-size: 18px; padding: 10px 16px; line-height: 1.8;">
+                    \[
+                    -2\ln\Lambda
+                    =
+                    20(3.25-0.03466-3)
+                    \approx 4.3068
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-ex3-3">
+    <h2 class="slide-title"><i class="fas fa-check-double"></i> 例 3：检验结论</h2>
+    <div class="content-area" style="gap: 14px;">
+        <p class="step" style="font-size: 21px; line-height: 1.6;">
+            在 \(H_0\) 成立且样本量较大时，
+        </p>
+
+        <div class="step math-center" style="margin: 4px 0;">
+            <div class="math-box" style="font-size: 19px; padding: 12px 18px;">
+                \[
+                -2\ln\Lambda \approx \chi^2\!\left(\frac{p(p+1)}{2}\right)
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 8px; border-top-color: #10b981; padding: 16px 22px;">
+            <p style="font-size: 20px; line-height: 1.6;">
+                这里
+                \(
+                \frac{p(p+1)}{2}=\frac{3\times4}{2}=6
+                \)
+                所以
+                \(
+                -2\ln\Lambda \approx \chi^2(6)
+                \)
+            </p>
+
+            <p style="margin-top: 8px; font-size: 20px; line-height: 1.6;">
+                查表得
+                \(
+                \chi^2_{0.05}(6)=12.592
+                \)
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 8px; padding: 16px 22px;">
+            <p style="font-size: 21px; line-height: 1.6;">
+                因为
+                \(
+                4.3068 \lt 12.592
+                \)
+                所以不能拒绝原假设 \(H_0\)。
+            </p>
+        </div>
+
+        <p class="step" style="margin-top: 8px; text-align: center; color: #2563eb; font-weight: bold; font-size: 22px; line-height: 1.6;">
+            结论：没有充分证据认为该 3 个标准化变量的协方差阵偏离单位阵。
+        </p>
+    </div>
+</div>
+
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 2.2.2 多个正态总体协方差阵的检验</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">设有 $k$ 个正态总体 $N_p(\boldsymbol{\mu}_i, \boldsymbol{\Sigma}_i)$，各自抽出容量为 $n_i$ 的样本，总容量 $n = \sum n_i$。</p>
+            <div class="step tile" style="padding: 5px; border-top-color: #8b5cf6;">
+                <h3 style="font-size: 24px; color: #8b5cf6;">检验假设：齐方差检验 (Homogeneity of Covariances)</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                        \[H_0: \boldsymbol{\Sigma}_1 = \boldsymbol{\Sigma}_2 = \cdots = \boldsymbol{\Sigma}_k \quad ; \quad H_1: \{\boldsymbol{\Sigma}_i\} \text{ 不全相等}\]
+                    </div>
+                </div>
+                <p style="font-size: 23px; margin-top: 10px;">基于每个总体的离差阵 $\boldsymbol{S}_i$ 及总汇合离差阵 $\boldsymbol{S} = \sum \boldsymbol{S}_i$，构造广义似然比统计量：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 10px 40px; border-left: 6px solid #8b5cf6; line-height: 1.8;">
+                        \[\lambda_k = n^{np/2} \frac{\prod_{i=1}^k |\boldsymbol{S}_i|^{n_i/2}}{|\boldsymbol{S}|^{n/2} \prod_{i=1}^k n_i^{pn_i/2}}\]
+                    </div>
+                </div>
+                <p style="font-size: 20px; color: #475569; text-align: center; margin-top: 15px;">这其实就是大名鼎鼎的 Box's M 检验的理论基石。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-25">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 2 章 本章总结</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 26px;">
+                    <li><span class="highlight-blue">推断的灵魂：</span> 假设检验不仅需要检验目标（均值或协差阵），更核心在于<strong>合理构造服从已知分布的统计量</strong>。</li>
+                    <li><span class="highlight-blue">均值的检验：</span> Hotelling $T^2$ 分布是 $t^2$ 的多维推广，最终往往利用定理将其优雅地转化为易查表的 $F$ 分布计算拒绝域。</li>
+                    <li><span class="highlight-blue">复杂情况的拆解：</span> 遇到异方差且样本不等（$n \neq m$）等恶劣情况，通过精妙的代数构造“伪差值向量”强行凑配出可测结构。</li>
+                    <li><span class="highlight-blue">协方差阵检验：</span> 以极大似然比测度 $\lambda$ 及其 $-2\ln\lambda$ 的 $\chi^2$ 渐近分布为核心主线，解决结构辨识与异方差性诊断。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-26">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课后思考与作业</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 50px;">
+                <h3 style="font-size: 32px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 课后深入思考</h3>
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2; margin-top: 20px;">
+                    <li>在对均值进行多元检验时，为什么不直接对每个分量分别进行单变量的 $t$ 检验？这样做会导致怎样的统计误差（如弃真错误的累积）？</li>
+                    <li>Box 的 M 检验（即多个协方差阵的齐性检验）对数据本身的正态性偏离非常敏感。在应用统计中，如果发现违反了齐方差假设，通常会采取哪些补救措施？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 60px;">
+                <a href="#" class="hw-btn"  return false;">
+                    <i class="fas fa-laptop-code"></i> 本章作业
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结束页 ==================== -->
+   
+
+    <!-- 底部进度与提示 -->
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+
+        function isPresentationMode() {
+            return document.body.classList.contains('presentation-mode');
+        }
+
+        function getCurrentVisibleSlideIndex() {
+            let bestIndex = 0;
+            let bestScore = Infinity;
+            const viewportCenter = window.innerHeight / 2;
+
+            slides.forEach((slide, index) => {
+                const rect = slide.getBoundingClientRect();
+                const slideCenter = rect.top + rect.height / 2;
+                const score = Math.abs(slideCenter - viewportCenter);
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestIndex = index;
+                }
+            });
+
+            return bestIndex;
+        }
+
+        function showSlide(index) {
+            currentSlideIndex = index;
+            slides.forEach((slide, i) => {
+                if (i === index) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progress.style.width = percent + '%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function resetStepsForPresentation() {
+            slides.forEach(slide => {
+                slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+            });
+        }
+
+        function showAllSlidesMode() {
+            document.body.classList.remove('presentation-mode');
+            document.documentElement.classList.remove('presentation-mode');
+
+            slides.forEach(slide => {
+                slide.classList.add('active');
+                slide.querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+            });
+
+            progress.style.display = 'none';
+            counter.style.display = 'none';
+            container.style.transform = '';
+        }
+
+        function updateScale() {
+            if (!isPresentationMode()) return;
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function enterPresentationMode(startIndex = null) {
+            const targetIndex = startIndex === null ? getCurrentVisibleSlideIndex() : startIndex;
+
+            document.body.classList.add('presentation-mode');
+            document.documentElement.classList.add('presentation-mode');
+
+            progress.style.display = 'block';
+            counter.style.display = 'block';
+
+            resetStepsForPresentation();
+            showSlide(targetIndex);
+            updateScale();
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        function exitPresentationMode() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+            showAllSlidesMode();
+        }
+
+        function advance() {
+            if (!isPresentationMode()) return;
+
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function goBack() {
+            if (!isPresentationMode()) return;
+
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+                const prevSteps = slides[currentSlideIndex].querySelectorAll('.step');
+                prevSteps.forEach(step => step.classList.add('visible'));
+            }
+        }
+
+        window.addEventListener('resize', updateScale);
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isPresentationMode()) {
+                showAllSlidesMode();
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (!isPresentationMode()) return;
+            if (e.target.closest('.hw-btn')) return;
+            advance();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                if (isPresentationMode()) {
+                    exitPresentationMode();
+                } else {
+                    enterPresentationMode();
+                }
+                return;
+            }
+
+            if (e.key === 'Escape' && isPresentationMode()) {
+                e.preventDefault();
+                exitPresentationMode();
+                return;
+            }
+
+            if (!isPresentationMode()) return;
+
+            if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                e.preventDefault();
+                advance();
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                e.preventDefault();
+                goBack();
+            }
+        });
+
+        showAllSlidesMode();
+    });
+</script>
+
+</body>
+</html>
