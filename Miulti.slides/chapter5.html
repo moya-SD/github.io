@@ -1,0 +1,3050 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第5章 主成分分析</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+   <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+
+  
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #1e293b; 
+            width: 100vw; height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden; 
+            margin: 0; padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器 (严格锁定 1280x720)
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); 
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #0f172a;
+            margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 65px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; 
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 26px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 12px; font-size: 26px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 30px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 30px; color: #0f172a; margin-bottom: 15px; font-family: 'Noto Serif SC', serif;}
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 24px; background: #fff;}
+        th, td { border: 2px solid #cbd5e1; padding: 10px 15px; text-align: center; color: #1e293b;}
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 12px 25px;
+            color: #000000 !important; /* 强制纯黑 */
+            font-size: 26px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; font-size: 26px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 20px 30px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 26px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* 图片占位符 */
+        .image-placeholder {
+            width: 100%; height: 350px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: #64748b; font-size: 22px;
+        }
+        .image-placeholder i { font-size: 64px; color: #94a3b8; margin-bottom: 15px; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+        .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           浏览 / 放映 / 打印 模式增强
+           ------------------------------------------------------------- */
+        html, body {
+            width: 100%;
+            min-height: 100%;
+            height: auto;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background-color: #e5e7eb;
+        }
+
+        #presentation-container {
+            position: relative;
+            top: auto; left: auto;
+            transform: none !important;
+            width: min(1280px, calc(100vw - 32px));
+            height: auto;
+            margin: 24px auto 40px auto;
+            background: transparent;
+            box-shadow: none;
+            border: none;
+            border-radius: 0;
+            overflow: visible;
+        }
+
+        #presentation-container::before {
+            display: none;
+        }
+
+        .slide {
+            position: relative;
+            top: auto; left: auto;
+            width: 1280px;
+            max-width: 100%;
+            height: 720px;
+            min-height: 720px;
+            margin: 0 auto 24px auto;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+            border-radius: 8px;
+        }
+
+        .step {
+            opacity: 1;
+            transform: none;
+        }
+
+        .progress-bar,
+        .slide-counter {
+            display: none;
+        }
+
+        body.slideshow-mode {
+            background-color: #1e293b;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body.slideshow-mode #presentation-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            margin: 0;
+            background: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+            transform: translate(-50%, -50%) scale(var(--deck-scale, 1)) !important;
+        }
+
+        body.slideshow-mode #presentation-container::before {
+            display: block;
+        }
+
+        body.slideshow-mode .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            max-width: none;
+            height: 100%;
+            min-height: 0;
+            margin: 0;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            box-shadow: none;
+            border-radius: 0;
+        }
+
+        body.slideshow-mode .slide.active {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: 10;
+        }
+
+        body.slideshow-mode .step {
+            opacity: 0;
+            transform: translateY(15px);
+        }
+
+        body.slideshow-mode .step.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        body.slideshow-mode .progress-bar,
+        body.slideshow-mode .slide-counter {
+            display: block;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+
+            html, body {
+                background: #ffffff !important;
+                width: auto !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+            }
+
+            #presentation-container {
+                position: static !important;
+                width: auto !important;
+                height: auto !important;
+                margin: 0 !important;
+                transform: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+                overflow: visible !important;
+            }
+
+            #presentation-container::before,
+            .progress-bar,
+            .slide-counter {
+                display: none !important;
+            }
+
+            .slide {
+                position: relative !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                width: 277mm !important;
+                height: 155.8125mm !important;
+                min-height: 0 !important;
+                margin: 0 auto !important;
+                padding: 8mm 10mm !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                overflow: hidden !important;
+                background: #ffffff !important;
+            }
+
+            .slide:last-of-type {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+
+            .step {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== Part 0 封面与开场 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-compress-arrows-alt"></i> 第5章</div>
+            <h1>主成分分析：<span>用少数综合变量抓住主要信息</span></h1>
+            <p class="subtitle">变量太多？先别慌，给多维数据做一次高效“瘦身”</p>
+            
+          
+        </div>
+    </div>
+
+    <!-- ==================== Part 1 导入 ==================== -->
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-search-chart"></i> 导入：指标太多时，问题不是没信息，而是信息太吵</h2>
+        <div class="content-area">
+            <p class="step">设想我们正在做一个 <strong>AI 产品用户行为特征提炼</strong> 项目。某平台记录了用户：</p>
+            <div class="two-column-top" style="margin-top: 15px;">
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 5px;">
+                    <h3 style="font-size: 26px; color: #3b82f6;"><i class="fas fa-database"></i> 收集到的海量指标</h3>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li>周活跃天数</li>
+                        <li>平均提问长度</li>
+                        <li>使用场景数</li>
+                        <li>答案修改频率</li>
+                        <li>多轮追问次数</li>
+                        <li>文件上传次数</li>
+                        <li>满意度评分</li>
+                        <li>...（还有几十个）</li>
+                    </ul>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 5px;">
+                    <h3 style="font-size: 26px; color: #b45309;"><i class="fas fa-question-circle"></i> 现实的灵魂拷问</h3>
+                    <p style="font-size: 24px; line-height: 1.8; margin-top: 15px;">
+                        这些变量这么多，很多还彼此高度相关（比如“使用频率”和“多轮追问”），直接分析根本无从下手。<br><br>
+                        <strong>能不能只用 2 到 3 个“超级综合指标”，就把这些用户的使用模式概括出来？</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title"><i class="fas fa-bomb"></i> 变量一多，分析马上开始变得不优雅</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">面对动辄几十上百维的数据矩阵，我们面临几个典型困境：</p>
+            <div class="step tile" style="padding: 40px; border-top-color: #ec4899; background: #fdf2f8;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2; color: #9d174d;">
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>难以整体把握：</strong> 维度超出了人类三维视觉的极限，图看不清。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>信息严重重复：</strong> 变量间高度相关（共线性），其实反映的是同一件事。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>建模容易崩溃：</strong> 多重共线性会让后续的回归或判别模型矩阵不可逆。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>缺乏重点：</strong> 每个变量看起来都重要，结果反而写不出明晰的结论报告。</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 30px; font-size: 30px; font-weight: bold; color: #1e293b;">
+                信息太多时，难点不在“有没有”，而在“怎么提炼”。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-compress-alt"></i> 主成分分析到底想干什么？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 30px;">
+                一句话：用少数新变量，代替多数旧变量。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #10b981;">
+                <h3 style="font-size: 30px; margin-bottom: 25px;">基本思想</h3>
+                <ul class="bullet-list" style="font-size: 28px; line-height: 2;">
+                    <li>原变量很多，且彼此存在相关性。</li>
+                    <li>我们通过数学变换，构造出少数几个<strong>线性组合</strong>。</li>
+                    <li>这些新变量（主成分）之间<strong>互不相关</strong>。</li>
+                    <li>且它们尽可能多地<strong>保留了原始数据的绝大多数信息</strong>（方差）。</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 20px; font-size: 24px; color: #475569;">
+                主成分分析 (PCA) 由 Hotelling 于 1933 年首次提出，是多元统计降维的绝对基石。
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== Part 2 直观理解 ==================== -->
+    <div class="slide section-slide" id="slide-4">
+        <h2>直观理解：主成分到底是什么？</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">换个角度看世界，发现隐藏的主轴</p>
+    </div>
+
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-users-cog"></i> 主成分不是“挑几个原变量”</h2>
+        <div class="content-area">
+            <div class="step info-box" style="padding: 40px; background: #fff1f2; border-left-color: #f43f5e;">
+                <p style="color: #be123c; font-size: 32px;"><i class="fas fa-exclamation-triangle"></i> 最常见的误解：</p>
+                <span style="font-size: 26px; color: #881337; line-height: 1.8; display: block; margin-top: 15px;">
+                    很多人以为降维就是从 10 个变量里，删掉 7 个没用的，留下 3 个最有用的。<br><strong>错！PCA 不是删人，它是重新组队！</strong>
+                </span>
+            </div>
+            <div class="step tile" style="margin-top: 30px; padding: 40px; border-top-color: #3b82f6;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2;">
+                    <li>主成分是由所有原变量经过<strong>线性组合</strong>形成的一个个“全新混合体”。</li>
+                    <li>它是旧变量换了一种表达方式，是旧空间的重新投影。</li>
+                    <li>第一主成分里，可能包含了变量1的30%、变量2的50%、变量3的20%。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+
+
+     <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-chart-area"></i> 5.1.2 从散点图看主成分思想 (1/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;">数据云往哪边拉得最长，那边往往最重要。</p>
+            <div class="two-column">
+                <div class="step tile" style="padding: 10px;">
+                    <p style="font-size: 24px; line-height: 1.8;">
+                        想象一个二维平面上的点云（比如身高和体重）。<br><br>
+                        点云通常不是一个正圆，而是沿某个特定方向拉长的椭圆。<br><br>
+                        拉得最长的方向，说明数据在这个方向上变化（方差）最大，区分度最高。
+                    </p>
+                    <p style="font-size: 26px; font-weight: bold; color: #ec4899; margin-top: 20px;">
+                        这个最长轴的方向，就是第一主成分的大意！
+                    </p>
+                </div>
+                <div class="step">
+                    <div style="width: 100%; height: 350px; background: #ffffff; border-radius: 16px; border: 2px solid #e2e8f0; box-shadow: inset 0 4px 6px rgba(0,0,0,0.02); display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;">
+                        <svg viewBox="0 0 500 350" width="100%" height="100%">
+                            <defs>
+                                <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+                                </marker>
+                                <marker id="arrow-pc1" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#ec4899" />
+                                </marker>
+                                <marker id="arrow-pc2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+                                </marker>
+                            </defs>
+                            
+                            <!-- 原始坐标轴 -->
+                            <line x1="50" y1="300" x2="450" y2="300" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+                            <line x1="50" y1="300" x2="50" y2="50" stroke="#cbd5e1" stroke-width="2" marker-end="url(#arrow)" />
+                            <text x="440" y="325" font-size="14" fill="#64748b" font-family="sans-serif">原变量 x₁</text>
+                            <text x="10" y="60" font-size="14" fill="#64748b" font-family="sans-serif">原变量 x₂</text>
+
+                            <!-- 中心点 (250, 180)，旋转 -35 度 -->
+                            <g transform="rotate(-35 250 180)">
+                                <!-- 数据等高线 (椭圆) -->
+                                <ellipse cx="250" cy="180" rx="140" ry="50" fill="rgba(59, 130, 246, 0.08)" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6,4" />
+                                
+                                <!-- 散点群 -->
+                                <g fill="#3b82f6" opacity="0.8">
+                                    <circle cx="250" cy="180" r="4" /><circle cx="280" cy="190" r="3" /><circle cx="220" cy="170" r="3" />
+                                    <circle cx="310" cy="175" r="3.5" /><circle cx="190" cy="185" r="3" /><circle cx="340" cy="195" r="3" />
+                                    <circle cx="160" cy="165" r="3" /><circle cx="370" cy="170" r="3.5" /><circle cx="130" cy="190" r="3" />
+                                    <circle cx="260" cy="205" r="3" /><circle cx="240" cy="155" r="3" /><circle cx="290" cy="160" r="3" />
+                                    <circle cx="210" cy="200" r="3" /><circle cx="320" cy="210" r="3" /><circle cx="180" cy="150" r="3" />
+                                    <circle cx="140" cy="175" r="3" /><circle cx="360" cy="205" r="3" /><circle cx="270" cy="180" r="3" />
+                                </g>
+
+                                <!-- 主成分轴 (PC1 和 PC2) -->
+                                <!-- PC1 (长轴) -->
+                                <line x1="80" y1="180" x2="420" y2="180" stroke="#ec4899" stroke-width="3" marker-end="url(#arrow-pc1)" />
+                                <!-- PC2 (短轴) -->
+                                <line x1="250" y1="100" x2="250" y2="260" stroke="#10b981" stroke-width="3" marker-end="url(#arrow-pc2)" />
+                                
+                                <!-- 轴标签 -->
+                                <text x="400" y="170" font-size="14" font-weight="bold" fill="#ec4899" font-family="sans-serif">第一主成分 y₁</text>
+                                <text x="260" y="115" font-size="14" font-weight="bold" fill="#10b981" font-family="sans-serif">第二主成分 y₂</text>
+                            </g>
+                        </svg>
+                        <p style="font-size: 14px; color: #64748b; font-style: italic; margin-top: -10px;">散点椭圆云与长短轴(主成分)分布</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-music"></i> 第二主成分又是什么？(2/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 40px;">第一主成分抓了主旋律，第二主成分补副歌。</p>
+            <div class="step tile" style="padding: 40px; border-top-color: #8b5cf6;">
+                <ul class="bullet-list" style="font-size: 28px; line-height: 2.2;">
+                    <li>第一主成分 $y_1$ 尽最大努力吸走了数据中最主要的变化趋势。</li>
+                    <li>第二主成分 $y_2$ 必须与 $y_1$ <strong>正交（互不相关/垂直）</strong>。</li>
+                    <li>在这个严苛的约束下，$y_2$ 在剩下还没被解释的信息里，寻找方差最大的方向（即椭圆的短轴）。</li>
+                    <li>如果有多维，后续主成分 $y_3, y_4$ 依次类推。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+<div class="slide" id="slide-8">
+    <h2 class="slide-title"><i class="fas fa-sync"></i> 几何直觉：一个极端的例子 (3/3)</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 24px;">看表 5.1 数据：计算发现 $x_1$ 方差 7.5，$x_2$ 方差 30。看似需要两个变量。</p>
+        
+        <div class="step">
+            <table class="table-small" style="font-size: 22px;">
+                <thead>
+                    <tr>
+                        <th>$x_1$</th>
+                        <th>-4</th><th>-3</th><th>-2</th><th>-1</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>$x_2$</th>
+                        <td>-8</td><td>-6</td><td>-4</td><td>-2</td><td>0</td><td>2</td><td>4</td><td>6</td><td>8</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+       
+
+        <div class="step" style="margin-top: 8px;">
+            <div style="width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px 18px;">
+                <svg viewBox="0 0 920 360" width="100%" height="270" style="display:block; margin:0 auto;">
+                    <!-- 背景 -->
+                    <rect x="0" y="0" width="920" height="360" fill="#f8fafc"></rect>
+
+                    <!-- 图标题 -->
+                    <text x="460" y="24" text-anchor="middle" font-size="20" fill="#0f172a" font-weight="bold" font-family="Noto Sans SC">
+                        图5.1　所有样本点都落在同一条直线上
+                    </text>
+
+                    <!-- 参数说明：
+                         原点 = (460, 190)
+                         x每单位 = 80
+                         y每单位 = 18.75
+                    -->
+
+                    <!-- 网格线：竖 -->
+                    <g stroke="#e2e8f0" stroke-width="1">
+                        <line x1="140" y1="50" x2="140" y2="320"></line>
+                        <line x1="220" y1="50" x2="220" y2="320"></line>
+                        <line x1="300" y1="50" x2="300" y2="320"></line>
+                        <line x1="380" y1="50" x2="380" y2="320"></line>
+                        <line x1="460" y1="50" x2="460" y2="320"></line>
+                        <line x1="540" y1="50" x2="540" y2="320"></line>
+                        <line x1="620" y1="50" x2="620" y2="320"></line>
+                        <line x1="700" y1="50" x2="700" y2="320"></line>
+                        <line x1="780" y1="50" x2="780" y2="320"></line>
+                    </g>
+
+                    <!-- 网格线：横 -->
+                    <g stroke="#e2e8f0" stroke-width="1">
+                        <line x1="100" y1="40" x2="820" y2="40"></line>
+                        <line x1="100" y1="77.5" x2="820" y2="77.5"></line>
+                        <line x1="100" y1="115" x2="820" y2="115"></line>
+                        <line x1="100" y1="152.5" x2="820" y2="152.5"></line>
+                        <line x1="100" y1="190" x2="820" y2="190"></line>
+                        <line x1="100" y1="227.5" x2="820" y2="227.5"></line>
+                        <line x1="100" y1="265" x2="820" y2="265"></line>
+                        <line x1="100" y1="302.5" x2="820" y2="302.5"></line>
+                        <line x1="100" y1="340" x2="820" y2="340"></line>
+                    </g>
+
+                    <!-- 坐标轴 -->
+                    <line x1="100" y1="190" x2="840" y2="190" stroke="#475569" stroke-width="2.8"></line>
+                    <line x1="460" y1="340" x2="460" y2="30" stroke="#475569" stroke-width="2.8"></line>
+
+                    <!-- 箭头 -->
+                    <polygon points="840,190 826,183 826,197" fill="#475569"></polygon>
+                    <polygon points="460,30 453,44 467,44" fill="#475569"></polygon>
+
+                    <!-- 坐标轴标题 -->
+                    <text x="850" y="196" font-size="22" fill="#334155" font-family="Noto Sans SC">\(x_1\)</text>
+                    <text x="470" y="26" font-size="22" fill="#334155" font-family="Noto Sans SC">\(x_2\)</text>
+
+                    <!-- x轴刻度 -->
+                    <g font-size="16" fill="#475569" font-family="Noto Sans SC" text-anchor="middle">
+                        <text x="140" y="215">-4</text>
+                        <text x="220" y="215">-3</text>
+                        <text x="300" y="215">-2</text>
+                        <text x="380" y="215">-1</text>
+                        <text x="460" y="215">0</text>
+                        <text x="540" y="215">1</text>
+                        <text x="620" y="215">2</text>
+                        <text x="700" y="215">3</text>
+                        <text x="780" y="215">4</text>
+                    </g>
+
+                    <!-- y轴刻度 -->
+                    <g font-size="16" fill="#475569" font-family="Noto Sans SC" text-anchor="end">
+                        <text x="448" y="345">-8</text>
+                        <text x="448" y="307.5">-6</text>
+                        <text x="448" y="270">-4</text>
+                        <text x="448" y="232.5">-2</text>
+                        <text x="448" y="195">0</text>
+                        <text x="448" y="157.5">2</text>
+                        <text x="448" y="120">4</text>
+                        <text x="448" y="82.5">6</text>
+                        <text x="448" y="45">8</text>
+                    </g>
+
+                    <!-- 直线 x2 = 2x1 -->
+                    <line x1="140" y1="340" x2="780" y2="40" stroke="#3b82f6" stroke-width="4.5"></line>
+                    <text x="640" y="62" font-size="22" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC">
+                        \(x_2 = 2x_1\)
+                    </text>
+
+                    <!-- 样本点 -->
+                    <g fill="#ec4899" stroke="#ffffff" stroke-width="2.5">
+                        <circle cx="140" cy="340" r="7"></circle>   <!-- (-4,-8) -->
+                        <circle cx="220" cy="302.5" r="7"></circle> <!-- (-3,-6) -->
+                        <circle cx="300" cy="265" r="7"></circle>   <!-- (-2,-4) -->
+                        <circle cx="380" cy="227.5" r="7"></circle> <!-- (-1,-2) -->
+                        <circle cx="460" cy="190" r="7"></circle>   <!-- (0,0) -->
+                        <circle cx="540" cy="152.5" r="7"></circle> <!-- (1,2) -->
+                        <circle cx="620" cy="115" r="7"></circle>   <!-- (2,4) -->
+                        <circle cx="700" cy="77.5" r="7"></circle>  <!-- (3,6) -->
+                        <circle cx="780" cy="40" r="7"></circle>    <!-- (4,8) -->
+                    </g>
+                </svg>
+            </div>
+             <p class="step" style="font-size: 24px; color: #ef4444; font-weight: bold;">
+            但实际上所有点完全落在了 $x_2 = 2x_1$ 这条直线上！
+        </p>
+        </div>
+    </div>
+</div>
+
+
+
+
+    <div class="slide" id="slide-8">
+    <h2 class="slide-title"><i class="fas fa-sync"></i> 几何直觉：一个极端的例子 (3/3)</h2>
+    <div class="content-area">
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 15px; text-align: left; padding: 5px 30px;">
+                \[
+                \begin{cases}
+                y_1 = x_1 \cos\theta + x_2 \sin\theta = \frac{1}{\sqrt{5}} x_1 + \frac{2}{\sqrt{5}} x_2 \\[10pt]
+                y_2 = -x_1 \sin\theta + x_2 \cos\theta = \frac{-2}{\sqrt{5}} x_1 + \frac{1}{\sqrt{5}} x_2
+                \end{cases}
+                \]
+            </div>
+        </div>
+
+        <div class="step">
+            <table class="table-small" style="font-size: 15px; margin-top: 5px;">
+                <thead>
+                    <tr>
+                        <th>$y_1$</th><th>-8.94</th><th>-6.71</th><th>-4.47</th><th>...</th><th>8.944</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>$y_2$</th>
+                        <td style="color:#10b981; font-weight:bold;">0</td>
+                        <td style="color:#10b981; font-weight:bold;">0</td>
+                        <td style="color:#10b981; font-weight:bold;">0</td>
+                        <td>...</td>
+                        <td style="color:#10b981; font-weight:bold;">0</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step" style="margin-top: 8px;">
+            <div style="width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px 18px;">
+                <svg viewBox="0 0 920 280" width="100%" height="220" style="display:block; margin:0 auto;">
+                    <!-- 背景 -->
+                    <rect x="0" y="0" width="920" height="280" fill="#f8fafc"></rect>
+
+                    <!-- 图标题 -->
+                    <text x="460" y="24" text-anchor="middle" font-size="20" fill="#0f172a" font-weight="bold" font-family="Noto Sans SC">
+                        图5.2　旋转坐标轴后，样本点全部落在 \(y_1\) 轴上
+                    </text>
+
+                    <!-- 坐标轴 -->
+                    <line x1="100" y1="190" x2="830" y2="190" stroke="#475569" stroke-width="2.8"></line>
+                    <line x1="460" y1="250" x2="460" y2="50" stroke="#475569" stroke-width="2.8"></line>
+
+                    <!-- 箭头 -->
+                    <polygon points="830,190 816,183 816,197" fill="#475569"></polygon>
+                    <polygon points="460,50 453,64 467,64" fill="#475569"></polygon>
+
+                    <!-- 轴名称 -->
+                    <text x="840" y="196" font-size="22" fill="#334155" font-family="Noto Sans SC">\(y_1\)</text>
+                    <text x="470" y="48" font-size="22" fill="#334155" font-family="Noto Sans SC">\(y_2\)</text>
+
+                    <!-- y1刻度 -->
+                    <g font-size="16" fill="#475569" font-family="Noto Sans SC" text-anchor="middle">
+                        <text x="160" y="214">-8.94</text>
+                        <text x="235" y="214">-6.71</text>
+                        <text x="310" y="214">-4.47</text>
+                        <text x="385" y="214">-2.24</text>
+                        <text x="460" y="214">0</text>
+                        <text x="535" y="214">2.24</text>
+                        <text x="610" y="214">4.47</text>
+                        <text x="685" y="214">6.71</text>
+                        <text x="760" y="214">8.94</text>
+                    </g>
+
+                    <!-- y2刻度 -->
+                    <g font-size="16" fill="#10b981" font-family="Noto Sans SC" text-anchor="end" font-weight="bold">
+                        <text x="448" y="194">0</text>
+                    </g>
+
+                    <!-- y2=0 强调线 -->
+                    <line x1="100" y1="190" x2="830" y2="190" stroke="#10b981" stroke-width="4" stroke-dasharray="10 6" opacity="0.55"></line>
+                    <text x="700" y="172" font-size="20" fill="#10b981" font-weight="bold" font-family="Noto Sans SC">
+                        \(y_2 = 0\)
+                    </text>
+
+                    <!-- 样本点全部落在 y1 轴上 -->
+                    <g fill="#ec4899" stroke="#ffffff" stroke-width="2.5">
+                        <circle cx="160" cy="190" r="7"></circle>
+                        <circle cx="235" cy="190" r="7"></circle>
+                        <circle cx="310" cy="190" r="7"></circle>
+                        <circle cx="385" cy="190" r="7"></circle>
+                        <circle cx="460" cy="190" r="7"></circle>
+                        <circle cx="535" cy="190" r="7"></circle>
+                        <circle cx="610" cy="190" r="7"></circle>
+                        <circle cx="685" cy="190" r="7"></circle>
+                        <circle cx="760" cy="190" r="7"></circle>
+                    </g>
+
+                    <!-- 说明箭头 -->
+                    <path d="M 460 95 Q 500 125 535 170" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="6 4"></path>
+                    <text x="455" y="88" font-size="20" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC">
+                        所有变化都集中到 \(y_1\)
+                    </text>
+                </svg>
+            </div>
+        </div>
+
+        <p class="step" style="text-align: center; font-size:18px; font-weight: bold; color: #2563eb;">
+            经过坐标系旋转后，$y_2$ 失去了所有方差，我们成功将二维降为一维！
+        </p>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-9">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 从极端情形到一般情形：主成分分析的基本思想</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 23px; line-height: 1.8;">
+            在实际问题中，两个变量的样品点完全落在一条直线上的情况很少见。一般情况下的散点图如图 5.3 所示。
+        </p>
+
+        <div class="step" style="margin-top: 4px;">
+            <div style="width: 100%; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px; padding: 14px 18px;">
+                <svg viewBox="0 0 920 330" width="100%" height="250" style="display:block; margin:0 auto;">
+                    <!-- 背景 -->
+                    <rect x="0" y="0" width="920" height="330" fill="#f8fafc"></rect>
+
+                    <!-- 标题 -->
+                    <text x="460" y="24" text-anchor="middle" font-size="20" fill="#0f172a" font-weight="bold" font-family="Noto Sans SC">
+                        图 5.3　一般情况下数据分布示意图
+                    </text>
+
+                    <!-- 原坐标轴 -->
+                    <line x1="110" y1="285" x2="420" y2="285" stroke="#94a3b8" stroke-width="2.2"></line>
+                    <line x1="110" y1="285" x2="110" y2="65" stroke="#94a3b8" stroke-width="2.2"></line>
+                    <polygon points="420,285 408,279 408,291" fill="#94a3b8"></polygon>
+                    <polygon points="110,65 104,77 116,77" fill="#94a3b8"></polygon>
+                    <text x="428" y="291" font-size="20" fill="#475569" font-family="Noto Sans SC">\(x_1\)</text>
+                    <text x="118" y="60" font-size="20" fill="#475569" font-family="Noto Sans SC">\(x_2\)</text>
+
+                    <!-- 新坐标轴 -->
+                    <line x1="585" y1="255" x2="790" y2="105" stroke="#2563eb" stroke-width="3.5"></line>
+                    <line x1="585" y1="255" x2="515" y2="120" stroke="#10b981" stroke-width="3"></line>
+                    <polygon points="790,105 775,107 782,118" fill="#2563eb"></polygon>
+                    <polygon points="515,120 525,131 530,118" fill="#10b981"></polygon>
+                    <text x="798" y="102" font-size="20" fill="#2563eb" font-family="Noto Sans SC">\(y_1\)</text>
+                    <text x="500" y="116" font-size="20" fill="#10b981" font-family="Noto Sans SC">\(y_2\)</text>
+
+                    <!-- 数据椭圆阴影 -->
+                    <ellipse cx="260" cy="180" rx="120" ry="42" transform="rotate(-32 260 180)"
+                             fill="rgba(59,130,246,0.10)" stroke="rgba(59,130,246,0.25)" stroke-width="2"></ellipse>
+                    <ellipse cx="655" cy="180" rx="120" ry="42" transform="rotate(-36 655 180)"
+                             fill="rgba(59,130,246,0.10)" stroke="rgba(59,130,246,0.25)" stroke-width="2"></ellipse>
+
+                    <!-- 左边原坐标散点 -->
+                    <g fill="#ec4899" stroke="#ffffff" stroke-width="2.2">
+                        <circle cx="165" cy="225" r="6.5"></circle>
+                        <circle cx="185" cy="205" r="6.5"></circle>
+                        <circle cx="205" cy="205" r="6.5"></circle>
+                        <circle cx="220" cy="182" r="6.5"></circle>
+                        <circle cx="240" cy="190" r="6.5"></circle>
+                        <circle cx="255" cy="165" r="6.5"></circle>
+                        <circle cx="278" cy="168" r="6.5"></circle>
+                        <circle cx="295" cy="152" r="6.5"></circle>
+                        <circle cx="315" cy="145" r="6.5"></circle>
+                        <circle cx="335" cy="132" r="6.5"></circle>
+                        <circle cx="350" cy="122" r="6.5"></circle>
+                    </g>
+
+                    <!-- 右边新坐标散点 -->
+                    <g fill="#ec4899" stroke="#ffffff" stroke-width="2.2">
+                        <circle cx="565" cy="228" r="6.5"></circle>
+                        <circle cx="590" cy="212" r="6.5"></circle>
+                        <circle cx="608" cy="205" r="6.5"></circle>
+                        <circle cx="628" cy="187" r="6.5"></circle>
+                        <circle cx="648" cy="190" r="6.5"></circle>
+                        <circle cx="667" cy="171" r="6.5"></circle>
+                        <circle cx="690" cy="165" r="6.5"></circle>
+                        <circle cx="710" cy="148" r="6.5"></circle>
+                        <circle cx="730" cy="145" r="6.5"></circle>
+                        <circle cx="748" cy="132" r="6.5"></circle>
+                        <circle cx="765" cy="123" r="6.5"></circle>
+                    </g>
+
+                    <!-- 平移旋转箭头 -->
+                    <path d="M 410 95 Q 470 55 530 95" fill="none" stroke="#f59e0b" stroke-width="3" stroke-dasharray="8 5"></path>
+                    <polygon points="530,95 518,90 520,101" fill="#f59e0b"></polygon>
+                    <text x="470" y="58" text-anchor="middle" font-size="18" fill="#b45309" font-weight="bold" font-family="Noto Sans SC">
+                        平移并旋转坐标轴
+                    </text>
+
+                    <!-- 方差方向说明 -->
+                    <line x1="610" y1="250" x2="760" y2="140" stroke="#2563eb" stroke-width="2.5" stroke-dasharray="7 4"></line>
+                    <text x="756" y="165" font-size="18" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC">
+                        方差大
+                    </text>
+
+                    <line x1="620" y1="180" x2="565" y2="130" stroke="#10b981" stroke-width="2.5" stroke-dasharray="7 4"></line>
+                    <text x="518" y="132" font-size="18" fill="#10b981" font-weight="bold" font-family="Noto Sans SC">
+                        方差小
+                    </text>
+                </svg>
+            </div>
+        </div>
+
+        <p class="step" style="font-size: 22px; line-height: 1.85; margin-top: 4px;">
+            如图 5.3 所示，在新坐标系中，$y_1$ 轴方向上的方差较大（第一主成分），$y_2$ 轴方向上的方差较小（第二主成分）。变量 $\left(x_1, x_2\right)$ 的信息大部分集中在新变量 $y_1$ 上，小部分集中在新变量 $y_2$ 上。
+        </p>
+
+        <p class="step" style="font-size: 22px; line-height: 1.85;">
+            在一定的条件下，舍掉第二主成分 $y_2$，尽可能地只用第一主成分 $y_1$ 描述原来的全部样品，从而达到降维的目的。或者说，通过适当的变换，既达到降维的目的，又使得原数据保留的信息最多。这就是主成分分析的基本思想。
+        </p>
+    </div>
+</div>
+
+    <!-- ==================== 第1页：标题导入 ==================== -->
+<div class="slide" id="slide-pca-geo-1">
+    <h2 class="slide-title"><i class="fas fa-draw-polygon"></i> 主成分的几何意义</h2>
+    <div class="content-area">
+        <div class="step tile" style="padding: 30px 34px; margin-top: 18px;">
+            <p style="font-size: 25px; line-height: 1.9;">
+                主成分分析不仅是一个代数变换问题，更可以从几何角度来理解。它的核心思想是：
+                <strong style="color:#2563eb;">通过适当的坐标变换，把原来分散在多个变量中的主要信息集中到少数几个新变量上。</strong>
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 22px;">
+            <p style="font-size: 24px; margin-bottom: 10px;">
+                本部分将从以下几个角度理解 PCA：
+            </p>
+            <ul style="margin-top: 8px; font-size: 23px; line-height: 1.8; color: #334155; padding-left: 28px;">
+                <li>内积与投影</li>
+                <li>向量坐标与基</li>
+                <li>换基与新坐标表示</li>
+                <li>椭圆点云与坐标旋转</li>
+                <li>第一主成分与第二主成分的几何直觉</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第2页：内积定义 ==================== -->
+<div class="slide" id="slide-pca-geo-2">
+    <h2 class="slide-title"><i class="fas fa-vector-square"></i> 1．内积与投影</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 24px; line-height: 1.85; margin-top: 10px;">
+            下面先看一个向量运算：内积。两个维数相同的向量的内积被定义为：
+        </p>
+
+        <div class="step math-center" style="margin-top: 18px;">
+            <div class="math-box" style="font-size: 26px; padding: 18px 28px;">
+                \[
+                \left(a_1, a_2, \cdots, a_n\right)^{\top} \cdot \left(b_1, b_2, \cdots, b_n\right)^{\top}
+                = a_1 b_1 + a_2 b_2 + \cdots + a_n b_n
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 28px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                从代数形式上看，内积只是“对应分量相乘再求和”；但从几何意义上看，它与<strong>投影</strong>有直接关系。
+                后面我们会看到，主成分分析中的新变量，本质上就是原始向量在某些新方向上的投影。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第3页：二维向量与投影 ==================== -->
+<div class="slide" id="slide-pca-geo-3">
+    <h2 class="slide-title"><i class="fas fa-ruler-combined"></i> 2．内积的几何意义</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.15fr 0.85fr; gap: 24px; align-items: stretch;">
+        <div>
+            <p class="step" style="font-size: 24px; line-height: 1.8;">
+                下面我们分析内积的几何意义。我们假设 A 和 B 均为二维向量，则
+            </p>
+
+            <div class="step math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 24px; padding: 12px 24px;">
+                    \[
+                    A=\left(x_1, y_1\right), \qquad B=\left(x_2, y_2\right)
+                    \]
+                </div>
+            </div>
+
+            <div class="step tile" style="border-top-color:#3b82f6; margin-top: 16px;">
+                <p style="font-size: 22px; line-height: 1.8;">
+                    那么在二维平面上 A 和 B 可以用两条发自原点的有向线段表示。如下图，垂线与 B 的交点叫做 A 在 B 上的投影，
+                    再假设 A 与 B 的夹角为 \(\alpha\)，则投影的矢量长度为：
+                </p>
+                <div class="math-center" style="margin-top: 6px;">
+                    <div class="math-box" style="font-size: 23px;">
+                        \[
+                        |A| \cos(\alpha)
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step" style="display:flex; align-items:center; justify-content:center;">
+            <img src="F5-1.png" alt="图1 向量A、B及投影示意图"
+                 style="max-width:100%; max-height:420px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; padding:8px;">
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第4页：单位向量下的内积 ==================== -->
+<div class="slide" id="slide-pca-geo-4">
+    <h2 class="slide-title"><i class="fas fa-arrows-alt-h"></i> 3．内积 = 投影长度 × 方向向量的模</h2>
+    <div class="content-area">
+        <div class="step math-center" style="margin-top: 10px;">
+            <div class="math-box" style="font-size: 24px; padding: 12px 24px;">
+                \[
+                |A|=\sqrt{x_1^2+y_1^2}
+                \]
+            </div>
+        </div>
+
+        <p class="step" style="font-size: 23px; line-height: 1.85; margin-top: 18px;">
+            A 与 B 的内积等于 A 到 B 的投影长度乘以 B 的模。如果我们假设 B 的模为 1：
+        </p>
+
+        <div class="step math-center" style="margin-top: 10px;">
+            <div class="math-box" style="font-size: 24px; padding: 10px 22px;">
+                \[
+                |B|=1
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center" style="margin-top: 16px;">
+            <div class="math-box" style="font-size: 28px; padding: 16px 30px; border-left-color:#10b981;">
+                \[
+                A \cdot B = |A| \cos(\alpha)
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 26px;">
+            <p style="font-size: 23px;">
+                当 \(B\) 是单位向量时，内积就直接等于 \(A\) 在 \(B\) 方向上的投影长度。
+                这正是后面“主成分得分”的几何基础。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第5页：向量(3,2)的本质 ==================== -->
+<div class="slide" id="slide-pca-geo-5">
+    <h2 class="slide-title"><i class="fas fa-map-signs"></i> 4．向量坐标的本质：它其实是投影值</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 22px; align-items: stretch;">
+        <div>
+            <p class="step" style="font-size: 22px; line-height: 1.82;">
+                一个二维向量可以对应二维笛卡尔直角坐标系中从原点出发的一条有向线段，例如下面这个向量：
+                \((3,2)\)。
+            </p>
+
+            <div class="step tile" style="border-top-color:#ec4899; margin-top: 14px;">
+                <p style="font-size: 22px; line-height: 1.8;">
+                    只有一个 \((3,2)\) 本身并不能完整说明“向量坐标”的几何含义。这里的坐标 \((3,2)\) 实际上表示的是：
+                </p>
+                <ul style="margin-top: 8px; font-size: 21px; line-height: 1.75; padding-left: 24px; color:#334155;">
+                    <li>向量在 \(x\) 轴上的投影值为 3</li>
+                    <li>向量在 \(y\) 轴上的投影值为 2</li>
+                </ul>
+            </div>
+
+            <div class="step tile" style="margin-top: 14px; border-top-color:#3b82f6;">
+                <p style="font-size: 21px; line-height: 1.75;">
+                    也就是说，向量的坐标并不是“标签”，而是它在一组基方向上的投影结果。（注意投影是一个矢量，所以可以为负。）
+                </p>
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-rows: 1fr 1fr; gap: 14px;">
+            <div class="step" style="display:flex; align-items:center; justify-content:center;">
+                <img src="F5-2.png" alt="图2 向量(3,2)示意图"
+                     style="max-width:250%; max-height:280px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; padding:8px;">
+            </div>
+            <div class="step" style="display:flex; align-items:center; justify-content:center;">
+                <img src="F5-3.png" alt="图3 标准基(1,0),(0,1)"
+                     style="max-width:350%; max-height:280px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; padding:8px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第6页：线性组合与基 ==================== -->
+<div class="slide" id="slide-pca-geo-6">
+    <h2 class="slide-title"><i class="fas fa-th"></i> 5．向量是基向量的线性组合</h2>
+    <div class="content-area">
+       
+
+        <p class="step" style="font-size: 23px; line-height: 1.85; margin-top: 18px;">
+            更正式地说，向量 \((x,y)\) 实际上表示线性组合：
+        </p>
+
+        <div class="step math-center" style="margin-top: 10px;">
+            <div class="math-box" style="font-size: 26px; padding: 16px 28px;">
+                \[
+                x(1,0)^{\top}+y(0,1)^{\top}
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 24px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                不难证明所有二维向量都可以表示为这样的线性组合，此处 \((1,0)\) 和 \((0,1)\) 叫做二维空间的一组基。
+                我们之所以默认选择这组基，是因为它们分别是 \(x\) 轴和 \(y\) 轴正方向上的单位向量，因此使得二维平面上点坐标和向量一一对应，非常方便。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第7页：任意线性无关向量都可为基 ==================== -->
+<div class="slide" id="slide-pca-geo-7">
+    <h2 class="slide-title"><i class="fas fa-random"></i> 6．任何线性无关向量都可以成为一组基</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.12fr 0.88fr; gap: 22px; align-items: stretch;">
+        <div>
+            <p class="step" style="font-size: 22px; line-height: 1.82;">
+                但实际上任何两个线性无关的二维向量都可以成为一组基。所谓线性无关，在二维平面内可以直观地理解为：
+                两个向量不在同一条直线上。
+            </p>
+
+            <div class="step tile" style="border-top-color:#8b5cf6; margin-top: 14px;">
+                <p style="font-size: 22px; line-height: 1.8;">
+                    例如，\((1,1)\) 和 \((1,-1)\) 也可以成为一组基。一般来说，我们希望基的模是 1，
+                    因为从内积的意义可以看到，如果基的模是 1，那么就可以方便地用向量点乘基而直接获得其在新基上的坐标。
+                </p>
+            </div>
+
+            <div class="step math-center" style="margin-top: 16px;">
+                <div class="math-box" style="font-size: 23px; padding: 12px 20px;">
+                    \[
+                    \left(\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right),
+                    \qquad
+                    \left(-\frac{1}{\sqrt{2}},\frac{1}{\sqrt{2}}\right)
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step" style="display:flex; align-items:center; justify-content:center;">
+            <img src="F5-4.png" alt="图4 向量(3,2)在新基上的坐标表示"
+                 style="max-width:100%; max-height:400px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; padding:8px;">
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第8页：新基下坐标计算 ==================== -->
+<div class="slide" id="slide-pca-geo-8">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 7．在新基下，坐标可以通过内积得到</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 23px; line-height: 1.85;">
+            现在我们想获得 \((3,2)\) 在新基上的坐标，即在两个方向上的投影矢量值。那么根据内积的几何意义，
+            我们只要分别计算 \((3,2)\) 和两个基的内积，不难得到新的坐标为：
+        </p>
+
+        <div class="step math-center" style="margin-top: 20px;">
+            <div class="math-box" style="font-size: 28px; padding: 14px 28px; border-left-color:#2563eb;">
+                \[
+                \left(\frac{5}{\sqrt{2}},-\frac{1}{\sqrt{2}}\right)
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 30px;">
+            <p style="font-size: 23px;">
+                这说明：<strong>同一个向量，在不同基下的坐标不同。</strong>
+                主成分分析的本质，正是寻找一组更合适的新基，使数据在新基下的表示更集中、更有层次。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第9页：椭圆点云与旋转 ==================== -->
+<div class="slide" id="slide-pca-geo-9">
+    <h2 class="slide-title"><i class="fas fa-circle-notch"></i> 8．二维数据点云、椭圆与旋转坐标系</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.08fr 0.92fr; gap: 22px; align-items: stretch;">
+        <div>
+            <p class="step" style="font-size: 21px; line-height: 1.8;">
+                先假定数据只有二维，即只有两个变量，它们由横坐标和纵坐标所代表；因此每个观测值都有相应于这两个坐标轴的两个坐标值。
+                如果这些数据形成一个椭圆形状的点阵（这在变量的二维正态的假定下是可能的），那么散点的分布总有可能沿着某一个方向略显扩张，
+                这个方向就可以看作椭圆的长轴方向。
+            </p>
+
+            <div class="step tile" style="margin-top: 14px;">
+                <p style="font-size: 21px; line-height: 1.76;">
+                    显然，在坐标系 \(x_1Ox_2\) 中，单独看这 \(n\) 个点的分量 \(X_1\) 和 \(X_2\)，它们沿着 \(x_1\) 方向和 \(x_2\) 方向都具有较大的离散性，
+                    其离散的程度可以分别用 \(X_1\) 的方差和 \(X_2\) 的方差测定。
+                </p>
+            </div>
+
+            <div class="step info-box" style="margin-top: 14px;">
+                <p style="font-size: 21px;">
+                    如果仅考虑 \(X_1\) 或 \(X_2\) 中的任何一个分量，那么包含在另一分量中的信息将会损失，
+                    因此直接舍弃某个分量不是“降维”的有效办法。
+                </p>
+            </div>
+        </div>
+
+        <div class="step" style="display:flex; align-items:center; justify-content:center;">
+            <img src="F5-5.png" alt="图5 椭圆形状点阵示意图"
+                 style="max-width:100%; max-height:420px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; padding:8px;">
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第10页：旋转公式与主成分 ==================== -->
+<div class="slide" id="slide-pca-geo-10">
+    <h2 class="slide-title"><i class="fas fa-redo-alt"></i> 9．旋转坐标轴后得到主成分</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.14fr 0.86fr; gap: 22px; align-items: stretch;">
+        <div>
+            <p class="step" style="font-size: 21px; line-height: 1.8;">
+                该坐标系按逆时针方向旋转某个角度 \(\theta\) 变成新坐标系 \(y_1Oy_2\)，这里 \(y_1\) 是椭圆的长轴方向，
+                \(y_2\) 是椭圆的短轴方向。旋转公式为：
+            </p>
+
+            <div class="step math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 22px;">
+                    \[
+                    \left\{
+                    \begin{array}{c}
+                    Y_1=X_1\cos\theta+X_2\sin\theta\\
+                    Y_2=-X_1\sin\theta+X_2\cos\theta
+                    \end{array}
+                    \right.
+                    \]
+                </div>
+            </div>
+
+            <p class="step" style="font-size: 20px; line-height: 1.8; margin-top: 5px;">
+                我们看到新变量 \(Y_1\) 和 \(Y_2\) 是原变量 \(X_1\) 和 \(X_2\) 的线性组合，它的矩阵表示形式为：
+            </p>
+
+            <div class="step math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 18px;">
+                    \[
+                    \begin{bmatrix}
+                    Y_1 \\
+                    Y_2
+                    \end{bmatrix}
+                    =
+                    \begin{pmatrix}
+                    \cos\theta & \sin\theta \\
+                    -\sin\theta & \cos\theta
+                    \end{pmatrix}
+                    \begin{bmatrix}
+                    X_1 \\
+                    X_2
+                    \end{bmatrix}
+                    =\mathbf{T}^{\prime}\mathbf{X}
+                    \]
+                </div>
+            </div>
+
+            <div class="step tile" style="margin-top: 12px;">
+                <p style="font-size: 20px; line-height: 1.72;">
+                    其中，\(\mathbf{T}^{\prime}\) 为旋转变换矩阵，它是正交矩阵，即有
+                    \(\mathbf{T}^{\prime}=\mathbf{T}^{-1}\) 或 \(\mathbf{T}^{\prime}\mathbf{T}=\mathbf{I}\)。
+                </p>
+            </div>
+        </div>
+
+        <div class="step" style="display:flex; align-items:center; justify-content:center;">
+            <img src="F5-6.png" alt="图6 旋转坐标系示意图"
+                 style="max-width:100%; max-height:410px; border:1px solid #cbd5e1; border-radius:12px; background:#fff; padding:8px;">
+        </div>
+    </div>
+</div>
+
+
+
+
+<!-- ==================== 第11页：PCA基本思想与极端情形 ==================== -->
+<div class="slide" id="slide-pca-geo-11">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 10．第一主成分、第二主成分与两种极端情形</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#2563eb;">
+            <p style="font-size: 21px; line-height: 1.8;">
+                易见，\(n\) 个点在新坐标系下的坐标 \(Y_1\) 和 \(Y_2\) 几乎不相关。称它们为原始变量 \(X_1\) 和 \(X_2\) 的综合变量。
+                \(n\) 个点在 \(y_1\) 轴上的方差达到最大，即在此方向上包含了有关 \(n\) 个样品的最大量信息。
+                因此，欲将二维空间的点投影到某个一维方向上，则选择 \(y_1\) 轴方向能使信息的损失最小。
+                我们称 \(Y_1\) 为第一主成分，称 \(Y_2\) 为第二主成分。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 12px;">
+            <p style="font-size: 21px;">
+                第一主成分的效果与椭圆的形状有很大的关系。椭圆越是扁平，\(n\) 个点在 \(y_1\) 轴上的方差就相对越大，
+                在 \(y_2\) 轴上的方差就相对越小，用第一主成分代替所有样品所造成的信息损失也就越小。
+            </p>
+        </div>
+
+      
+    </div>
+</div>
+
+
+<!-- ==================== 第11页：PCA基本思想与极端情形 ==================== -->
+<div class="slide" id="slide-pca-geo-11">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 10．第一主成分、第二主成分与两种极端情形</h2>
+    <div class="content-area">
+       
+
+       
+            <div class="tile" style="border-top-color:#f59e0b;">
+                <div style="display:grid; grid-template-columns: 1.05fr 0.95fr; gap: 12px; align-items:center;">
+                    <div>
+                        <h3 style="font-size: 25px; margin-bottom: 8px;">极端情形 1：椭圆变成圆</h3>
+                        <p style="font-size: 23px; line-height: 1.72;">
+                            椭圆的长轴与短轴长度相等，即椭圆变成圆，第一主成分只含有二维空间点的约一半信息。
+                            若仅用这一个综合变量，则将损失约 50% 的信息，这显然是不可取的。
+                        </p>
+                    </div>
+                    <div style="text-align:center;">
+                        <img src="F5-7.png" alt="图7 圆形点云"
+                             style="max-width:300%; max-height:350px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; padding:6px;">
+                    </div>
+                </div>
+            </div>
+
+            
+       
+    </div>
+</div>
+
+<!-- ==================== 第11页：PCA基本思想与极端情形 ==================== -->
+<div class="slide" id="slide-pca-geo-11">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 10．第一主成分、第二主成分与两种极端情形</h2>
+    <div class="content-area">
+       
+
+        
+      
+            <div class="tile" style="border-top-color:#10b981;">
+                <div style="display:grid; grid-template-columns: 1.02fr 0.98fr; gap: 12px; align-items:center;">
+                    <div>
+                        <h3 style="font-size: 25px; margin-bottom: 8px;">极端情形 2：椭圆退化成直线</h3>
+                        <p style="font-size: 23px; line-height: 1.72;">
+                            另一种是椭圆扁平到了极限，变成 \(y_1\) 轴上的一条线。第一主成分包含全部信息，
+                            仅用这一个综合变量代替原始数据不会有任何信息损失，此时主成分分析效果最理想。
+                        </p>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+    
+                        <img src="F5-8.png" alt="图9 退化成直线"
+                             style="width:150%; max-height:350px; object-fit:contain; border:1px solid #cbd5e1; border-radius:10px; background:#fff; padding:6px;">
+                    </div>
+                </div>
+            </div>
+      
+
+        <p class="step" style="text-align:center; font-size: 21px; font-weight:bold; color:#2563eb; margin-top: 8px;">
+            椭圆有一个长轴和一个短轴。在短方向上，数据变化很少；在极端的情况，短轴如果退化成一点，
+            那只有在长轴的方向才能够解释这些点的变化了；这样，由二维到一维的降维就自然完成了。
+        </p>
+    </div>
+</div>
+<!-- ==================== 第五章：PCA交互式投影寻轴演示 ==================== -->
+<div class="slide" id="slide-pca-interactive-demo">
+    <h2 class="slide-title"><i class="fas fa-compress-arrows-alt"></i> 主成分分析：寻找“投影方差最大”的轴</h2>
+
+    <style>
+        #slide-pca-interactive-demo .content-area{
+            display:grid;
+            grid-template-columns: 1.38fr 0.92fr;
+            gap:24px;
+            padding:0 36px 20px 36px;
+            align-items:stretch;
+            height: calc(100% - 10px);
+        }
+
+        #slide-pca-interactive-demo .pca-demo-visual-box{
+            background:#f8fafc;
+            border-radius:16px;
+            border:2px solid #e2e8f0;
+            box-shadow:inset 0 4px 6px rgba(0,0,0,0.02);
+            position:relative;
+            overflow:hidden;
+            min-height:0;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:10px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-visual-box svg{
+            width:100%;
+            height:100%;
+            display:block;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-control-box{
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+            min-height:0;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-tile{
+            background:rgba(255,255,255,0.96);
+            border-radius:12px;
+            padding:18px 20px;
+            border:1px solid #cbd5e1;
+            box-shadow:0 4px 10px rgba(0,0,0,0.04);
+        }
+
+        #slide-pca-interactive-demo .pca-demo-tile h3{
+            font-size:20px;
+            margin-bottom:8px;
+            font-family:'Noto Serif SC', serif;
+            color:#0f172a;
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-tile p{
+            font-size:15px;
+            color:#475569;
+            line-height:1.58;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-slider-container{
+            margin-top:10px;
+            margin-bottom:6px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-slider-label{
+            display:flex;
+            justify-content:space-between;
+            font-size:15px;
+            font-weight:bold;
+            color:#1e293b;
+            margin-bottom:8px;
+        }
+
+        #slide-pca-interactive-demo input[type=range]{
+            -webkit-appearance:none;
+            width:100%;
+            background:transparent;
+        }
+
+        #slide-pca-interactive-demo input[type=range]::-webkit-slider-thumb{
+            -webkit-appearance:none;
+            height:22px;
+            width:22px;
+            border-radius:50%;
+            background:#ec4899;
+            cursor:pointer;
+            margin-top:-7px;
+            box-shadow:0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        #slide-pca-interactive-demo input[type=range]::-webkit-slider-runnable-track{
+            width:100%;
+            height:8px;
+            cursor:pointer;
+            background:#cbd5e1;
+            border-radius:4px;
+        }
+
+        #slide-pca-interactive-demo input[type=range]:focus{
+            outline:none;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-btn-group{
+            display:flex;
+            gap:10px;
+            margin-top:12px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-btn{
+            flex:1;
+            padding:10px 12px;
+            border:none;
+            border-radius:8px;
+            font-size:15px;
+            font-weight:bold;
+            cursor:pointer;
+            transition:all 0.2s;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            gap:8px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-btn-play{
+            background:#3b82f6;
+            color:white;
+            box-shadow:0 4px 10px rgba(59,130,246,0.3);
+        }
+
+        #slide-pca-interactive-demo .pca-demo-btn-play:hover{
+            background:#2563eb;
+            transform:translateY(-1px);
+        }
+
+        #slide-pca-interactive-demo .pca-demo-btn-reset{
+            background:#f1f5f9;
+            color:#475569;
+            border:1px solid #cbd5e1;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-btn-reset:hover{
+            background:#e2e8f0;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-stat-box{
+            background:#1e293b;
+            color:white;
+            border-radius:10px;
+            padding:14px 15px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-stat-item{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:8px;
+            font-size:16px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-stat-value{
+            font-family:monospace;
+            font-size:22px;
+            font-weight:bold;
+            color:#38bdf8;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-progress-bg{
+            width:100%;
+            height:10px;
+            background:#334155;
+            border-radius:6px;
+            overflow:hidden;
+            margin-top:4px;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-progress-fill{
+            height:100%;
+            background:linear-gradient(90deg, #3b82f6, #ec4899);
+            width:0%;
+            transition:width 0.1s;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-pc-hint{
+            font-size:16px;
+            font-weight:bold;
+            text-align:center;
+            padding:10px;
+            border-radius:8px;
+            transition:all 0.3s;
+            min-height:44px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-hint-pc1{
+            background:#fdf2f8;
+            color:#be185d;
+            border:1px solid #fbcfe8;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-hint-pc2{
+            background:#f0fdf4;
+            color:#047857;
+            border:1px solid #a7f3d0;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-hint-none{
+            background:transparent;
+            color:transparent;
+            border:1px solid transparent;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-axis{
+            stroke:#cbd5e1;
+            stroke-width:2;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-point{
+            fill:#3b82f6;
+            opacity:0.6;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-proj-line-bg{
+            stroke:#1e293b;
+            stroke-width:4;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-proj-line-fg{
+            stroke:#ec4899;
+            stroke-width:2;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-perp-line{
+            stroke:#94a3b8;
+            stroke-width:1.5;
+            stroke-dasharray:4,4;
+            opacity:0.5;
+        }
+
+        #slide-pca-interactive-demo .pca-demo-proj-point{
+            fill:#ec4899;
+            stroke:#fff;
+            stroke-width:1;
+        }
+    </style>
+
+    <div class="content-area">
+        <!-- 左侧：图 -->
+        <div class="pca-demo-visual-box">
+            <svg viewBox="-300 -230 600 560" id="pca-demo-svg" preserveAspectRatio="xMidYMid meet">
+                <line x1="-300" y1="0" x2="300" y2="0" class="pca-demo-axis" />
+                <line x1="0" y1="-230" x2="0" y2="330" class="pca-demo-axis" />
+                <text x="250" y="-12" fill="#94a3b8" font-size="14" font-family="sans-serif">原特征 X</text>
+                <text x="10" y="-210" fill="#94a3b8" font-size="14" font-family="sans-serif">原特征 Y</text>
+
+                <g id="pca-demo-raw-points"></g>
+                <g id="pca-demo-perp-lines"></g>
+
+                <line id="pca-demo-axis-bg" x1="-400" y1="0" x2="400" y2="0" class="pca-demo-proj-line-bg" />
+                <line id="pca-demo-axis-fg" x1="-400" y1="0" x2="400" y2="0" class="pca-demo-proj-line-fg" />
+
+                <g id="pca-demo-proj-points"></g>
+            </svg>
+        </div>
+
+        <!-- 右侧：说明 -->
+        <div class="pca-demo-control-box">
+            <div class="pca-demo-tile" style="border-top:6px solid #ec4899;">
+                <h3><i class="fas fa-sliders-h" style="color:#ec4899;"></i> 旋转投影轴</h3>
+               
+
+                <div class="pca-demo-slider-container">
+                    <div class="pca-demo-slider-label">
+                        <span>角度 \(\theta\)：<span id="pca-demo-angle-val" style="color:#ec4899;">0°</span></span>
+                    </div>
+                    <input type="range" id="pca-demo-angle-slider" min="0" max="180" value="0" step="1">
+                </div>
+
+                <div class="pca-demo-btn-group">
+                    <button class="pca-demo-btn pca-demo-btn-play" id="pca-demo-btn-play">
+                        <i class="fas fa-play"></i> 自动旋转
+                    </button>
+                    <button class="pca-demo-btn pca-demo-btn-reset" id="pca-demo-btn-reset">
+                        <i class="fas fa-sync-alt"></i> 换一组数据
+                    </button>
+                </div>
+            </div>
+
+            <div class="pca-demo-stat-box">
+                <div class="pca-demo-stat-item">
+                    <span>投影方差</span>
+                    <span class="pca-demo-stat-value" id="pca-demo-var-val">0.00</span>
+                </div>
+                <div class="pca-demo-progress-bg">
+                    <div class="pca-demo-progress-fill" id="pca-demo-var-bar"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:#94a3b8; margin-top:5px;">
+                    <span>最小 (PC2)</span>
+                    <span>最大 (PC1)</span>
+                </div>
+            </div>
+
+            <div id="pca-demo-pc-hint" class="pca-demo-pc-hint pca-demo-hint-none">
+                正在寻找最佳投影角度...
+            </div>
+
+            <div class="pca-demo-tile" style="border-top:6px solid #3b82f6; flex:1;">
+                <h3><i class="fas fa-book-open" style="color:#3b82f6;"></i> 几何直觉</h3>
+                <p>
+                    <strong>主成分分析的本质就是找投影方向。</strong><br>
+                    当投影轴旋转到让红点沿着该轴<strong>分散最开</strong>时，这个方向就是<strong>第一主成分</strong>，它保留了数据中最多的信息。<br>
+                    与之垂直、让投影点<strong>最集中</strong>的方向，就是<strong>第二主成分</strong>。  
+                    这也解释了为什么 PCA 会得到一组彼此正交的新坐标轴。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            if (window.__pcaDemoInitialized) return;
+            window.__pcaDemoInitialized = true;
+
+            let pcaDemoPoints = [];
+            let pcaDemoAngleDeg = 0;
+            let pcaDemoMaxVar = 0;
+            let pcaDemoMinVar = Infinity;
+            let pcaDemoPc1Angle = 0;
+            let pcaDemoPc2Angle = 0;
+            let pcaDemoIsPlaying = false;
+            let pcaDemoAnimationId = null;
+
+            function pcaDemoRandomGaussian() {
+                let u = 0, v = 0;
+                while (u === 0) u = Math.random();
+                while (v === 0) v = Math.random();
+                return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+            }
+
+            function pcaDemoGenerateNewData() {
+                const rawGroup = document.getElementById('pca-demo-raw-points');
+                if (!rawGroup) return;
+
+                pcaDemoPoints = [];
+                rawGroup.innerHTML = '';
+
+                let slope = (Math.random() - 0.5) * 2;
+                let spreadX = 80 + Math.random() * 40;
+                let spreadY = 15 + Math.random() * 15;
+
+                for (let i = 0; i < 120; i++) {
+                    let xBase = pcaDemoRandomGaussian() * spreadX;
+                    let yBase = pcaDemoRandomGaussian() * spreadY;
+
+                    let theta = Math.atan(slope);
+                    let x = xBase * Math.cos(theta) - yBase * Math.sin(theta);
+                    let y = xBase * Math.sin(theta) + yBase * Math.cos(theta);
+
+                    pcaDemoPoints.push({ x, y });
+
+                    let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("cx", x);
+                    circle.setAttribute("cy", y);
+                    circle.setAttribute("r", 4);
+                    circle.setAttribute("class", "pca-demo-point");
+                    rawGroup.appendChild(circle);
+                }
+
+                pcaDemoPrecalculateMetrics();
+                const slider = document.getElementById('pca-demo-angle-slider');
+                if (slider) slider.value = 0;
+                pcaDemoAngleDeg = 0;
+                pcaDemoUpdateVisualization();
+            }
+
+            function pcaDemoPrecalculateMetrics() {
+                pcaDemoMaxVar = 0;
+                pcaDemoMinVar = Infinity;
+
+                for (let a = 0; a < 180; a++) {
+                    let rad = a * Math.PI / 180;
+                    let cx = Math.cos(rad);
+                    let cy = Math.sin(rad);
+
+                    let v = 0;
+                    for (let i = 0; i < pcaDemoPoints.length; i++) {
+                        let s = pcaDemoPoints[i].x * cx + pcaDemoPoints[i].y * cy;
+                        v += s * s;
+                    }
+                    v = v / pcaDemoPoints.length;
+
+                    if (v > pcaDemoMaxVar) {
+                        pcaDemoMaxVar = v;
+                        pcaDemoPc1Angle = a;
+                    }
+                    if (v < pcaDemoMinVar) {
+                        pcaDemoMinVar = v;
+                        pcaDemoPc2Angle = a;
+                    }
+                }
+            }
+
+            function pcaDemoUpdateVisualization() {
+                const axisBg = document.getElementById('pca-demo-axis-bg');
+                const axisFg = document.getElementById('pca-demo-axis-fg');
+                const perpGroup = document.getElementById('pca-demo-perp-lines');
+                const projGroup = document.getElementById('pca-demo-proj-points');
+                const angleVal = document.getElementById('pca-demo-angle-val');
+                const varVal = document.getElementById('pca-demo-var-val');
+                const varBar = document.getElementById('pca-demo-var-bar');
+                const hintEl = document.getElementById('pca-demo-pc-hint');
+
+                if (!axisBg || !axisFg || !perpGroup || !projGroup || !angleVal || !varVal || !varBar || !hintEl) return;
+
+                let rad = pcaDemoAngleDeg * Math.PI / 180;
+                let cx = Math.cos(rad);
+                let cy = Math.sin(rad);
+
+                let lineLen = 400;
+                let x1 = -lineLen * cx, y1 = -lineLen * cy;
+                let x2 = lineLen * cx, y2 = lineLen * cy;
+
+                axisBg.setAttribute("x1", x1); axisBg.setAttribute("y1", y1);
+                axisBg.setAttribute("x2", x2); axisBg.setAttribute("y2", y2);
+                axisFg.setAttribute("x1", x1); axisFg.setAttribute("y1", y1);
+                axisFg.setAttribute("x2", x2); axisFg.setAttribute("y2", y2);
+
+                perpGroup.innerHTML = '';
+                projGroup.innerHTML = '';
+
+                let varSum = 0;
+
+                pcaDemoPoints.forEach(p => {
+                    let scalar = p.x * cx + p.y * cy;
+                    varSum += scalar * scalar;
+
+                    let px = scalar * cx;
+                    let py = scalar * cy;
+
+                    let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", p.x);
+                    line.setAttribute("y1", p.y);
+                    line.setAttribute("x2", px);
+                    line.setAttribute("y2", py);
+                    line.setAttribute("class", "pca-demo-perp-line");
+                    perpGroup.appendChild(line);
+
+                    let dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    dot.setAttribute("cx", px);
+                    dot.setAttribute("cy", py);
+                    dot.setAttribute("r", 4);
+                    dot.setAttribute("class", "pca-demo-proj-point");
+                    projGroup.appendChild(dot);
+                });
+
+                let currentVar = varSum / pcaDemoPoints.length;
+                angleVal.innerText = Math.round(pcaDemoAngleDeg) + "°";
+                varVal.innerText = currentVar.toFixed(1);
+
+                let range = pcaDemoMaxVar - pcaDemoMinVar;
+                let percent = range === 0 ? 0 : ((currentVar - pcaDemoMinVar) / range) * 100;
+                varBar.style.width = percent + "%";
+
+                let diffToPC1 = Math.min(Math.abs(pcaDemoAngleDeg - pcaDemoPc1Angle), 180 - Math.abs(pcaDemoAngleDeg - pcaDemoPc1Angle));
+                let diffToPC2 = Math.min(Math.abs(pcaDemoAngleDeg - pcaDemoPc2Angle), 180 - Math.abs(pcaDemoAngleDeg - pcaDemoPc2Angle));
+
+                if (diffToPC1 <= 2) {
+                    hintEl.className = "pca-demo-pc-hint pca-demo-hint-pc1";
+                    hintEl.innerHTML = "<i class='fas fa-trophy' style='margin-right:8px;'></i> 找到 第一主成分 (方差最大)！";
+                } else if (diffToPC2 <= 2) {
+                    hintEl.className = "pca-demo-pc-hint pca-demo-hint-pc2";
+                    hintEl.innerHTML = "<i class='fas fa-compress-arrows-alt' style='margin-right:8px;'></i> 找到 第二主成分 (方差最小)！";
+                } else {
+                    hintEl.className = "pca-demo-pc-hint pca-demo-hint-none";
+                    hintEl.innerHTML = "";
+                }
+            }
+
+            function pcaDemoPlayLoop() {
+                if (!pcaDemoIsPlaying) return;
+                pcaDemoAngleDeg = (pcaDemoAngleDeg + 0.5) % 180;
+                const slider = document.getElementById('pca-demo-angle-slider');
+                if (slider) slider.value = Math.floor(pcaDemoAngleDeg);
+                pcaDemoUpdateVisualization();
+                pcaDemoAnimationId = requestAnimationFrame(pcaDemoPlayLoop);
+            }
+
+            function pcaDemoToggleAutoPlay() {
+                const btn = document.getElementById('pca-demo-btn-play');
+                const slider = document.getElementById('pca-demo-angle-slider');
+                if (!btn || !slider) return;
+
+                if (pcaDemoIsPlaying) {
+                    pcaDemoIsPlaying = false;
+                    cancelAnimationFrame(pcaDemoAnimationId);
+                    btn.innerHTML = "<i class='fas fa-play'></i> 自动旋转";
+                    btn.style.background = "#3b82f6";
+                    slider.disabled = false;
+                } else {
+                    pcaDemoIsPlaying = true;
+                    btn.innerHTML = "<i class='fas fa-pause'></i> 停止旋转";
+                    btn.style.background = "#ef4444";
+                    slider.disabled = true;
+                    pcaDemoPlayLoop();
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const slider = document.getElementById('pca-demo-angle-slider');
+                const btnPlay = document.getElementById('pca-demo-btn-play');
+                const btnReset = document.getElementById('pca-demo-btn-reset');
+
+                if (slider) {
+                    slider.addEventListener('input', function (e) {
+                        pcaDemoAngleDeg = parseInt(e.target.value, 10);
+                        pcaDemoUpdateVisualization();
+                    });
+                }
+
+                if (btnPlay) {
+                    btnPlay.addEventListener('click', pcaDemoToggleAutoPlay);
+                }
+
+                if (btnReset) {
+                    btnReset.addEventListener('click', pcaDemoGenerateNewData);
+                }
+
+                pcaDemoGenerateNewData();
+            });
+        })();
+    </script>
+</div>
+
+
+    <!-- ==================== Part 3 数学表达 ==================== -->
+    <div class="slide section-slide" id="slide-9">
+        <h2>主成分是怎么定义的？</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">把物理直觉翻译成严谨的数学语言</p>
+    </div>
+
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 5.2.1 总体主成分的导入</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">设 $p$ 维随机向量 $\boldsymbol{x} = (x_1, \dots, x_p)^{\prime}$，均值 $E(\boldsymbol{x})=\boldsymbol{\mu}$，协方差矩阵 $V(\boldsymbol{x})=\boldsymbol{\Sigma}$。</p>
+            <p class="step" style="font-size: 26px; margin-top: 15px;">我们寻找线性变换 $\boldsymbol{y} = \boldsymbol{A} \boldsymbol{x}$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; text-align: left; padding: 25px 40px; border-left: 6px solid #3b82f6;">
+                    \[
+                    \begin{cases}
+                    y_1 = a_{11}x_1 + \dots + a_{1p}x_p = \boldsymbol{a}_1^{\prime} \boldsymbol{x} \\
+                    y_2 = a_{21}x_1 + \dots + a_{2p}x_p = \boldsymbol{a}_2^{\prime} \boldsymbol{x} \\
+                    \dots \\
+                    y_p = a_{p1}x_1 + \dots + a_{pp}x_p = \boldsymbol{a}_p^{\prime} \boldsymbol{x}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; margin-top: 15px;">我们的目标，就是优化出这些组合系数 $\boldsymbol{a}_i$，让新变量 $y_i$ 满足一系列苛刻的条件。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 主成分的数学条件定义 (定义5.1)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px; border-top-color: #10b981;">
+                <p style="font-size: 26px; margin-bottom: 20px;">若 $y_i = \boldsymbol{a}_i^{\prime} \boldsymbol{x}$ 满足如下条件，则称其为 $\boldsymbol{x}$ 的第 $i$ 个主成分：</p>
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2;">
+                    <li><strong>（1）规范化约束：</strong> $\boldsymbol{a}_i^{\prime} \boldsymbol{a}_i = 1$（防止系数无限放大导致方差虚高）。</li>
+                    <li><strong>（2）抢占最多信息：</strong> $y_1$ 是一切线性组合中，<strong>方差达到最大者</strong>。</li>
+                    <li><strong>（3）不撞车原则：</strong> $y_2$ 与 $y_1$ <strong>不相关</strong>，且方差达到第二大。</li>
+                    <li><strong>（4）依此类推：</strong> $y_k$ 与 $y_1, \dots, y_{k-1}$ 都不相关，且方差达到第 $k$ 大。</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 25px; font-size: 28px; font-weight: bold; color: #db2777;">
+                在 PCA 中，信息通常用“变异/方差大小”来衡量！
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 理论基石：矩阵的谱分解</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">要解出方差最大的系数 $\boldsymbol{a}_i$，熟悉的“老朋友”特征值分解来了：</p>
+            <div class="step tile" style="padding: 5px; border-top-color: #8b5cf6;">
+                <h3 style="font-size: 30px;">定理 5.1 & 5.2：谱分解定理</h3>
+                <p style="font-size: 24px; line-height: 1.8;">若 $\boldsymbol{\Sigma}$ 为 $p$ 阶对称矩阵，其特征根为 $\lambda_i$，对应的单位正交特征向量为 $\boldsymbol{t}_i$。记正交矩阵 $\boldsymbol{T} = (\boldsymbol{t}_1, \dots, \boldsymbol{t}_p)$，则必有：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 40px;">
+                        \[\boldsymbol{T}^{\prime} \boldsymbol{T} = \boldsymbol{I}\]
+                        \[\boldsymbol{\Sigma} = \boldsymbol{T} \boldsymbol{\Lambda} \boldsymbol{T}^{\prime} = \sum_{i=1}^p \lambda_i \boldsymbol{t}_i \boldsymbol{t}_i^{\prime}\]
+                    </div>
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; text-align: center; margin-top: 15px;">
+                (证明略析：$\boldsymbol{\Sigma} = (\lambda_1 \boldsymbol{t}_1, \dots) \boldsymbol{T}^{\prime} = \sum \lambda_i \boldsymbol{t}_i \boldsymbol{t}_i^{\prime}$)
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-crown"></i> 定理 5.4：主成分的最终形式</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 50px; border-top-color: #ec4899;">
+                <p style="font-size: 28px; line-height: 1.8;">
+                    设 $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_p \ge 0$ 是 $\boldsymbol{\Sigma}$ 的特征根，$\boldsymbol{t}_i$ 是对应的单位正交特征向量。
+                </p>
+                <p style="font-size: 28px; line-height: 1.8; margin-top: 20px; font-weight: bold; color: #9d174d;">
+                    那么奇迹出现了，$\boldsymbol{x}$ 的第 $i$ 个主成分系数正是特征向量，其方差正是特征根：
+                </p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 25px; padding: 10px 50px; border-left: 8px solid #ec4899; margin-top: 25px;">
+                        \[y_i = \boldsymbol{t}_i^{\prime} \boldsymbol{x}, \qquad V(y_i) = \lambda_i\]
+                    </div>
+                </div>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 30px; font-size: 26px; color: #475569;">
+                把抽象代数拉回现实：<strong>特征向量 = 主成分方向，特征值 = 该方向承载的信息量。</strong>
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 数学揭秘：为什么是特征向量？(1/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">求第一主成分，就是在 $\boldsymbol{a}^{\prime} \boldsymbol{a} = 1$ 下，找 $\boldsymbol{a}$ 使得 $V(y) = V(\boldsymbol{a}^{\prime} \boldsymbol{x})$ 最大。</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    V(\boldsymbol{a}^{\prime} \boldsymbol{x}) &= E\left\{ [\boldsymbol{a}^{\prime}\boldsymbol{x} - E(\boldsymbol{a}^{\prime}\boldsymbol{x})] [\boldsymbol{a}^{\prime}\boldsymbol{x} - E(\boldsymbol{a}^{\prime}\boldsymbol{x})]^{\prime} \right\} \\
+                    &= \boldsymbol{a}^{\prime} E\left\{ [\boldsymbol{x}-E(\boldsymbol{x})] [\boldsymbol{x}-E(\boldsymbol{x})]^{\prime} \right\} \boldsymbol{a} = \boldsymbol{a}^{\prime} \boldsymbol{\Sigma} \boldsymbol{a}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; margin-top: 15px;">将谱分解 $\boldsymbol{\Sigma} = \sum \lambda_i \boldsymbol{t}_i \boldsymbol{t}_i^{\prime}$ 代入放缩：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    V(y) &= \sum_{i=1}^p \lambda_i (\boldsymbol{a}^{\prime} \boldsymbol{t}_i)^2 
+                    \le \lambda_1 \sum_{i=1}^p (\boldsymbol{a}^{\prime} \boldsymbol{t}_i)^2 = \lambda_1 \boldsymbol{a}^{\prime} \left( \sum_{i=1}^p \boldsymbol{t}_i \boldsymbol{t}_i^{\prime} \right) \boldsymbol{a} \\
+                    &= \lambda_1 \boldsymbol{a}^{\prime} \boldsymbol{T} \boldsymbol{T}^{\prime} \boldsymbol{a} = \lambda_1 \boldsymbol{a}^{\prime} \boldsymbol{a} = \lambda_1
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 数学揭秘：为什么是特征向量？(2/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">所以方差最大绝不可能超过 $\lambda_1$。何时取等号呢？</p>
+            <p class="step" style="font-size: 26px; margin-top: 15px;">直接验证：当 $\boldsymbol{a} = \boldsymbol{t}_1$ 时，利用特征向量正交性 $\boldsymbol{t}_1^{\prime}\boldsymbol{t}_i = 0 \ (i \ne 1)$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 40px;">
+                    \[
+                    \begin{aligned}
+                    V(\boldsymbol{t}_1^{\prime} \boldsymbol{x}) &= \sum_{i=1}^p \lambda_i (\boldsymbol{t}_1^{\prime} \boldsymbol{t}_i)^2 \\
+                    &= \lambda_1 (\boldsymbol{t}_1^{\prime} \boldsymbol{t}_1)^2 + \lambda_2 (0) + \dots = \lambda_1
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 20px;">再验证不同主成分的协方差（不相关性）：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px;">
+                    \[
+                    \operatorname{Cov}(y_i, y_j) = \boldsymbol{t}_i^{\prime} \boldsymbol{\Sigma} \boldsymbol{t}_j = \boldsymbol{t}_i^{\prime} (\lambda_j \boldsymbol{t}_j) = \lambda_j (\boldsymbol{t}_i^{\prime} \boldsymbol{t}_j) = 0 \quad (i \ne j)
+                    \]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; color: #10b981; font-weight: bold; font-size: 28px; margin-top: 20px;">完美得证！</p>
+        </div>
+    </div>
+
+    <!-- ==================== Part 4 提取与解释 ==================== -->
+    <div class="slide section-slide" id="slide-16">
+        <h2>主成分的提取与解释</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">算出数字只是开始，讲明白才算真懂</p>
+    </div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 到底保留几个主成分？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px; font-weight: bold; text-align: center; margin-bottom: 30px;">不是主成分越多越好，留太多就失去降维意义。</p>
+            <div class="step tile" style="padding: 5px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 22px;">1. 迹不变性与总方差</h3>
+                <p style="font-size: 22px; line-height: 1.8;">所有主成分的方差总和等于原变量方差总和：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 22px; padding: 5px;">\[\operatorname{tr}(\boldsymbol{\Lambda}) = \sum_{i=1}^p \lambda_i = \operatorname{tr}(\boldsymbol{\Sigma})\]</div></div>
+            </div>
+            <div class="step tile" style="padding: 5px; border-top-color: #f59e0b; margin-top: 10px;">
+                <h3 style="font-size: 22px;">2. 方差贡献率与累计贡献率</h3>
+                <ul class="bullet-list" style="font-size: 20px; line-height: 1.8;">
+                    <li><strong>贡献率：</strong> 第 $i$ 主成分的解释能力 $w_i = \lambda_i / \sum \lambda_i$。它代表了该成分的“话语权”。</li>
+                    <li><strong>累计贡献率：</strong> 前 $m$ 个主成分解释了总变异的百分比 $\sum_{i=1}^m \lambda_i / \sum \lambda_i$。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-filter"></i> 选几个主成分的常见准则</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">主成分留几个，不靠玄学，靠以下常用方法综合判定：</p>
+            <div class="tiled-content">
+                <div class="step tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 26px;">1. 累计贡献率法</h3>
+                    <p style="font-size: 22px;">最普遍的做法。当累计贡献率达到 <strong>80% ~ 85%</strong> 以上时，认为前 $m$ 个成分已囊括足够信息。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 26px;">2. 特征值大于 1 法</h3>
+                    <p style="font-size: 22px;">(Kaiser 准则)。前提是使用了相关矩阵 $\boldsymbol{R}$。如果一个主成分的方差连 1（单个原变量方差）都不如，不如不要。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #ec4899; grid-column: span 2;">
+                    <h3 style="font-size: 26px;">3. 碎石图法 (Scree Plot)</h3>
+                    <p style="font-size: 22px;">看图找“拐点”。拐点前信息下降极快，拐点后贡献趋于平缓的噪点，保留拐点前的成分。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-pca-scree">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 用碎石图确定主成分个数</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.02fr 0.98fr; gap: 24px; align-items: stretch;">
+        
+        <!-- 左侧：文字说明 -->
+        <div>
+            <div class="step tile" style="border-top-color:#3b82f6; margin-top: 8px;">
+                <h3 style="font-size: 23px; margin-bottom: 12px;">碎石图的基本思想</h3>
+                <p style="font-size: 20px; line-height: 1.82;">
+                    将各主成分对应的特征值按大小排列，并以主成分序号为横轴、特征值为纵轴作图，
+                    得到的折线图称为<strong>碎石图</strong>。
+                </p>
+            </div>
+
+            <div class="step info-box" style="margin-top: 16px;">
+                <p style="font-size: 20px; line-height: 1.8;">
+                    通常观察曲线的<strong>“拐点”</strong>：
+                </p>
+                <ul style="margin-top: 8px; font-size: 20px; line-height: 1.78; color:#334155; padding-left: 26px;">
+                    <li style="font-size: 20px;" >拐点之前：特征值下降较快，说明这些主成分贡献较大</li>
+                    <li style="font-size: 20px;" >拐点之后：特征值变化趋于平缓，说明后面的主成分贡献较小</li>
+                </ul>
+            </div>
+
+            <div class="step tile" style="margin-top: 5px; border-top-color:#10b981;">
+                <p style="font-size: 20px; line-height: 1.82;">
+                    因此，在实际分析中，常将<strong>拐点之前的主成分保留</strong>，而把后面变化较平缓的部分看作“碎石”。
+                </p>
+            </div>
+
+           
+        </div>
+
+        <!-- 右侧：碎石图 -->
+        <div class="step" style="display:flex; align-items:center; justify-content:center;">
+            <div style="width:100%; background:#f8fafc; border:1px solid #cbd5e1; border-radius:14px; padding:14px 16px;">
+                <svg viewBox="0 0 520 360" width="100%" height="320" style="display:block; margin:0 auto;">
+                    <!-- 标题 -->
+                    <text x="260" y="26" text-anchor="middle" font-size="22" fill="#0f172a" font-weight="bold" font-family="Noto Sans SC">
+                        图：主成分分析碎石图
+                    </text>
+
+                    <!-- 背景 -->
+                    <rect x="0" y="0" width="520" height="360" fill="#f8fafc"></rect>
+
+                    <!-- 坐标轴 -->
+                    <line x1="70" y1="300" x2="470" y2="300" stroke="#475569" stroke-width="2.8"></line>
+                    <line x1="70" y1="300" x2="70" y2="55" stroke="#475569" stroke-width="2.8"></line>
+
+                    <!-- 箭头 -->
+                    <polygon points="470,300 458,294 458,306" fill="#475569"></polygon>
+                    <polygon points="70,55 64,67 76,67" fill="#475569"></polygon>
+
+                    <!-- 轴标签 -->
+                    <text x="475" y="306" font-size="18" fill="#334155" font-family="Noto Sans SC">主成分序号</text>
+                    <text x="80" y="48" font-size="18" fill="#334155" font-family="Noto Sans SC">特征值</text>
+
+                    <!-- 网格线 -->
+                    <g stroke="#e2e8f0" stroke-width="1">
+                        <line x1="70" y1="250" x2="450" y2="250"></line>
+                        <line x1="70" y1="200" x2="450" y2="200"></line>
+                        <line x1="70" y1="150" x2="450" y2="150"></line>
+                        <line x1="70" y1="100" x2="450" y2="100"></line>
+                    </g>
+
+                    <!-- y轴刻度 -->
+                    <g font-size="15" fill="#64748b" font-family="Noto Sans SC" text-anchor="end">
+                        <text x="60" y="305">0</text>
+                        <text x="60" y="255">1</text>
+                        <text x="60" y="205">2</text>
+                        <text x="60" y="155">3</text>
+                        <text x="60" y="105">4</text>
+                    </g>
+
+                    <!-- x轴刻度 -->
+                    <g font-size="15" fill="#64748b" font-family="Noto Sans SC" text-anchor="middle">
+                        <text x="110" y="323">1</text>
+                        <text x="160" y="323">2</text>
+                        <text x="210" y="323">3</text>
+                        <text x="260" y="323">4</text>
+                        <text x="310" y="323">5</text>
+                        <text x="360" y="323">6</text>
+                        <text x="410" y="323">7</text>
+                    </g>
+
+                    <!-- 折线 -->
+                    <polyline 
+                        points="110,80 160,125 210,185 260,230 310,252 360,268 410,278" 
+                        fill="none" 
+                        stroke="#3b82f6" 
+                        stroke-width="4.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round">
+                    </polyline>
+
+                    <!-- 点 -->
+                    <g fill="#ec4899" stroke="#ffffff" stroke-width="2.5">
+                        <circle cx="110" cy="80" r="7"></circle>
+                        <circle cx="160" cy="125" r="7"></circle>
+                        <circle cx="210" cy="185" r="7"></circle>
+                        <circle cx="260" cy="230" r="7"></circle>
+                        <circle cx="310" cy="252" r="7"></circle>
+                        <circle cx="360" cy="268" r="7"></circle>
+                        <circle cx="410" cy="278" r="7"></circle>
+                    </g>
+
+                    <!-- 拐点虚线 -->
+                    <line x1="210" y1="300" x2="210" y2="165" stroke="#f59e0b" stroke-width="3" stroke-dasharray="8 6"></line>
+                    <text x="232" y="165" font-size="18" fill="#b45309" font-weight="bold" font-family="Noto Sans SC">
+                        拐点附近
+                    </text>
+
+                    <!-- 说明 -->
+                    <text x="125" y="62" font-size="17" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC">
+                        前几个主成分下降快
+                    </text>
+                    <text x="300" y="292" font-size="17" fill="#64748b" font-family="Noto Sans SC">
+                        后续变化趋于平缓
+                    </text>
+                </svg>
+                <div class="step" style="margin-top: 18px; text-align:center;">
+                <p style="font-size: 20px; font-weight: bold; color:#2563eb;">
+                    例如：若拐点出现在第 3 个主成分附近，则通常保留前 2 或前 3 个主成分。
+                </p>
+            </div>
+            </div>
+             
+        </div>
+    </div>
+</div>
+
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 主成分与原始变量的相关系数 (载荷)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">主成分到底在代表什么？要看它和原变量的关系（<strong>因子载荷 Factor Loading</strong>）。</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #3b82f6;">
+                    \[\rho(y_i, x_j) = \frac{\operatorname{Cov}(y_i, x_j)}{\sqrt{V(y_i)}\sqrt{V(x_j)}} = \frac{\sqrt{\lambda_i}}{\sqrt{\sigma_{jj}}} t_{ji}\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 25px; padding: 10px; border-top-color: #ec4899;">
+                <p style="font-size: 23px; line-height: 1.8;">
+                    <strong>如何解释推导：</strong><br>
+                    $\operatorname{Cov}(y_i, x_j) = \operatorname{Cov}(\boldsymbol{t}_i^{\prime}\boldsymbol{x}, \boldsymbol{e}_j^{\prime}\boldsymbol{x}) = \boldsymbol{t}_i^{\prime} \boldsymbol{\Sigma} \boldsymbol{e}_j$。<br>
+                    因 $\boldsymbol{\Sigma} \boldsymbol{t}_i = \lambda_i \boldsymbol{t}_i$，故协方差简化为 $\lambda_i \boldsymbol{e}_j^{\prime} \boldsymbol{t}_i = \lambda_i t_{ji}$。除以标准差即得。
+                </p>
+            </div>
+            <p class="step" style="margin-top: 15px; font-size: 23px; font-weight: bold; text-align: center; color: #1e293b;">
+                结论：载荷高的变量，往往是这个主成分的“主要发言人”！
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-tag"></i> 主成分命名与解释</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 30px;">算出主成分只是开始，给它讲明白才算真的会了。</p>
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #8b5cf6; padding: 30px;">
+                    <h3 style="font-size: 24px;">例：城市发展水平评价</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li><strong>第一主成分 $y_1$：</strong>在 GDP、人均收入、存款余额上载荷极高。<br>👉 命名为<strong>“整体经济实力因子”</strong>。</li>
+                        <li><strong>第二主成分 $y_2$：</strong>在每万人医生数、剧院数量上载荷高，但经济类偏低。<br>👉 命名为<strong>“科教文卫服务因子”</strong>。</li>
+                    </ul>
+                </div>
+                <div class="step info-box" style="padding: 30px; border-left-color: #f59e0b; background: #fef3c7;">
+                    <p style="color: #b45309; font-size: 24px;"><i class="fas fa-info-circle"></i> 经验之谈：</p>
+                    <span style="font-size: 22px; color: #78350f; line-height: 1.8; display: block; margin-top: 15px;">
+                        如果一个主成分上的载荷正负参半、大小差不多，极难赋予现实意义，这是纯粹数学 PCA 的通病（也是后续为什么会引入因子分析和旋转的原因）。
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Part 5 计算实例 ==================== -->
+    <div class="slide section-slide" id="slide-21">
+        <h2>计算实例：综合打分</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">将理论落地到具体数据表</p>
+    </div>
+
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 5.1.3 二维主成分计算实例 (表5.4)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">下面以 8 个学生的英语与数学成绩为例：</p>
+            <div class="step">
+                <table class="table-small" style="font-size: 22px;">
+                    <thead><tr><th></th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr></thead>
+                    <tbody>
+                        <tr><th>英语 $x_1$</th><td>100</td><td>90</td><td>70</td><td>70</td><td>85</td><td>55</td><td>55</td><td>45</td></tr>
+                        <tr><th>数学 $x_2$</th><td>65</td><td>85</td><td>70</td><td>90</td><td>65</td><td>45</td><td>55</td><td>65</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step tile" style="margin-top: 20px; padding: 25px;">
+                <p style="font-size: 22px;">计算得样本均值 $\bar{x}_1 = 71.25, \bar{x}_2 = 67.5$，样本协差阵 $\boldsymbol{S}$ 为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 5px 30px;">
+                        \[
+                        \boldsymbol{S} = \left[\begin{array}{ll} 323.4 & 103.1 \\ 103.1 & 187.5 \end{array}\right]
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-subscript"></i> 求解特征值与主成分方程</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">求解特征方程 $|\boldsymbol{S} - \lambda \boldsymbol{I}| = 0$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; padding: 15px 30px;">
+                    \[
+                    \left|\begin{array}{cc} 323.4-\lambda & 103.1 \\ 103.1 & 187.5-\lambda \end{array}\right| = \lambda^2 - 510.9\lambda + 50007.9 = 0
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; margin-top: 15px;">解得 $\lambda_1 = 378.98, \lambda_2 = 131.96$。对应单位特征向量构成主成分方程：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 26px; text-align: left; padding: 20px 40px; border-left: 6px solid #ec4899;">
+                    \[
+                    \begin{aligned}
+                    y_1 &= 0.88(x_1 - 71.25) + 0.47(x_2 - 67.5) = 0.88x_1 + 0.47x_2 - 94.42 \\
+                    y_2 &= 0.47(x_1 - 71.25) - 0.88(x_2 - 67.5) = 0.47x_1 - 0.88x_2 + 25.91
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-trophy"></i> 主成分得分与综合评价 (表 5.5)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; font-weight: bold; margin-bottom: 20px;">主成分不只是方向，它还能给每个样本打分。</p>
+            <p class="step" style="font-size: 24px; margin-bottom: 15px;">将每个学生的原成绩代入方程，得到得分：</p>
+            <div class="step">
+                <table class="table-small" style="font-size: 18px;">
+                    <thead><tr><th>学生</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr></thead>
+                    <tbody>
+                        <tr><th>$y_1$ (第一主成分)</th><td>119</td><td style="color:#ef4444; font-weight:bold;">120</td><td>95</td><td>104</td><td>106</td><td>70</td><td>75</td><td>70</td></tr>
+                        <tr><th>$y_2$ (第二主成分)</th><td>10</td><td>32</td><td>28</td><td>46</td><td>17</td><td>14</td><td>22</td><td>36</td></tr>
+                        <tr style="background-color: #e0f2fe;"><th>按 $y_1$ 排序</th><td>2</td><td>1</td><td>5</td><td>4</td><td>3</td><td>7</td><td>6</td><td>7</td></tr>
+                        <tr><th>原总分排序</th><td>2</td><td>1</td><td>5</td><td>3</td><td>4</td><td>7</td><td>6</td><td>6</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box" style="margin-top: 20px;">
+                <p style="font-size: 22px;"><i class="fas fa-lightbulb"></i> 分析结论：</p>
+                <span style="font-size: 20px; color: #334155; line-height: 1.6; display: block;">
+                    $y_1$（文理综合优异度）排序与原始总分排序几乎一致。舍弃 $y_2$ 只用 $y_1$ 就能达到很好的综合评价效果。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Part 6 样本PCA与前提 ==================== -->
+    <div class="slide section-slide" id="slide-25">
+        <h2>实际应用与样本主成分</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">避开盲区，构建科学评价体系</p>
+    </div>
+
+    <div class="slide" id="slide-26">
+        <h2 class="slide-title"><i class="fas fa-server"></i> 5.3 样本主成分的计算基础</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; line-height: 1.8;">总体协差阵 $\boldsymbol{\Sigma}$ 一般未知，必须用样本协差阵 $\boldsymbol{S}$ 进行估计。</p>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #3b82f6; padding: 5px;">
+                <p style="font-size: 24px; margin-bottom: 20px;">将数据矩阵中心化，计算样本协差阵 $\boldsymbol{S}$：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 5px 40px;">
+                        \[\boldsymbol{S} = \frac{1}{n} \boldsymbol{X}^{\prime} \left(\boldsymbol{I}_n - \frac{1}{n} \mathbf{1}_n \mathbf{1}_n^{\prime}\right) \boldsymbol{X}\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 25px; margin-bottom: 20px;">进一步标准化后，得到样本相关阵 $\hat{\boldsymbol{R}}$：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 5px 40px;">
+                        \[\hat{\boldsymbol{R}} = (r_{ij}), \quad r_{ij} = \frac{s_{ij}}{\sqrt{s_{ii}}\sqrt{s_{jj}}}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-27">
+        <h2 class="slide-title"><i class="fas fa-exclamation-triangle"></i> 5.4.1 $\boldsymbol{\Sigma}$ 还是 $\boldsymbol{R}$ ？量纲的致命干扰</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px;">一个常见问题：到底该按原尺度算（协方差阵），还是先标准化（相关阵）？</p>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #ef4444; padding: 35px; background: #fef2f2;">
+                <h3 style="font-size: 26px; color: #b91c1c;">“大数吃小数”危机</h3>
+                <p style="font-size: 24px; color: #7f1d1d; line-height: 1.8;">
+                    比如分析人体，“体重”以克为单位，方差可能高达几十万；“身高”以米为单位，方差不到 1。<br>
+                    若直接用协差阵 $\boldsymbol{S}$ 做主成分，第一主成分会完全被“体重”主导，把身高信息彻底淹没！
+                </p>
+            </div>
+            <div class="step info-box" style="margin-top: 20px; border-left-color: #10b981; background: #d1fae5;">
+                <p style="color: #065f46; font-size: 24px;"><i class="fas fa-check-circle"></i> 强烈建议：</p>
+                <span style="font-size: 22px; color: #064e3b; line-height: 1.6; display: block; margin-top: 10px;">
+                    对于经济、社会科学问题，变量单位大都不统一。采用<strong>相关阵 $\boldsymbol{R}$（即数据先全部标准化）</strong> 可以避免数值大的变量篡权，更具现实合理性。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-desktop"></i> 5.3.3 根据软件输出倒推特征向量</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">在 SPSS 等商业统计软件中，进行 Factor Analysis（因子分析）时，默认并不直接输出特征向量 $\boldsymbol{t}_i$，而是输出<strong>“因子载荷” $\boldsymbol{f}_i$</strong>。</p>
+            <div class="step tile" style="margin-top: 25px; border-top-color: #ec4899; padding: 10px;">
+                <h3 style="font-size: 26px; margin-bottom: 20px;">反解公式</h3>
+                <p style="font-size: 24px;">设特征根 $\lambda_i$ 对应的因子载荷向量为 $\boldsymbol{f}_i$，则三者的代数关系为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 25px; border-left: 6px solid #ec4899; padding: 10px 50px; margin-top: 20px;">
+                        \[\boldsymbol{t}_i = \frac{\boldsymbol{f}_i}{\sqrt{\lambda_i}}\]
+                    </div>
+                </div>
+            </div>
+            <p class="step" style="text-align: center; color: #475569; margin-top: 20px; font-size: 24px;">拿到特征向量后，我们才能写出具体的线性组合公式进行后续打分评价。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-29">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 实际应用的标准四步流程</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; margin-bottom: 20px;">从原始变量到少数主成分，走一遍完整流程：</p>
+            <div class="step tile" style="padding: 40px; background: #f8fafc;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2;">
+                    <li><strong>第一步：</strong> 将原始数据进行标准化处理。</li>
+                    <li><strong>第二步：</strong> 建立变量的相关系数矩阵 $\boldsymbol{R}$。</li>
+                    <li><strong>第三步：</strong> 求解 $\boldsymbol{R}$ 的特征根 $\lambda_1^* \ge \dots \ge \lambda_p^*$ 及其单位特征向量 $\boldsymbol{T}_i^*$。</li>
+                    <li><strong>第四步：</strong> 根据累积方差贡献率（通常大于 85%）确定选取 $m$ 个主成分，写出主成分表达式 $Y_i = (\boldsymbol{T}_i^*)^{\prime} \boldsymbol{X}$。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-30">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 5.4.2 利用主成分进行综合评价加权</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; line-height: 1.8;">如果要对样本做综合排名（如城市竞争力排名），最难的就是“如何分配权重”。主成分提供了一种绝对客观的赋权方案。</p>
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px; margin-top: 15px;">
+                <h3 style="font-size: 25px; margin-bottom: 20px;">基于特征根的客观加权</h3>
+                <p style="font-size: 23px;">将提取出的 $m$ 个主成分 $Y_i$，根据其信息贡献（特征根 $\lambda_i$）进行归一化赋权：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #8b5cf6; margin-top: 20px;">
+                        \[w_i = \frac{\lambda_i}{\sum_{j=1}^m \lambda_j}, \quad i=1,2,\dots,m\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-31">
+        <h2 class="slide-title"><i class="fas fa-trophy"></i> 最终评价得分方程</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">由权重向量 $\boldsymbol{W} = (w_1, \dots, w_m)^{\prime}$ 和主成分方程 $\boldsymbol{Y} = \boldsymbol{T}^{\prime}\boldsymbol{X}$，构造终极综合评价函数 $\boldsymbol{Z}$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; text-align: left; padding: 30px 50px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    \boldsymbol{Z} &= w_1 Y_1 + w_2 Y_2 + \dots + w_m Y_m \\
+                    &= \boldsymbol{W}^{\prime} \boldsymbol{Y} = \boldsymbol{W}^{\prime} \boldsymbol{T}^{\prime} \boldsymbol{X} \\
+                    &= (\boldsymbol{T}\boldsymbol{W})^{\prime} \boldsymbol{X}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 30px; padding: 30px; border-top-color: #10b981;">
+                <p style="font-size: 24px; text-align: center; font-weight: bold; color: #065f46;">
+                    本质揭秘：无论经过多少次降维与加权，最终的评价得分 $\boldsymbol{Z}$ 依然是原始输入指标 $\boldsymbol{X}$ 的线性组合汇总！
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 例题1：背景与数据 ==================== -->
+<div class="slide" id="slide-pca-dorm-1">
+    <h2 class="slide-title"><i class="fas fa-home"></i> 例题：利用主成分分析对宿舍成员进行综合评价</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#3b82f6;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                某宿舍有 6 名成员，记为 A、B、C、D、E、F。为了评选“宿舍最佳搭子”，
+                从以下 5 个方面对每位同学进行评分：
+            </p>
+            <ul style="margin-top: 10px; font-size: 22px; line-height: 1.8; padding-left: 26px; color:#334155;">
+                <li>\(X_1\)：卫生习惯</li>
+                <li>\(X_2\)：作息规律</li>
+                <li>\(X_3\)：学习自律</li>
+                <li>\(X_4\)：乐于助人</li>
+                <li>\(X_5\)：情绪稳定</li>
+            </ul>
+            <p style="font-size: 22px; line-height: 1.8; margin-top: 8px;">
+                每项满分 10 分，得分越高表示表现越好。调查得到的数据如下：
+            </p>
+        </div>
+
+       
+
+       
+    </div>
+</div>
+
+
+    <!-- ==================== 例题1：背景与数据 ==================== -->
+<div class="slide" id="slide-pca-dorm-1">
+    <h2 class="slide-title"><i class="fas fa-home"></i> 例题：利用主成分分析对宿舍成员进行综合评价</h2>
+    <div class="content-area">
+       
+
+        <div class="step" style="margin-top: 12px;">
+            <table class="table-small" style="font-size: 21px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>成员</th>
+                        <th>\(X_1\)</th>
+                        <th>\(X_2\)</th>
+                        <th>\(X_3\)</th>
+                        <th>\(X_4\)</th>
+                        <th>\(X_5\)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>A</td><td>9</td><td>8</td><td>8</td><td>9</td><td>8</td></tr>
+                    <tr><td>B</td><td>7</td><td>6</td><td>7</td><td>8</td><td>7</td></tr>
+                    <tr><td>C</td><td>8</td><td>9</td><td>9</td><td>7</td><td>9</td></tr>
+                    <tr><td>D</td><td>6</td><td>5</td><td>6</td><td>6</td><td>6</td></tr>
+                    <tr><td>E</td><td>5</td><td>7</td><td>5</td><td>6</td><td>5</td></tr>
+                    <tr><td>F</td><td>8</td><td>7</td><td>8</td><td>8</td><td>8</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step info-box" style="margin-top: 14px;">
+            <p style="font-size: 22px;">
+                现希望利用主成分分析法对 6 名宿舍成员进行综合评价，并给出排序结果。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== 例题2：分析思路 ==================== -->
+<div class="slide" id="slide-pca-dorm-2">
+    <h2 class="slide-title"><i class="fas fa-brain"></i> 例题分析思路：先降维，再综合</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.06fr 0.94fr; gap: 24px; align-items: stretch;">
+        <div>
+            <div class="step tile" style="border-top-color:#8b5cf6;">
+                <h3 style="font-size: 26px; margin-bottom: 10px;">分析步骤</h3>
+                <ul style="font-size: 22px; line-height: 1.82; padding-left: 26px; color:#334155;">
+                    <li>先对原始数据进行标准化，消除不同指标量纲影响；</li>
+                    <li>计算相关系数矩阵，求其特征值与特征向量；</li>
+                    <li>根据累计方差贡献率选取前几个主成分；</li>
+                    <li>利用主成分得分构造综合评价函数；</li>
+                    <li>按综合得分大小对 6 名成员进行排序。</li>
+                </ul>
+            </div>
+
+            <div class="step info-box" style="margin-top: 16px;">
+                <p style="font-size: 22px; line-height: 1.8;">
+                    从数据结构看，5 个指标之间有较强的正相关，
+                    因而适合使用主成分分析，把“卫生、作息、学习、助人、情绪”这些信息
+                    浓缩成少数几个综合变量。
+                </p>
+            </div>
+
+            <div class="step tile" style="margin-top: 16px; border-top-color:#10b981;">
+                <p style="font-size: 22px; line-height: 1.8;">
+                    在这个例子中，<strong>第一主成分</strong>可以理解为“整体表现水平”：
+                    如果一个同学在卫生、作息、学习、自律、情绪等方面都比较优秀，
+                    那么第一主成分得分通常就会较高。
+                </p>
+            </div>
+        </div>
+
+        <div>
+            <div class="step" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:14px; padding:18px 20px;">
+                <h3 style="font-size: 24px; margin-bottom: 12px; color:#0f172a;">主成分解释示意</h3>
+
+                <div style="margin-top: 6px; padding: 14px 16px; border-radius: 12px; background:#ffffff; border:1px solid #e2e8f0;">
+                    <p style="font-size: 21px; color:#2563eb; font-weight:bold; margin-bottom: 8px;">第一主成分 \(F_1\)</p>
+                    <p style="font-size: 20px; line-height: 1.75; color:#334155;">
+                        反映宿舍成员的<strong>综合素质水平</strong>，通常由五个指标共同决定，
+                        权重方向大多同号。
+                    </p>
+                </div>
+
+                <div style="margin-top: 14px; padding: 14px 16px; border-radius: 12px; background:#ffffff; border:1px solid #e2e8f0;">
+                    <p style="font-size: 21px; color:#8b5cf6; font-weight:bold; margin-bottom: 8px;">第二主成分 \(F_2\)</p>
+                    <p style="font-size: 20px; line-height: 1.75; color:#334155;">
+                        反映某些指标间的<strong>差异特征</strong>，
+                        比如“作息与助人”的相对优势，或“学习与情绪”的偏重。
+                    </p>
+                </div>
+
+                <div style="margin-top: 16px;" class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 12px 18px;">
+                        \[
+                        Z = w_1F_1 + w_2F_2 + \cdots + w_mF_m
+                        \]
+                    </div>
+                </div>
+
+                <p style="font-size: 19px; color:#64748b; line-height:1.7; margin-top: 10px;">
+                    其中 \(w_i\) 常取各主成分的方差贡献率或其标准化值。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== 例题4：特征值与贡献率 ==================== -->
+<div class="slide" id="slide-pca-dorm-4">
+    <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 宿舍成员综合评价：主成分提取结果</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#3b82f6;">
+            <p style="font-size: 22px; line-height: 1.82;">
+                对原始数据进行标准化后，基于相关系数矩阵进行主成分分析，得到 5 个特征值如下：
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 5px;">
+            <table class="table-small" style="font-size: 20px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>主成分</th>
+                        <th>\(\lambda_i\)</th>
+                        <th>方差贡献率</th>
+                        <th>累计贡献率</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>\(F_1\)</td><td>3.9375</td><td>78.75%</td><td>78.75%</td></tr>
+                    <tr><td>\(F_2\)</td><td>0.7075</td><td>14.15%</td><td style="color:#dc2626; font-weight:bold;" >92.90%</td></tr>
+                    <tr><td>\(F_3\)</td><td>0.3256</td><td>6.51%</td><td>99.41%</td></tr>
+                    <tr><td>\(F_4\)</td><td>0.0294</td><td>0.59%</td><td>100.00%</td></tr>
+                    <tr><td>\(F_5\)</td><td>\(\approx 0\)</td><td>\(\approx 0\)</td><td>100.00%</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        
+    </div>
+</div>
+
+<!-- ==================== 例题5：主成分表达式 ==================== -->
+<div class="slide" id="slide-pca-dorm-5">
+    <h2 class="slide-title"><i class="fas fa-function"></i> 宿舍成员综合评价：主成分表达式</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#8b5cf6;">
+            <p style="font-size: 18px; line-height: 1;">
+                设 \(Z_1,Z_2,Z_3,Z_4,Z_5\) 分别表示 5 个指标标准化后的变量，
+                则前两个主成分可表示为：
+            </p>
+        </div>
+
+        <div class="step math-center" style="margin-top: 5px;">
+            <div class="math-box" style="font-size: 18px; text-align:left; padding: 5px 28px;">
+                \[
+                F_1=0.4878Z_1+0.3653Z_2+0.4855Z_3+0.3965Z_4+0.4855Z_5
+                \]
+                \[
+                F_2=-0.2446Z_1+0.7098Z_2+0.1171Z_3-0.6395Z_4+0.1171Z_5
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 5px;">
+            <p style="font-size: 16px; line-height: 1.8;">
+                从系数看，第一主成分 \(F_1\) 在 5 个指标上的系数均为正，
+                可理解为反映宿舍成员的<strong>整体综合表现</strong>；
+                第二主成分 \(F_2\) 则更多体现各指标之间的<strong>差异特征</strong>。
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 5px; border-top-color:#10b981;">
+            <p style="font-size: 18px; line-height: 1.22;">
+                按前两个主成分的贡献率进行加权，可构造综合得分函数：
+            </p>
+            <div class="math-center" style="margin-top: 5px;">
+                <div class="math-box" style="font-size: 20px;">
+                    \[
+                    F=0.8477F_1+0.1523F_2
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 例题6：得分与排序 ==================== -->
+<div class="slide" id="slide-pca-dorm-6">
+    <h2 class="slide-title"><i class="fas fa-trophy"></i> 宿舍成员综合评价：得分与排序结果</h2>
+    <div class="content-area">
+        <div class="step" style="margin-top: 3px;">
+            <table class="table-small" style="font-size: 20px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>成员</th>
+                        <th>\(F_1\)</th>
+                        <th>\(F_2\)</th>
+                        <th>综合得分 \(F\)</th>
+                        <th>排序</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>C</td><td>1.8929</td><td>1.3329</td><td style="color:#dc2626; font-weight:bold;">1.8076</td><td>1</td></tr>
+                    <tr><td>A</td><td>1.9613</td><td>-0.5504</td><td style="color:#dc2626; font-weight:bold;">1.5787</td><td>2</td></tr>
+                    <tr><td>F</td><td>1.0441</td><td>-0.3580</td><td style="color:#dc2626; font-weight:bold;">0.8306</td><td>3</td></tr>
+                    <tr><td>B</td><td>-0.2052</td><td>-0.8527</td><td>-0.3038</td><td>4</td></tr>
+                    <tr><td>D</td><td>-2.1094</td><td>-0.2913</td><td>-1.8325</td><td>5</td></tr>
+                    <tr><td>E</td><td>-2.5838</td><td>0.7196</td><td>-2.0806</td><td>6</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step info-box" style="margin-top: 16px;">
+            <p style="font-size: 22px; line-height: 1.82;">
+                因此，6 名宿舍成员的综合评价排序为：
+            </p>
+            <p style="font-size: 28px; text-align:center; color:#2563eb; font-weight:bold; margin-top: 10px;">
+                \(
+                \boxed{C>A>F>B>D>E}
+                \)
+            </p>
+        </div>
+
+       
+    </div>
+</div>
+
+<!-- ==================== 例题3：结果与排序 ==================== -->
+<div class="slide" id="slide-pca-dorm-3">
+    <h2 class="slide-title"><i class="fas fa-trophy"></i> 综合评价结果与排序</h2>
+    <div class="content-area">
+      
+
+        <div class="step" style="margin-top: 3px;">
+            <table class="table-small" style="font-size: 21px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>成员</th>
+                        <th>总体表现概括</th>
+                        <th>综合评价</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>C</td>
+                        <td>作息、自律、情绪稳定表现突出</td>
+                        <td style="color:#2563eb; font-weight:bold;">最优</td>
+                    </tr>
+                    <tr>
+                        <td>A</td>
+                        <td>卫生、助人、整体协调性较强</td>
+                        <td style="color:#2563eb; font-weight:bold;">优秀</td>
+                    </tr>
+                    <tr>
+                        <td>F</td>
+                        <td>各项比较均衡，无明显短板</td>
+                        <td style="color:#2563eb; font-weight:bold;">优秀</td>
+                    </tr>
+                    <tr>
+                        <td>B</td>
+                        <td>整体中等偏上，较稳定</td>
+                        <td>良好</td>
+                    </tr>
+                    <tr>
+                        <td>D</td>
+                        <td>多数指标偏低，但较均衡</td>
+                        <td>一般</td>
+                    </tr>
+                    <tr>
+                        <td>E</td>
+                        <td>部分指标较弱，综合表现偏低</td>
+                        <td>一般</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+      
+            <div class="step tile" style="margin-top: 16px; border-top-color:#f59e0b;">
+            <p style="font-size: 22px; line-height: 1.82;">
+               
+                这个例子说明：主成分分析并不是简单地对 5 个指标做平均，而是先找到数据中最能代表“整体差异”的综合方向，
+                再根据这些方向对样本进行排序与评价。 主成分分析可以把多指标评价问题转化为少数综合指标，从而更方便地进行排序与决策。
+            </p>
+        </div>
+
+
+      
+    </div>
+</div>
+
+    <div class="slide" id="slide-32">
+        <h2 class="slide-title"><i class="fas fa-bomb"></i> 主成分分析常见误区 (避坑提醒)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">这些坑，PCA里真不少，一不小心就前功尽弃：</p>
+            <div class="step tile" style="border-top-color: #ef4444; padding: 35px; background: #fff1f2;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2.2; color: #9d174d;">
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>把主成分当原变量筛选：</strong> PCA 是降维重组，不是删掉变量。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>不标准化就乱做：</strong> 被个别大数值方差变量带偏全盘。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>只看贡献率，不解释载荷：</strong> 算出数字毫无意义，给主成分“起个好名字”才有价值。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>把“方差大”误当“绝对重要”：</strong> 方差小的不代表没用，可能它刻画了局部极度关键的信息。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-33">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 5 章 本章小结</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;">这一章真正该带走的，不只是几个特征值：</p>
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 24px;">
+                    <li>1. 主成分分析用于从多个相关变量中提炼少数综合变量。</li>
+                    <li>2. 它是原变量的重新正交投影（线性组合），并非简单的删除变量。</li>
+                    <li>3. 前几个主成分以“方差最大化”为目标，抢占原始数据大部分变异信息。</li>
+                    <li>4. 贡献率决定保留多少，载荷系数帮助我们解释这个主成分究竟代表什么。</li>
+                    <li>5. PCA 常常不是最后一步，它既可做综合打分，更是给后续聚类、回归“清场降噪”。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-34">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课堂思考与讨论</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 40px;">
+                <h3 style="font-size: 28px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 如果你手里有12个高度相关指标，你会怎么开始做PCA？</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2; margin-top: 20px;">
+                    <li>要不要先进行标准化处理？看协方差矩阵还是相关矩阵？</li>
+                    <li>决定保留 3 个还是 4 个主成分的准则有哪些？</li>
+                    <li>如果第一主成分上所有变量系数都是正数，你打算怎么给它命名？</li>
+                    <li>做完之后，你是想给样本排序，还是为了把降维后的数据喂给别的机器学习模型？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 60px;">
+                <a href="#" class="hw-btn" onclick="alert('即将跳转到网络作业库：Chapter 5 Assignment'); return false;" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 15px 40px; border-radius: 50px; font-size: 26px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); border: none; cursor: pointer;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Online Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结束页 ==================== -->
+    <div class="slide title-slide" id="slide-35">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content" style="background: transparent; box-shadow: none; border: none;">
+            <h1 style="font-size: 100px; color: #10b981; margin-bottom: 30px;"><i class="fas fa-check-circle"></i></h1>
+            <h1 style="color: #f8fafc; font-size: 64px;">从变量很乱，到信息集中</h1>
+            <p class="subtitle" style="color: #94a3b8; font-size: 32px; margin-top: 20px;">感谢聆听 (End of Chapter 5)</p>
+        </div>
+    </div>
+
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+
+        function getSteps(slide) {
+            return Array.from(slide.querySelectorAll('.step'));
+        }
+
+        function clearStepVisibility() {
+            slides.forEach(slide => {
+                getSteps(slide).forEach(step => step.classList.remove('visible'));
+            });
+        }
+
+        function showAllStepsForBrowse() {
+            slides.forEach(slide => {
+                getSteps(slide).forEach(step => step.classList.add('visible'));
+            });
+        }
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+            updateProgressBar();
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            if (progress) progress.style.width = percent + '%';
+            if (counter) counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function isSlideshowMode() {
+            return document.body.classList.contains('slideshow-mode');
+        }
+
+        function getBrowseSlideIndex() {
+            const viewportCenter = window.innerHeight / 2;
+            let bestIndex = 0;
+            let bestDistance = Infinity;
+
+            slides.forEach((slide, idx) => {
+                const rect = slide.getBoundingClientRect();
+                const slideCenter = rect.top + rect.height / 2;
+                const distance = Math.abs(slideCenter - viewportCenter);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = idx;
+                }
+            });
+            return bestIndex;
+        }
+
+        function updateScale() {
+            if (!isSlideshowMode()) {
+                container.style.transform = 'none';
+                document.body.style.setProperty('--deck-scale', '1');
+                return;
+            }
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            document.body.style.setProperty('--deck-scale', scale.toString());
+        }
+
+        function enterSlideshowFrom(index) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            document.body.classList.add('slideshow-mode');
+            clearStepVisibility();
+            showSlide(currentSlideIndex);
+            updateScale();
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        function exitSlideshowToBrowse() {
+            document.body.classList.remove('slideshow-mode');
+            slides.forEach(slide => slide.classList.remove('active'));
+            showAllStepsForBrowse();
+            updateScale();
+
+            const current = slides[currentSlideIndex];
+            if (current) {
+                current.scrollIntoView({ behavior: 'instant' in window ? 'instant' : 'auto', block: 'start' });
+            }
+        }
+
+        function advance() {
+            if (!isSlideshowMode()) return;
+            const currentSlide = slides[currentSlideIndex];
+            const remainingSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+            if (remainingSteps.length > 0) {
+                remainingSteps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                showSlide(currentSlideIndex);
+            }
+        }
+
+        function goBack() {
+            if (!isSlideshowMode()) return;
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                showSlide(currentSlideIndex);
+                getSteps(slides[currentSlideIndex]).forEach(step => step.classList.add('visible'));
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isSlideshowMode()) {
+                exitSlideshowToBrowse();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                if (isSlideshowMode()) {
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => {});
+                    } else {
+                        exitSlideshowToBrowse();
+                    }
+                } else {
+                    const browseIndex = getBrowseSlideIndex();
+                    enterSlideshowFrom(browseIndex);
+                }
+            } else if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                if (isSlideshowMode()) {
+                    e.preventDefault();
+                    advance();
+                }
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                if (isSlideshowMode()) {
+                    e.preventDefault();
+                    goBack();
+                }
+            } else if (e.key === 'Escape' && isSlideshowMode() && !document.fullscreenElement) {
+                e.preventDefault();
+                exitSlideshowToBrowse();
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (!isSlideshowMode()) return;
+            if (e.target.closest('.hw-btn')) return;
+            advance();
+        });
+
+        window.addEventListener('resize', updateScale);
+
+        // 初始为浏览模式：所有页可下拉浏览
+        slides.forEach(slide => slide.classList.remove('active'));
+        showAllStepsForBrowse();
+        updateProgressBar();
+        updateScale();
+    });
+</script>
+
+</body>
+
+</html>
