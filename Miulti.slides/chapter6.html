@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第6章 因子分析</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05 /* 略微放大公式整体比例 */
+            }
+        };
+    </script>
+       <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #1e293b; /* 模拟 PPT 全屏放映时的深灰黑边 */
+            width: 100vw; height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow: hidden; /* 彻底禁止外层滚动 */
+            margin: 0; padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器 (严格锁定 1280x720)
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); 
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* 顶部彩色装饰条 */
+        #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* 步进动画控制类 */
+        .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #0f172a;
+            margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 65px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; 
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 26px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 12px; font-size: 26px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 30px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 30px; color: #0f172a; margin-bottom: 15px; font-family: 'Noto Serif SC', serif;}
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 24px; background: #fff;}
+        th, td { border: 2px solid #cbd5e1; padding: 10px 15px; text-align: center; color: #1e293b;}
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 12px 25px;
+            /* 强制内部一切颜色为黑色 */
+            color: #000000 !important; 
+            font-size: 26px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        
+        /* 强制 MathJax 生成的公式颜色为纯黑 */
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; font-size: 26px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 20px 30px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 26px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+        .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+
+        /* -------------------------------------------------------------
+           浏览模式 / 打印模式
+           ------------------------------------------------------------- */
+        html, body.browse-mode {
+            overflow-y: auto;
+            overflow-x: auto;
+            background-color: #e5e7eb;
+        }
+        body.browse-mode {
+            min-height: 100vh;
+        }
+        body.browse-mode #presentation-container {
+            position: relative;
+            top: auto; left: auto;
+            width: 1280px;
+            height: auto;
+            margin: 24px auto 40px auto;
+            transform-origin: top center;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            overflow: visible;
+        }
+        body.browse-mode #presentation-container::before,
+        body.browse-mode .progress-bar,
+        body.browse-mode .slide-counter {
+            display: none !important;
+        }
+        body.browse-mode .slide {
+            position: relative;
+            top: auto; left: auto;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            z-index: auto !important;
+            width: 1280px;
+            height: 720px;
+            margin: 0 0 28px 0;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            page-break-after: always;
+            break-after: page;
+        }
+        body.browse-mode .slide.title-slide {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body.browse-mode .slide.title-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 1;
+}
+
+body.browse-mode .slide.section-slide {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+}
+
+        body.browse-mode .slide:last-of-type {
+            margin-bottom: 0;
+        }
+        body.browse-mode .step {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+        body.browse-mode .slide.current-browse-slide {
+            outline: 4px solid rgba(37,99,235,0.45);
+            outline-offset: 2px;
+        }
+      
+
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+            html, body {
+                width: auto;
+                height: auto;
+                background: #ffffff !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            #presentation-container {
+                position: static !important;
+                width: auto !important;
+                height: auto !important;
+                margin: 0 !important;
+                transform: none !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                overflow: visible !important;
+            }
+            #presentation-container::before,
+            .progress-bar,
+            .slide-counter {
+                display: none !important;
+            }
+            .slide {
+                position: relative !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                page-break-after: always;
+                break-after: page;
+                width: 297mm !important;
+                height: 167.0625mm !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: hidden !important;
+            }
+            .slide:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
+            .step {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-layer-group"></i> 第6章</div>
+            <h1>因子分析<span>从表面相关，走向潜在结构</span></h1>
+           
+            
+           
+            
+          
+        </div>
+    </div>
+
+    <!-- ==================== 趣味导入 ==================== -->
+  
+
+  <!-- ==================== 第1页：导入提问 ==================== -->
+
+  <div class="slide" id="slide-1">
+    <h2 class="slide-title"><i class="fas fa-user-secret"></i> 趣味导入：从人格测试看“隐藏的规律”</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1.08fr 0.92fr; gap: 24px; align-items: stretch;">
+        
+        <!-- 左侧文字 -->
+        <div>
+            <div class="step info-box" style="margin-top: 8px; padding: 18px 22px;">
+                <p style="font-size: 24px; line-height: 1.75;">
+                    想一想：你是否填写过性格测试？
+                </p>
+                <p style="font-size: 24px; line-height: 1.75; margin-top: 8px;">
+                    这些测试为什么能判断一个人是否“外向”“责任心强”“情绪稳定”？
+                </p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #ec4899; padding: 22px 24px; margin-top: 18px;">
+                <h3 style="font-size: 24px; color: #ec4899;"><i class="fas fa-question-circle"></i> 灵魂拷问</h3>
+                <p style="font-size: 21px; line-height: 1.72; margin-top: 8px;">
+                    难道人类真的有几十种、上百种彼此独立的性格特质吗？
+                </p>
+                <p style="font-size: 23px; line-height: 1.72; margin-top: 10px; font-weight: bold; color: #dc2626;">
+                    当然不是。
+                </p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #3b82f6; padding: 22px 24px; margin-top: 18px;">
+                <h3 style="font-size: 24px; color: #3b82f6;"><i class="fas fa-lightbulb"></i> 心理学观点</h3>
+                <p style="font-size: 21px; line-height: 1.72; margin-top: 8px;">
+                    很多题目背后，其实是由少数几个<strong>看不见的潜在维度</strong>在共同起作用。
+             
+                    比如：外向 / 内向、责任心、情绪稳定性……
+                </p>
+            </div>
+        </div>
+
+        <!-- 右侧图片 -->
+        <div class="step" style="display:flex; align-items:center; justify-content:center;">
+            <div style="width: 100%; height: 100%; min-height: 420px; border: 1px solid #cbd5e1; border-radius: 14px; background: #ffffff; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 12px;">
+                <img src="F6-1.png" alt="五大人格示意图" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px;">
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ==================== 第2页：题目示例 ==================== -->
+<div class="slide" id="slide-2">
+    <h2 class="slide-title"><i class="fas fa-list-check"></i> 人格测试题目示例</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 26px; line-height: 1.8;">
+            例如，一个人格测试可能会问下面这些题目。每题请按 1–5 分作答：
+            <span style="color:#64748b;">（1 = 非常不同意，5 = 非常同意）</span>
+        </p>
+
+        <div class="two-column-top" style="margin-top: 18px; gap: 24px;">
+            <div class="step tile" style="border-top-color:#ec4899; padding: 5px 26px;">
+                <ul class="bullet-list" style="font-size: 21px; line-height: 1.75;">
+                    <li>我喜欢与陌生人聊天。</li>
+                    <li>我在聚会上常是话题中心。</li>
+                    <li>我精力充沛，喜欢结识新朋友。</li>
+                    <li>我更倾向于在人群中而不是独处时感到开心。</li>
+                    <li>我常常感到焦虑或紧张。</li>
+                </ul>
+            </div>
+
+            <div class="step tile" style="border-top-color:#3b82f6; padding: 5px 26px;">
+                <ul class="bullet-list" style="font-size: 21px; line-height: 1.75;">
+                    <li>我容易因为小事烦恼。</li>
+                    <li>我乐于帮助他人。</li>
+                    <li>我做事有条理。</li>
+                    <li>我喜欢尝试新鲜事物。</li>
+                    <li>我对艺术、文学或音乐感兴趣。</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 5px;">
+            <p style="font-size: 24px; line-height: 1.8;">
+                表面上看，这些是 10 个不同的问题；但它们之间往往不是彼此孤立的，
+                而是会呈现出某种<strong>相关性结构</strong>。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第3页：五大人格归类 + 引出因子分析 ==================== -->
+<div class="slide" id="slide-3">
+    <h2 class="slide-title"><i class="fas fa-brain"></i> 这些题目背后的“隐藏因子”</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap: 26px; align-items: stretch;">
+            <div class="step tile" style="border-top-color:#10b981; padding: 24px 28px;">
+                <h3 style="font-size: 27px; color:#10b981;"><i class="fas fa-layer-group"></i> 可能对应的维度</h3>
+                <div style="font-size: 22px; line-height: 1.8; color:#334155; margin-top: 10px;">
+                    <p><strong>外向性：</strong> 1，2，3，4</p>
+                    <p style="margin-top: 8px;"><strong>神经质：</strong> 5，6</p>
+                    <p style="margin-top: 8px;"><strong>宜人性：</strong> 7</p>
+                    <p style="margin-top: 8px;"><strong>尽责性：</strong> 8</p>
+                    <p style="margin-top: 8px;"><strong>开放性：</strong> 9，10</p>
+                </div>
+            </div>
+
+            <div class="step tile" style="border-top-color:#f59e0b; padding: 24px 28px;">
+                <h3 style="font-size: 27px; color:#f59e0b;"><i class="fas fa-search"></i> 统计学问题</h3>
+                <p style="font-size: 23px; line-height: 1.85; margin-top: 10px;">
+                    那么问题来了：
+                </p>
+                <p style="font-size: 24px; line-height: 1.9; margin-top: 10px; font-weight: bold; color:#92400e;">
+                    我们能不能用统计方法，<br>
+                    从这些题目之间的相关性里，<br>
+                    把这些“隐藏的因子”找出来？
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 24px; background:#eff6ff; border-left-color:#2563eb;">
+            <p style="font-size: 28px; color:#1d4ed8; line-height: 1.85; text-align:center; font-weight:bold;">
+                这就是我们今天要学习的<br>
+                —— 因子分析（Factor Analysis）！
+            </p>
+        </div>
+    </div>
+</div>
+
+    
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 因子分析的思想起源</h2>
+        <div class="content-area">
+            <div class="step info-box" style="padding: 40px; background: #e0f2fe; border-left-color: #2563eb;">
+                <p style="font-size: 32px;"><i class="fas fa-history"></i> 历史背景</p>
+                <span style="font-size: 28px; color: #334155; line-height: 1.8; display: block; margin-top: 20px;">
+                    一般认为，因子分析起源于 Charles Spearman 在 1904 年发表的文章《对智力测验得分进行统计分析》。他试图用这种方法解决智力测验得分的统计问题，寻找隐藏在多个具体科目成绩背后的“一般智力因子”(g 因子)。
+                </span>
+            </div>
+            <p class="step" style="font-size: 28px; margin-top: 30px; text-align: center; font-weight: bold; color: #1e293b;">
+                目前，因子分析在心理学、社会学、经济学等学科中都取得了成功的应用，是多元统计分析中最核心的方法之一。
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== 目录 ==================== -->
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 第6章 课程大纲</h2>
+        <div class="content-area" style="justify-content: center; align-items: center;">
+            <div class="tiled-content" style="width: 90%;">
+                <div class="tile step" style="border-top-color: #2563eb;">
+                    <h3>6.1 因子分析概述</h3>
+                    <p>介绍因子分析的基本思想，以及它与主成分分析“一正一反”的对偶关系。</p>
+                </div>
+                <div class="tile step" style="border-top-color: #8b5cf6;">
+                    <h3>6.2 因子模型</h3>
+                    <p>严格定义数学模型与统计假定，深度解析因子载荷、共性方差的统计与代数意义。</p>
+                </div>
+                <div class="tile step" style="border-top-color: #ec4899;">
+                    <h3>6.3 因子载荷的求解</h3>
+                    <p>探究求解参数的三种核心方法：主成分法、主轴因子法与极大似然法。</p>
+                </div>
+                <div class="tile step" style="border-top-color: #10b981;">
+                    <h3>6.4 & 6.5 旋转与因子得分</h3>
+                    <p>为了极化解释能力引入方差最大正交旋转；最后反解得分（加权最小二乘法与回归法）并严格证明误差限。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 6.1 节 ==================== -->
+    <div class="slide section-slide" id="slide-4">
+        <h2>6.1 因子分析概述</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">透过繁杂的表象，寻找隐匿的基石</p>
+    </div>
+
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-compress-arrows-alt"></i> 什么是因子分析？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">
+                因子分析（Factor Analysis）也是一种<strong>降维、简化数据</strong>的技术。<br>
+                它通过研究众多变量之间的内部依赖关系，探求观测数据中的基本结构，并用<strong>少数几个“抽象”的变量</strong>来表示其基本的数据结构。
+            </p>
+            <div class="step tile" style="margin-top: 30px; border-top-color: #f59e0b; padding: 40px;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2;">
+                    <li>这几个抽象的变量被称作<strong>“因子”</strong>，能反映原来众多变量的主要信息。</li>
+                    <li>原始的变量是<strong>可观测的显在变量</strong>。</li>
+                    <li>而因子一般是<strong>不可观测的潜在变量</strong>（Latent Variables）。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 基本思想：分组与提取</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px; border-top-color: #3b82f6;">
+                <p style="font-size: 26px; line-height: 1.8; margin-bottom: 20px;">
+                    基本思想是根据相关性大小把原始变量分组，使得<strong>同组内的变量之间相关性较高，而不同组的变量间的相关性则较低。</strong>
+                </p>
+                <p style="font-size: 26px; line-height: 1.8; margin-bottom: 20px;">
+                    每组变量代表一个基本结构，并用一个不可观测的综合变量表示，这个基本结构就称为<strong>公共因子</strong>。
+                </p>
+                <p style="font-size: 26px; line-height: 1.8; font-weight: bold; color: #2563eb;">
+                    对于所研究的某一具体问题，原始变量就可以分解成两部分之和的形式：一部分是少数几个不可测的所谓公共因子的线性函数，另一部分是与公共因子无关的特殊因子。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-yin-yang"></i> 因子分析 vs 主成分分析</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 30px;">因子分析可以认为是主成分分析的“逆问题”。</p>
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px;">
+                    <h3 style="font-size: 26px; color: #8b5cf6;"><i class="fas fa-compress"></i> 主成分分析：综合</h3>
+                    <p style="font-size: 22px;">是将原指标进行线性综合组合（已知求未知）。</p>
+                    <div class="math-box" style="font-size: 24px; padding: 10px;">
+                        \[\boldsymbol{y}_i = \boldsymbol{a}_i \boldsymbol{x}\]
+                    </div>
+                    <div class="math-box" style="font-size: 20px; padding: 5px;">
+                        \[
+                        \left[\begin{array}{c} y_1 \\ \vdots \\ y_p \end{array}\right]
+                        = \left[\begin{array}{ccc} a_{11} & \cdots & a_{1p} \\ \vdots & & \vdots \\ a_{p1} & \cdots & a_{pp} \end{array}\right]
+                        \left[\begin{array}{c} x_1 \\ \vdots \\ x_p \end{array}\right]
+                        \]
+                    </div>
+                </div>
+                <div class="step tile" style="border-top-color: #ec4899; padding: 5px; background: #fdf2f8;">
+                    <h3 style="font-size: 26px; color: #ec4899;"><i class="fas fa-expand-arrows-alt"></i> 因子分析：分解</h3>
+                    <p style="font-size: 22px;">是将观测到的原指标分解为潜在因子加噪声（拆解表象）。</p>
+                    <div class="math-box" style="font-size: 24px; padding: 5px; border-left-color: #ec4899;">
+                        \[\boldsymbol{x} = \boldsymbol{A} \boldsymbol{f} + \boldsymbol{\varepsilon}\]
+                    </div>
+                    <div class="math-box" style="font-size: 20px; padding: 5px; border-left-color: #ec4899;">
+                        \[
+                        \left[\begin{array}{c} x_1 \\ \vdots \\ x_p \end{array}\right]
+                        = \left[\begin{array}{ccc} a_{11} & \cdots & a_{1m} \\ \vdots & & \vdots \\ a_{p1} & \cdots & a_{pm} \end{array}\right]
+                        \left[\begin{array}{c} f_1 \\ \vdots \\ f_m \end{array}\right]
+                        + \left[\begin{array}{c} \varepsilon_1 \\ \vdots \\ \varepsilon_p \end{array}\right]
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-user-graduate"></i> 实例解析：学生成绩的因子拆解 (1/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">设有 $n$ 个学生，每个学生考 5 门课：语文、外语、数学、物理、化学。成绩矩阵如下：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; padding: 20px 40px;">
+                    \[
+                    \left[\begin{array}{cccc}
+                    x_{11} & x_{12} & \cdots & x_{15} \\
+                    x_{21} & x_{22} & \cdots & x_{25} \\
+                    \vdots & \vdots & & \vdots \\
+                    x_{n 1} & x_{n 2} & \cdots & x_{n 5}
+                    \end{array}\right]
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #f59e0b; padding: 10px;">
+                <p style="font-size: 26px; line-height: 1.8;">
+                    考试成绩反映了学生的素质能力，这些成绩其实是由潜藏在底层的<strong>理解能力、记忆能力、反应速度</strong>所决定的。
+                    若将这些底层能力称为“因子”，则因子分析就是要从表面的分数中，把这些因子剥离出来，并定量测算成绩与因子的关系。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-user-graduate"></i> 实例解析：方程组构建 (2/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">用 $\boldsymbol{x}=(x_1, \dots, x_5)^{\prime}$ 表示 5 门课成绩，$\boldsymbol{f}=(f_1, f_2, f_3)^{\prime}$ 表示 3 个能力因子。</p>
+            <p class="step" style="font-size: 26px; margin-top: 10px;">假定它们之间是线性关系：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; padding: 5px 40px; text-align: left; line-height: 2; border-left: 6px solid #10b981;">
+                    \[\boldsymbol{x} = \boldsymbol{A} \boldsymbol{f} + \boldsymbol{\varepsilon}\]
+                    \[
+                    \begin{cases}
+                    x_1 = a_{11} f_1 + a_{12} f_2 + a_{13} f_3 + \varepsilon_1 \\
+                    x_2 = a_{21} f_1 + a_{22} f_2 + a_{23} f_3 + \varepsilon_2 \\
+                    \cdots \\
+                    x_5 = a_{51} f_1 + a_{52} f_2 + a_{53} f_3 + \varepsilon_5
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; margin-top: 5px; color: #475569;">
+                其中，$\boldsymbol{\varepsilon}=(\varepsilon_1, \dots, \varepsilon_5)^{\prime}$ 是 $\boldsymbol{x}$ 中不能完全被 $\boldsymbol{f}$ 解释的残差部分，称为<strong>特殊因子</strong>。
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== 6.2 节 ==================== -->
+    <div class="slide section-slide" id="slide-10">
+        <h2>6.2 因子模型</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">构建假设体系，解析载荷意义</p>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 6.2.1 数学模型的五大假定</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">设有可观测随机向量 $\boldsymbol{x}=(x_1, \dots, x_p)^{\prime}$，不妨假定已中心化 $E(\boldsymbol{x})=\mathbf{0}$，协差阵为 $V(\boldsymbol{x})=\boldsymbol{\Sigma}$。<br>
+            因子向量 $\boldsymbol{f}=(f_1, \dots, f_m)^{\prime}$ ($m < p$) 和特殊因子 $\boldsymbol{\varepsilon}=(\varepsilon_1, \dots, \varepsilon_p)^{\prime}$ 皆不可观测。需满足以下严格假定：</p>
+            
+            <div class="step tile" style="margin-top: 20px; padding: 30px; border-top-color: #ef4444;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2;">
+                    <li>1) 均值设零： $E(\boldsymbol{f}) = \mathbf{0}$</li>
+                    <li>2) 误差零均值： $E(\boldsymbol{\varepsilon}) = \mathbf{0}$</li>
+                    <li>3) 因子正交： $V(\boldsymbol{f}) = \operatorname{diag}(1,1,\dots,1) = \boldsymbol{I}$，即各公因子互不相关且方差为1。</li>
+                    <li>4) 误差正交： $V(\boldsymbol{\varepsilon}) = \boldsymbol{D} = \operatorname{diag}(\sigma_1^2, \dots, \sigma_p^2)$，即各特殊误差间不相关。</li>
+                    <li>5) 独立分离： $\operatorname{Cov}(\boldsymbol{f}, \boldsymbol{\varepsilon}) = \mathbf{0}$，即公因子与特殊因子彻底解耦。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-border-all"></i> 矩阵形式的表达</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">满足上述假设的线性组合，称为<strong>因子模型</strong>：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 50px; text-align: left; border-left: 8px solid #3b82f6;">
+                    \[
+                    \left[\begin{array}{c} x_1 \\ x_2 \\ \vdots \\ x_p \end{array}\right]
+                    = \left[\begin{array}{cccc}
+                    a_{11} & a_{12} & \cdots & a_{1m} \\
+                    a_{21} & a_{22} & \cdots & a_{2m} \\
+                    \vdots & \vdots & & \vdots \\
+                    a_{p1} & a_{p2} & \cdots & a_{pm}
+                    \end{array}\right]
+                    \left[\begin{array}{c} f_1 \\ f_2 \\ \vdots \\ f_m \end{array}\right]
+                    + \left[\begin{array}{c} \varepsilon_1 \\ \varepsilon_2 \\ \vdots \\ \varepsilon_p \end{array}\right]
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 30px; padding: 5px; border-top-color: #8b5cf6;">
+                <p style="font-size: 26px; font-weight: bold; text-align: left;">简记为 $\boldsymbol{x} = \boldsymbol{A} \boldsymbol{f} + \boldsymbol{\varepsilon}$</p>
+                <p style="font-size: 24px; text-align: left; margin-top: 15px; color: #475569;">
+                    其中：$\boldsymbol{f}$ 为公共因子向量；$\boldsymbol{\varepsilon}$ 为特殊因子向量；
+                    $a_{ij}$ 称为因子载荷；$\boldsymbol{A}=(a_{ij})$ 称为<strong>因子载荷矩阵</strong>。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 6.2.2 因子载荷 $a_{ij}$ 的统计意义</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 25px; margin-bottom: 20px;">展开第 $i$ 个变量：$x_i = a_{i1} f_1 + \dots + a_{im} f_m + \varepsilon_i = \sum_{\alpha=1}^m a_{i\alpha} f_{\alpha} + \varepsilon_i$</p>
+            <p class="step" style="font-size: 25px;">计算 $x_i$ 与公因子 $f_j$ 的协方差：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px; text-align: left; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{Cov}(x_i, f_j) &= \sum_{\alpha=1}^m a_{i\alpha} \operatorname{Cov}(f_{\alpha}, f_j) + \operatorname{Cov}(\varepsilon_i, f_j) \\
+                    &= a_{ij} \times 1 + 0 = a_{ij}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; padding: 5px; background: #fdf2f8; border-left-color: #ec4899;">
+                <p style="color: #be185d; font-size: 28px;"><i class="fas fa-tag"></i> 载荷 (Loading) 的本质：</p>
+                <span style="font-size: 24px; color: #831843; line-height: 1.8; display: block; margin-top: 15px;">
+                    因子载荷 $a_{ij}$ 就是原始变量 $x_i$ 与公因子 $f_j$ 的<strong>协方差</strong>。<br>
+                    若 $\boldsymbol{x}$ 已标准化，则 $a_{ij}$ 是它们的<strong>相关系数</strong>。它度量了原始变量 $x_i$ 在公因子 $f_j$ 中的相对重要性（负荷量）。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 矩阵 A 的行元素平方和：共性方差</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">因子载荷矩阵 $\boldsymbol{A}$ 中第 $i$ 行元素的二次方和，记为 $h_i^2$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                    \[h_i^2 = a_{i1}^2 + a_{i2}^2 + \cdots + a_{im}^2 = \sum_{j=1}^m a_{ij}^2\]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; font-size: 23px; font-weight: bold; margin-top: 10px; color: #2563eb;">称为 $x_i$ 的共性方差（共同度, Communality）。</p>
+            
+            <p class="step" style="font-size: 23px; margin-top: 5px;">我们对 $x_i = \sum_{\alpha=1}^m a_{i\alpha} f_{\alpha} + \varepsilon_i$ 两边取方差验证：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    V(x_i) &= a_{i1}^2 V(f_1) + \cdots + a_{im}^2 V(f_m) + V(\varepsilon_i) \\
+                    &= a_{i1}^2 + a_{i2}^2 + \cdots + a_{im}^2 + \sigma_i^2 \\
+                    &= h_i^2 + \sigma_i^2
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 共同度的深度解释</h2>
+        <div class="content-area">
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 50px; border-left: 8px solid #ec4899;">
+                    \[V(x_i) = \sigma_{ii} = h_i^2 + \sigma_i^2\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 10px; padding: 5px; border-top-color: #10b981;">
+                <p style="font-size: 26px; line-height: 1.8;">
+                    共性方差 $h_i^2$ 刻画了<strong>所有公因子 $\boldsymbol{f}$ 对 $x_i$ 的影响（提取的信息量）大小</strong>。<br>
+                    特殊方差 $\sigma_i^2$ 是特殊因子造成的无法被公因子解释的部分。
+                </p>
+                <p style="font-size: 26px; line-height: 1.8; margin-top: 20px;">
+                    若 $\boldsymbol{x}$ 已标准化，则 $V(x_i)=1$，有 $h_i^2 + \sigma_i^2 = 1$。<br>
+                    <strong>此时 $h_i^2$ 越接近 1，说明公共因子提取 $x_i$ 的信息越多。</strong><br>
+                    例如 $h_i^2=0.9$，说明 $x_i$ 有 90% 的信息被公因子成功解释。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-16">
+        <h2 class="slide-title"><i class="fas fa-columns"></i> 矩阵 A 的列元素平方和：方差贡献</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">共性考虑的是所有因子对“某一个变量”的影响；反过来，矩阵 $\boldsymbol{A}$ 的第 $j$ 列平方和：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 30px;">
+                    \[g_j^2 = a_{1j}^2 + a_{2j}^2 + \cdots + a_{pj}^2 = \sum_{i=1}^p a_{ij}^2\]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; font-size: 21px; font-weight: bold; margin-top: 10px; color: #f59e0b;">称为公因子 $f_j$ 对原始变量 $\boldsymbol{x}$ 的方差贡献。</p>
+            
+            <p class="step" style="font-size: 21px; margin-top: 5px;">对全体变量方差求和进行分解：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    \sum_{i=1}^p V(x_i) &= \sum_{i=1}^p a_{i1}^2 + \cdots + \sum_{i=1}^p a_{im}^2 + \sum_{i=1}^p \sigma_i^2 
+                    = g_1^2 + g_2^2 + \cdots + g_m^2 + \sum_{i=1}^p \sigma_i^2
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 20px; text-align: left; color: #475569; ;">$g_j^2$ 越大，表明公因子 $f_j$ 对全局变量的影响和作用越大（排名靠前）。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 6.2.3 因子模型的性质 1：协差阵分解</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">计算 $\boldsymbol{X} = \boldsymbol{A}\boldsymbol{f} + \boldsymbol{\varepsilon}$ 的整体协方差矩阵展开：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    V(\boldsymbol{X}) &= E[(\boldsymbol{A}\boldsymbol{f} + \boldsymbol{\varepsilon})(\boldsymbol{A}\boldsymbol{f} + \boldsymbol{\varepsilon})^{\prime}] \\
+                    &= \boldsymbol{A} E(\boldsymbol{f}\boldsymbol{f}^{\prime}) \boldsymbol{A}^{\prime} + \boldsymbol{A} E(\boldsymbol{f}\boldsymbol{\varepsilon}^{\prime}) + E(\boldsymbol{\varepsilon}\boldsymbol{f}^{\prime}) \boldsymbol{A}^{\prime} + E(\boldsymbol{\varepsilon}\boldsymbol{\varepsilon}^{\prime}) \\
+                    &= \boldsymbol{A} V(\boldsymbol{f}) \boldsymbol{A}^{\prime} + V(\boldsymbol{\varepsilon})
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 23px; margin-top: 20px;">由模型假定 $V(\boldsymbol{f}) = \boldsymbol{I}$，交叉项协方差为 $\mathbf{0}$，最终得到：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 20px; padding: 5px 50px; border-left: 8px solid #ec4899;">
+                    \[\boldsymbol{\Sigma} = \boldsymbol{A} \boldsymbol{A}^{\prime} + \boldsymbol{D}\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 23px; text-align: center; color: #db2777; font-weight: bold;">(若 $\boldsymbol{X}$ 已标准化，则 $\boldsymbol{\Sigma}=\boldsymbol{R}$，退化为 $\boldsymbol{R} = \boldsymbol{A}\boldsymbol{A}^{\prime} + \boldsymbol{D}$)</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-arrows-alt"></i> 因子模型的性质 2：与量纲无关</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px; margin-bottom: 20px;">作纯伸缩量纲变换 $\boldsymbol{X}^* = \boldsymbol{C}\boldsymbol{X}$，其中 $\boldsymbol{C} = \operatorname{diag}(c_1, \dots, c_p), c_i > 0$。</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                    \[\boldsymbol{C}\boldsymbol{X} = \boldsymbol{C}\boldsymbol{A}\boldsymbol{f} + \boldsymbol{C}\boldsymbol{\varepsilon}\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 20px; margin-top: 20px;">令 $\boldsymbol{A}^* = \boldsymbol{C}\boldsymbol{A}, \boldsymbol{f}^* = \boldsymbol{f}, \boldsymbol{\varepsilon}^* = \boldsymbol{C}\boldsymbol{\varepsilon}$，新模型为 $\boldsymbol{X}^* = \boldsymbol{A}^* \boldsymbol{f}^* + \boldsymbol{\varepsilon}^*$。</p>
+            <div class="step tile" style="margin-top: 25px; padding: 5px; border-top-color: #3b82f6;">
+                <p style="font-size: 21px; line-height: 1.8;">
+                    检验五大假设依然成立：<br>
+                    1) $E(\boldsymbol{f}^*) = \mathbf{0}$； 2) $E(\boldsymbol{\varepsilon}^*) = \mathbf{0}$； 3) $V(\boldsymbol{f}^*) = \boldsymbol{I}$<br>
+                    4) $V(\boldsymbol{\varepsilon}^*) = \boldsymbol{C}\boldsymbol{D}\boldsymbol{C}^{\prime} = \operatorname{diag}(c_1^2 \sigma_1^2, \dots) = \boldsymbol{D}^*$<br>
+                    5) $\operatorname{Cov}(\boldsymbol{f}^*, \boldsymbol{\varepsilon}^*) = \mathbf{0}$
+                </p>
+                <p style="text-align: center; font-size: 20px; color: #2563eb; font-weight: bold; margin-top: 15px;">结论：单位变换后的模型仍严格满足因子模型假定。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-sync"></i> 因子模型的性质 3：载荷不唯一 (旋转的基石)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 21px;">设 $\boldsymbol{T}$ 为任意 $m \times m$ 的<strong>正交矩阵</strong>。令 $\boldsymbol{A}^* = \boldsymbol{A}\boldsymbol{T}, \boldsymbol{f}^* = \boldsymbol{T}^{\prime}\boldsymbol{f}$，则模型变为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                    \[\boldsymbol{X} = (\boldsymbol{A}\boldsymbol{T}) (\boldsymbol{T}^{\prime}\boldsymbol{f}) + \boldsymbol{\varepsilon} = \boldsymbol{A}^* \boldsymbol{f}^* + \boldsymbol{\varepsilon}\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 25px; padding: 5px; border-top-color: #f59e0b;">
+                <p style="font-size: 24px;">验证正交旋转后的模型依然满足假设：</p>
+                <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                    <li>均值零：$E(\boldsymbol{f}^*) = \boldsymbol{T}^{\prime}E(\boldsymbol{f}) = \mathbf{0}$</li>
+                    <li>因子仍正交：$V(\boldsymbol{f}^*) = V(\boldsymbol{T}^{\prime}\boldsymbol{f}) = \boldsymbol{T}^{\prime} V(\boldsymbol{f}) \boldsymbol{T} = \boldsymbol{T}^{\prime} \boldsymbol{I} \boldsymbol{T} = \boldsymbol{I}$</li>
+                    <li>协差阵重构：$\boldsymbol{\Sigma} = \boldsymbol{A}^* (\boldsymbol{A}^*)^{\prime} + \boldsymbol{D}$</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; font-size: 21px; font-weight: bold; color: #b45309; margin-top: 20px;">
+                极其重要的结论：因子载荷矩阵 $\boldsymbol{A}$ 是不唯一的！这给了我们“旋转”它以寻求解读意义的空间。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 第 6.2 节 小结：统计意义与性质</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 5px;">
+                <h3 style="color: #3b82f6;">统计意义回顾</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li>$a_{ij}$ 是原始变量 $x_i$ 与公因子 $f_j$ 的协方差（相关系数）。</li>
+                    <li>行元素平方和 $h_i^2 = \sum a_{ij}^2$ 是 $x_i$ 依赖公共因子的程度（共同度）。</li>
+                    <li>列元素平方和 $g_j^2 = \sum a_{ij}^2$ 是公因子 $f_j$ 对全局变量的总方差贡献。</li>
+                </ul>
+            </div>
+            <div class="step tile" style="background: #f8fafc; padding: 5px; margin-top: 25px; border-top-color: #ec4899;">
+                <h3 style="color: #ec4899;">核心性质回顾</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li>协方差分解：$\boldsymbol{\Sigma} = \boldsymbol{A}\boldsymbol{A}^{\prime} + \boldsymbol{D}$。</li>
+                    <li>量纲无关性。</li>
+                    <li>载荷不唯一性（允许正交旋转）。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 6.3 节 ==================== -->
+    <div class="slide section-slide" id="slide-21">
+        <h2>6.3 因子载荷的求解</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">如何从数据中剥离出 $\boldsymbol{A}$ 和 $\boldsymbol{D}$？</p>
+    </div>
+
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-search-plus"></i> 6.3.1 主成分分析与因子分析的关系 (1/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">在 PCA 中，我们将原始数据向特征向量 $\boldsymbol{T}$ 投影：$\boldsymbol{y} = \boldsymbol{T}^{\prime} \boldsymbol{x}$。<br>因为 $\boldsymbol{T}$ 是正交矩阵（$\boldsymbol{T}\boldsymbol{T}^{\prime} = \boldsymbol{I}$），反向还原为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #3b82f6;">
+                    \[\boldsymbol{x} = \boldsymbol{T} \boldsymbol{y}\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 23px; margin-top: 20px;">展开成方程组形式：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{cases}
+                    x_1 = t_{11} y_1 + t_{21} y_2 + \dots + t_{m1} y_m + \dots + t_{p1} y_p \\
+                    x_2 = t_{12} y_1 + t_{22} y_2 + \dots + t_{m2} y_m + \dots + t_{p2} y_p \\
+                    \dots \\
+                    x_p = t_{1p} y_1 + t_{2p} y_2 + \dots + t_{mp} y_m + \dots + t_{pp} y_p
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-cut"></i> 强行截断：近似成因子模型 (2/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">如果我们强行保留前 $m$ 个解释力度强的主成分，把后面的 $p-m$ 个弱成分视为残差 $\varepsilon_i^{\prime}$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 26px; text-align: left; padding: 5px 40px; border-left: 6px solid #f59e0b; width: 100%;">
+                    \[
+                    \begin{cases}
+                    x_1 = t_{11} y_1 + \dots + t_{m1} y_m + \varepsilon_1^{\prime} \\
+                    \dots \\
+                    x_p = t_{1p} y_1 + \dots + t_{mp} y_m + \varepsilon_p^{\prime}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; padding: 30px; border-left-color: #ef4444; background: #fef2f2;">
+                <p style="color: #b91c1c; font-size: 26px;"><i class="fas fa-exclamation-circle"></i> 为什么它还不是严格的因子模型？</p>
+                <ul class="bullet-list" style="margin-top: 15px; font-size: 22px; color: #7f1d1d;">
+                    <li>1. 残差 $\varepsilon_i^{\prime}$ 之间并不独立（即其协方差阵不为对角阵 $\boldsymbol{D}$）。</li>
+                    <li>2. 主成分 $y_j$ 的方差是 $\lambda_j$，而纯粹的因子模型要求公因子方差为 1。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 方差修正归一化 (3/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">为了满足公因子方差为 1 的条件，我们对 $y_j$ 除以标准差强制归一化：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #10b981;">
+                    \[f_j = \frac{y_j}{\sqrt{\lambda_j}} \implies V(f_j) = 1\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 23px; margin-top: 20px;">同时将系数等比例放大，令 $a_{ij} = t_{ji} \sqrt{\lambda_j}$，代入方程：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 40px; width: 100%;">
+                    \[
+                    \begin{cases}
+                    x_1 = a_{11} f_1 + a_{12} f_2 + \dots + a_{1m} f_m + \varepsilon_1^{\prime} \\
+                    \dots \\
+                    x_p = a_{p1} f_1 + a_{p2} f_2 + \dots + a_{pm} f_m + \varepsilon_p^{\prime}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; font-size: 23px; color: #475569; margin-top: 20px;">
+                当共性方差极大，残差微小时，这种构造就是极好的近似。这就是主成分解法。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-25">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 6.3.2 主成分法解与残差矩阵</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding:5px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 28px;">结论 1：主成分法因子载荷的估计</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 25px; padding: 5px 50px;">
+                        \[\hat{\boldsymbol{A}} = \left(\sqrt{\lambda_1}\boldsymbol{t}_1, \sqrt{\lambda_2}\boldsymbol{t}_2, \cdots, \sqrt{\lambda_m}\boldsymbol{t}_m\right)\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 15px; color: #475569;">（即保留前 $m$ 个缩放后的特征向量作为载荷矩阵）</p>
+            </div>
+            <div class="step tile" style="padding: 5px; border-top-color: #ec4899; margin-top: 25px;">
+                <h3 style="font-size: 28px;">结论 2 & 3：近似精度评估</h3>
+                <p style="font-size: 24px;">主成分解的近似程度由残差矩阵度量：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px; border-left: 6px solid #ec4899;">
+                        \[\boldsymbol{S} - (\hat{\boldsymbol{A}}\hat{\boldsymbol{A}}^{\prime} + \hat{\boldsymbol{D}})\]
+                    </div>
+                </div>
+                <p style="font-size: 20px; margin-top: 15px;">残差矩阵的非对角元素极小，且元素平方和必定 $\le \lambda_{m+1}^2 + \dots + \lambda_p^2$。略去的尾部特征根越小，模型拟合越完美。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-26">
+        <h2 class="slide-title"><i class="fas fa-compress-alt"></i> 6.3.3 主轴因子法 (Principal Axis Factoring)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">主成分法是从整体 $\boldsymbol{R}$ 出发的。但严格的因子模型公式是：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 40px; border-left: 6px solid #f59e0b;">
+                    \[\boldsymbol{R} = \boldsymbol{A} \boldsymbol{A}^{\prime} + \boldsymbol{D} \quad \implies \quad \boldsymbol{R} - \boldsymbol{D} = \boldsymbol{A} \boldsymbol{A}^{\prime}\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 25px; padding: 5px;">
+                <p style="font-size: 26px;">定义<strong>约相关矩阵 $\boldsymbol{R}^*$</strong>：将相关矩阵对角线上的 1 减去特殊方差 $\sigma_i^2$，替换为共性方差 $h_i^2$：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 24px; text-align: left; padding: 5px 30px;">
+                        \[
+                        \boldsymbol{R}^* = \boldsymbol{R} - \boldsymbol{D} = 
+                        \left[\begin{array}{cccc}
+                        h_1^2 & r_{12} & \cdots & r_{1p} \\
+                        r_{21} & h_2^2 & \cdots & r_{2p} \\
+                        \vdots & \vdots & \ddots & \vdots \\
+                        r_{p1} & r_{p2} & \cdots & h_p^2
+                        \end{array}\right]
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-27">
+        <h2 class="slide-title"><i class="fas fa-sync"></i> 主轴因子法的迭代求解</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px; border-top-color: #8b5cf6;">
+                <h3 style="font-size: 28px;">迭代逼近步骤：</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li>1. 给出 $h_i^2$ 的初始估计（比如以 $\max_{j \neq i} |r_{ij}|$ 代替对角线元素）。</li>
+                    <li>2. 对构造的 $\boldsymbol{R}^*$ 求特征值分解，提取前 $m$ 个成分得到 $\hat{\boldsymbol{A}}$。</li>
+                    <li>3. 依靠算出的 $\hat{\boldsymbol{A}}$ 重新估算更新 $h_i^2 = \sum \hat{a}_{ij}^2$。</li>
+                    <li>4. 将更新的 $h_i^2$ 放回 $\boldsymbol{R}^*$ 的对角线，不断循环重复，直至收敛稳定！</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; font-size: 24px; margin-top: 20px; color: #475569;">
+                (注：如果初始令 $h_i^2 = 1$，则特化回普通的主成分解法)
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 6.3.4 极大似然法 (ML)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">假设公因子与特殊因子均服从正态分布：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; padding: 5px 30px;">
+                    \[\boldsymbol{f} \sim N_m(\mathbf{0}, \boldsymbol{I}), \quad \boldsymbol{\varepsilon} \sim N_p(\mathbf{0}, \boldsymbol{D}) \quad \implies \quad \boldsymbol{x} \sim N_p(\boldsymbol{\mu}, \boldsymbol{\Sigma})\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 25px; padding: 5px; border-top-color: #ec4899;">
+                <p style="font-size: 24px;">极大似然的目标是使似然函数 $L(\boldsymbol{\mu}, \boldsymbol{A}, \boldsymbol{D})$ 最大。由矩阵偏导得出最优性方程：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; text-align: left; padding: 5px 40px; border-left: 6px solid #ec4899;">
+                        \[
+                        \begin{cases}
+                        \hat{\boldsymbol{\Sigma}} \hat{\boldsymbol{D}}^{-1} \hat{\boldsymbol{A}} = \hat{\boldsymbol{A}} (\boldsymbol{I} + \hat{\boldsymbol{A}}^{\prime} \hat{\boldsymbol{D}}^{-1} \hat{\boldsymbol{A}}) \\
+                        \hat{\boldsymbol{D}} = \operatorname{diag}(\hat{\boldsymbol{\Sigma}} - \hat{\boldsymbol{A}} \hat{\boldsymbol{A}}^{\prime})
+                        \end{cases}
+                        \]
+                    </div>
+                </div>
+                <p style="font-size: 22px; color: #475569; margin-top: 15px;">通过引入唯一性限制条件（如 $\hat{\boldsymbol{A}}^{\prime} \hat{\boldsymbol{D}}^{-1} \hat{\boldsymbol{A}}$ 是对角阵），利用牛顿-拉弗森法在软件中迭代求解。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 6.4 节 ==================== -->
+    <div class="slide section-slide" id="slide-29">
+        <h2>6.4 因子旋转</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">极化载荷分布，赋予现实解释意义</p>
+    </div>
+
+    <div class="slide" id="slide-30">
+        <h2 class="slide-title"><i class="fas fa-compass"></i> 为什么要进行因子旋转？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">
+                很多时候，求出的因子载荷矩阵 $\boldsymbol{A}$ 里，每个公共因子对几乎所有的变量都有差不多中等的载荷。<strong>含义极度不清，无法命名解释！</strong>
+            </p>
+            <div class="step tile" style="margin-top: 30px; padding: 40px; border-top-color: #f59e0b;">
+                <h3 style="font-size: 30px;">核心目标：结构简化</h3>
+                <p style="font-size: 26px; line-height: 1.8; margin-top: 15px;">
+                    通过对 $\boldsymbol{A}$ 乘以正交矩阵 $\boldsymbol{T}$ 进行旋转，使得载荷值向两极分化（靠近 1 或 0）。<br>
+                    让<strong>一部分变量在某个公共因子上载荷巨大，而在其他因子上趋近于 0</strong>。从而使每个因子有强烈的专一属性方向。
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 因子旋转 1：为什么要旋转 ==================== -->
+<div class="slide" id="slide-fa-rotate-1">
+    <h2 class="slide-title"><i class="fas fa-compass"></i> 为什么要进行因子旋转？</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#3b82f6; padding:5px 30px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                在因子分析中，提取出来的<strong>初始因子</strong>往往能够解释数据中的大部分共同信息，
+                但它们未必具有清晰的实际含义。常见现象是：
+            </p>
+            <ul style="margin-top: 10px; font-size: 22px; line-height: 1.3; padding-left: 26px; color:#334155;">
+                <li>一个变量在多个因子上都有中等载荷；</li>
+                <li>一个因子同时和很多变量都有关系；</li>
+                <li>数学上成立，但解释起来比较模糊。</li>
+            </ul>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                因子旋转的目的，不是为了增加总解释率，而是为了让载荷矩阵的结构更清楚，
+                使得<strong>每个变量尽量只在少数因子上有较高载荷</strong>，从而更容易给因子命名和解释。
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color:#10b981;">
+            <p style="font-size: 24px; line-height: 1.85; color:#065f46; font-weight:bold; text-align:center;">
+                一句话：旋转不是为了“变对”，而是为了“更好解释”。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 因子旋转 2：未旋转 vs 旋转后 ==================== -->
+<div class="slide" id="slide-fa-rotate-2">
+    <h2 class="slide-title"><i class="fas fa-table"></i> 例题：未旋转载荷矩阵与旋转后载荷矩阵对比</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch;">
+        
+        <!-- 左：未旋转 -->
+        <div class="step tile" style="border-top-color:#ef4444; padding: 22px 24px;">
+            <h3 style="font-size: 24px; color:#ef4444; margin-bottom: 12px;">未旋转因子载荷矩阵</h3>
+            <table class="table-small" style="font-size: 18px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>变量</th>
+                        <th>因子1</th>
+                        <th>因子2</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>\(X_1\) 数学</td><td>0.78</td><td>0.42</td></tr>
+                    <tr><td>\(X_2\) 统计</td><td>0.80</td><td>0.38</td></tr>
+                    <tr><td>\(X_3\) 程序设计</td><td>0.74</td><td>0.45</td></tr>
+                    <tr><td>\(X_4\) 演讲</td><td>0.50</td><td>0.68</td></tr>
+                    <tr><td>\(X_5\) 社交</td><td>0.39</td><td>0.81</td></tr>
+                    <tr><td>\(X_6\) 组织</td><td>0.44</td><td>0.77</td></tr>
+                </tbody>
+            </table>
+
+            <p style="font-size: 20px; line-height: 1.75; margin-top: 14px; color:#7f1d1d;">
+                问题：多数变量在两个因子上都有不低的载荷，结构比较“混杂”，不容易直接解释。
+            </p>
+        </div>
+
+        <!-- 右：旋转后 -->
+        <div class="step tile" style="border-top-color:#10b981; padding: 22px 24px;">
+            <h3 style="font-size: 24px; color:#10b981; margin-bottom: 12px;">旋转后因子载荷矩阵</h3>
+            <table class="table-small" style="font-size: 18px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>变量</th>
+                        <th>因子1</th>
+                        <th>因子2</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>\(X_1\) 数学</td><td style="color:#2563eb; font-weight:bold;">0.88</td><td>0.12</td></tr>
+                    <tr><td>\(X_2\) 统计</td><td style="color:#2563eb; font-weight:bold;">0.90</td><td>0.10</td></tr>
+                    <tr><td>\(X_3\) 程序设计</td><td style="color:#2563eb; font-weight:bold;">0.85</td><td>0.18</td></tr>
+                    <tr><td>\(X_4\) 演讲</td><td>0.21</td><td style="color:#2563eb; font-weight:bold;">0.81</td></tr>
+                    <tr><td>\(X_5\) 社交</td><td>0.10</td><td style="color:#2563eb; font-weight:bold;">0.91</td></tr>
+                    <tr><td>\(X_6\) 组织</td><td>0.16</td><td style="color:#2563eb; font-weight:bold;">0.87</td></tr>
+                </tbody>
+            </table>
+
+            <p style="font-size: 20px; line-height: 1.75; margin-top: 14px; color:#065f46;">
+                结果：变量分工更明确，更容易识别出“学业能力因子”和“社交表达因子”。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 因子旋转 3：如何解释 ==================== -->
+<div class="slide" id="slide-fa-rotate-3">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 因子旋转后，为什么更容易解释？</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#8b5cf6; padding: 5px 28px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                从旋转后的载荷矩阵可以看到：
+            </p>
+            <ul style="margin-top: 10px; font-size: 22px; line-height: 1.3; padding-left: 26px; color:#334155;">
+                <li>\(X_1,X_2,X_3\) 在因子1上的载荷都很高，而在因子2上的载荷很低；</li>
+                <li>\(X_4,X_5,X_6\) 在因子2上的载荷都很高，而在因子1上的载荷较低。</li>
+            </ul>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                因此，可以比较自然地将：
+            </p>
+            <p style="font-size: 24px; line-height: 1.9; color:#1d4ed8; font-weight:bold; text-align:center; margin-top: 10px;">
+                因子1解释为“学业能力因子”；
+                因子2解释为“社交表达因子”
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color:#f59e0b;">
+            <p style="font-size: 22px; line-height: 1.3;">
+                所以，因子旋转的实质是：
+                <strong>在不改变公共因子总体解释能力的前提下，重新调整因子坐标轴方向，
+                使各变量的载荷结构更加简单清晰。</strong>
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 18px; text-align:center;">
+            <p style="font-size: 24px; color:#dc2626; font-weight:bold;">
+                旋转前：因子“能算出来，但不好解释”；
+                旋转后：因子“既能算出来，也更像人话”
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 因子旋转 4：常用旋转方法 ==================== -->
+<div class="slide" id="slide-fa-rotate-4">
+    <h2 class="slide-title"><i class="fas fa-sync-alt"></i> 常用的旋转方法：正交旋转与斜交旋转</h2>
+    <div class="content-area" style="display:grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: stretch;">
+        
+        <!-- 左：正交旋转 -->
+        <div class="step tile" style="border-top-color:#3b82f6; padding: 24px 26px;">
+            <h3 style="font-size: 26px; color:#2563eb; margin-bottom: 12px;">
+                <i class="fas fa-plus"></i> 正交旋转（Orthogonal Rotation）
+            </h3>
+
+            <p style="font-size: 20px; line-height: 1.3;">
+                正交旋转要求旋转后的各因子之间仍然<strong>相互垂直</strong>，即保持：
+            </p>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 18px; padding: 5px 20px;">
+                    \[
+                    \mathrm{Cov}(F_i,F_j)=0 \quad (i\neq j)
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 22px; line-height: 1.3; margin-top: 14px;">
+                也就是说，旋转后各因子之间仍被看作<strong>互不相关</strong>。
+            </p>
+
+            <div class="info-box" style="margin-top: 14px; background:#eff6ff; border-left-color:#3b82f6;">
+                <p style="font-size: 21px; line-height: 1.3; color:#1d4ed8;">
+                    常用方法：<strong>Varimax（方差最大正交旋转）</strong><br>
+                    特点：最常用、最经典、解释方便，教学中最常见。
+                </p>
+            </div>
+
+            <p style="font-size: 21px; line-height: 1.3; margin-top: 14px; color:#334155;">
+                适用情形：当我们认为潜在因子之间彼此独立、相关性很弱时，可以采用正交旋转。
+            </p>
+        </div>
+
+        <!-- 右：斜交旋转 -->
+        <div class="step tile" style="border-top-color:#10b981; padding: 5px 26px;">
+            <h3 style="font-size: 26px; color:#059669; margin-bottom: 12px;">
+                <i class="fas fa-slash"></i> 斜交旋转（Oblique Rotation）
+            </h3>
+
+            <p style="font-size: 22px; line-height: 1.3;">
+                斜交旋转允许旋转后的因子之间<strong>不再垂直</strong>，即允许：
+            </p>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 18px; padding: 5px 20px;">
+                    \[
+                    \mathrm{Cov}(F_i,F_j)\neq 0
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 22px; line-height: 1.3; margin-top: 14px;">
+                也就是说，旋转后各因子之间可以存在<strong>一定相关性</strong>。
+            </p>
+
+            <div class="info-box" style="margin-top: 14px; background:#ecfdf5; border-left-color:#10b981;">
+                <p style="font-size: 21px; line-height: 1.3; color:#065f46;">
+                    常用方法：<strong>Promax、Oblimin</strong><br>
+                    特点：更贴近现实问题，因为很多潜在特质本来就可能彼此相关。
+                </p>
+            </div>
+
+            <p style="font-size: 21px; line-height: 1.3; margin-top: 14px; color:#334155;">
+                适用情形：在心理学、教育学、社会学等领域，潜在因子往往不是完全独立的，此时斜交旋转更合理。
+            </p>
+        </div>
+    </div>
+
+    <div class="step info-box" style="margin-top: 18px;">
+        <p style="font-size: 20px; line-height: 1.3;">
+            <strong>二者的核心区别：</strong>  
+              <span style="font-size: 20px; line-height: 1.3; text-align:center; color:#dc2626; font-weight:bold; margin-top: 8px;">
+            正交旋转：因子之间保持不相关；
+            斜交旋转：允许因子之间相关
+        </span>
+        </p>
+      
+    </div>
+</div>
+
+    <div class="slide" id="slide-31">
+        <h2 class="slide-title"><i class="fas fa-sync-alt"></i> 方差最大正交旋转 ($m=2$ 情形) (1/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">设只有 2 个公共因子。选择旋转矩阵 $\boldsymbol{T}$ 对 $\boldsymbol{A}$ 进行正交旋转：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 40px;">
+                    \[\boldsymbol{T} = \left[\begin{array}{cc} \cos\theta & -\sin\theta \\ \sin\theta & \cos\theta \end{array}\right]\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 23px; margin-top: 15px;">旋转后的新载荷矩阵 $\boldsymbol{A}^* = \boldsymbol{A}\boldsymbol{T}$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; text-align: left; padding: 5px 30px;">
+                    \[
+                    \boldsymbol{A}^* = \left[\begin{array}{cc}
+                    a_{11}\cos\theta + a_{12}\sin\theta & -a_{11}\sin\theta + a_{12}\cos\theta \\
+                    \vdots & \vdots \\
+                    a_{p1}\cos\theta + a_{p2}\sin\theta & -a_{p1}\sin\theta + a_{p2}\cos\theta
+                    \end{array}\right] = (a_{ij}^*)
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-32">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 建立最大化目标函数 (2/3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 30px; border-top-color: #10b981;">
+                <p style="font-size: 24px; line-height: 1.8;">定义标准化后的相对方差 $V_j$（目的是消除各变量方差贡献的先天不公，取共同度 $h_i$ 抹平差异，并计算其列内平方的方差）：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 24px; padding: 15px 30px;">
+                        \[V_j = \frac{1}{p} \sum_{i=1}^p (d_{ij}^2 - \bar{d}_j)^2\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; text-align: center; color: #475569;">其中 $d_{ij} = a_{ij}^* / h_i$，均值 $\bar{d}_j = \frac{1}{p}\sum d_{ij}^2$。</p>
+            </div>
+            <p class="step" style="margin-top: 25px; font-size: 26px; font-weight: bold; text-align: center; color: #1e293b;">
+                目标：寻找角度 $\theta$，使两列的总方差 $V = V_1 + V_2$ 达到极限最大化！
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-33">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 求导得到最佳旋转角 $\theta$ (3/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">将 $V$ 表达式完全展开为三角函数形式，对 $\theta$ 求微积分导数并令其为 0，可以得到极其优美的解析解：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 36px; padding: 35px 50px; border-left: 8px solid #ec4899; margin-top: 20px;">
+                    \[\tan 4\theta = \frac{c_4 - 2c_1 c_2 / p}{c_3 - (c_1^2 - c_2^2) / p}\]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; padding: 20px;">
+                <p style="font-size: 22px; color: #64748b; font-weight: normal; margin: 0;">
+                    其中常数 $c_1 \sim c_4$ 全部可通过初始未旋转的载荷矩阵元素 $a_{ij}$ 直接算得。这表明：<strong>方差最大正交旋转存在全局直接的最优解，无需慢速搜索！</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-34">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 当 $m > 2$ 时的配对迭代旋转</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 28px;">高维旋转策略</h3>
+                <p style="font-size: 24px; line-height: 1.8;">
+                    超过两维时无法一次性写出解析解。采用降维打击：<strong>每次只挑两列，在它们构成的二维子平面上运用刚才的 $\theta$ 公式旋转到最优。</strong>
+                </p>
+                <ul class="bullet-list" style="margin-top: 20px; font-size: 24px;">
+                    <li>共需 $C_m^2 = m(m-1)/2$ 对方子配对，一轮转完。</li>
+                    <li>循环进行多轮，得到不断递增的总方差序列：$V \le V^{(1)} \le V^{(2)} \le \dots$</li>
+                    <li>由于载荷绝对值 $\le 1$ 存在上界，序列必定收敛。直到方差提升小于阈值 $\varepsilon$ 时停止。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 6.5 节 ==================== -->
+    <div class="slide section-slide" id="slide-35">
+        <h2>6.5 因子得分</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">化无形为有形，给样本打分</p>
+    </div>
+
+    <div class="slide" id="slide-36">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 反解逆向问题：什么是因子得分？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; line-height: 1.8;">
+                前面我们完成了模型 $\boldsymbol{x} = \boldsymbol{A}\boldsymbol{f} + \boldsymbol{\varepsilon}$ 的参数 $\boldsymbol{A}$ 估计和旋转解释。但很多时候我们要用这些因子给每个样本（如学生、城市）进行综合排名评估。
+            </p>
+            <div class="step tile" style="margin-top: 25px; border-top-color: #f59e0b; padding: 40px;">
+                <h3 style="font-size: 28px; margin-bottom: 20px;">因子得分函数</h3>
+                <p style="font-size: 24px;">即反向将潜在公因子表示为原始观测变量的线性组合：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; padding: 20px 40px; border-left: 6px solid #f59e0b;">
+                        \[f_j = \beta_{j1}x_1 + \beta_{j2}x_2 + \cdots + \beta_{jp}x_p\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; color: #ef4444; margin-top: 20px; font-weight: bold; text-align: center;">
+                    难点：方程个数 $p$ 大于因子数 $m$ (欠定方程加上残差噪音)，无法求精确逆解，只能寻求统计“估计”！
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 因子得分例题 1：背景与数据 ==================== -->
+<div class="slide" id="slide-fa-score-1">
+    <h2 class="slide-title"><i class="fas fa-user-graduate"></i> 例题：什么是因子得分？</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#3b82f6; padding: 26px 30px;">
+            <p style="font-size: 23px; line-height: 1.85;">
+                调查 5 名学生的 4 项表现：
+            </p>
+            <ul style="margin-top: 10px; font-size: 22px; line-height: 1.8; padding-left: 26px; color:#334155;">
+                <li>\(X_1\)：数学成绩</li>
+                <li>\(X_2\)：统计成绩</li>
+                <li>\(X_3\)：演讲能力</li>
+                <li>\(X_4\)：社交活跃度</li>
+            </ul>
+            <p style="font-size: 22px; line-height: 1.82; margin-top: 10px;">
+                原始数据如下：
+            </p>
+        </div>
+
+       
+    </div>
+</div>
+
+
+  <!-- ==================== 因子得分例题 1：背景与数据 ==================== -->
+<div class="slide" id="slide-fa-score-1">
+    <h2 class="slide-title"><i class="fas fa-user-graduate"></i> 例题：什么是因子得分？</h2>
+    <div class="content-area">
+      
+        <div class="step" style="margin-top: 14px;">
+            <table class="table-small" style="font-size: 20px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>学生</th>
+                        <th>\(X_1\)</th>
+                        <th>\(X_2\)</th>
+                        <th>\(X_3\)</th>
+                        <th>\(X_4\)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>A</td><td>90</td><td>88</td><td>70</td><td>72</td></tr>
+                    <tr><td>B</td><td>85</td><td>84</td><td>65</td><td>68</td></tr>
+                    <tr><td>C</td><td>78</td><td>80</td><td>92</td><td>90</td></tr>
+                    <tr><td>D</td><td>92</td><td>94</td><td>60</td><td>58</td></tr>
+                    <tr><td>E</td><td>75</td><td>76</td><td>88</td><td>85</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step info-box" style="margin-top: 16px;">
+            <p style="font-size: 22px; line-height: 1.82;">
+                从直观上看，A、B、D 的数学和统计较强；C、E 的演讲和社交较强。
+                因此可以猜测，背后可能有两个潜在公共因子：
+            </p>
+            <p style="font-size: 24px; text-align:center; color:#2563eb; font-weight:bold; margin-top: 10px;">
+                \(F_1\)：学业能力因子 &nbsp;&nbsp;&nbsp; \(F_2\)：社交表达因子
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 因子得分例题 2：载荷矩阵与得分函数 ==================== -->
+<div class="slide" id="slide-fa-score-2">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 例题：由因子结构反推样本得分</h2>
+    <div class="content-area">
+       
+
+        <div class="step" style="margin-top: 14px;">
+             <p style="font-size: 18px; line-height: 1.82;">
+                假设因子分析后，得到旋转后的因子载荷矩阵如下：
+            </p>
+            <table class="table-small" style="font-size: 18px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>变量</th>
+                        <th>\(F_1\)</th>
+                        <th>\(F_2\)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>\(X_1\)（数学）</td><td>0.91</td><td>0.12</td></tr>
+                    <tr><td>\(X_2\)（统计）</td><td>0.88</td><td>0.18</td></tr>
+                    <tr><td>\(X_3\)（演讲）</td><td>0.15</td><td>0.89</td></tr>
+                    <tr><td>\(X_4\)（社交）</td><td>0.10</td><td>0.92</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step info-box" style="margin-top: 16px;">
+            <p style="font-size: 22px; line-height: 1.3;">
+                这表明：
+            </p>
+            <ul style="margin-top: 8px; font-size: 18px; line-height: 1.3; padding-left: 5px; color:#334155;">
+                <li>\(F_1\) 主要由数学、统计决定，可解释为“学业能力因子”</li>
+                <li>\(F_2\) 主要由演讲、社交决定，可解释为“社交表达因子”</li>
+            </ul>
+        </div>
+
+        
+    </div>
+</div>
+
+<!-- ==================== 因子得分例题 3：计算结果与解释 ==================== -->
+<div class="slide" id="slide-fa-score-3">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例题：因子得分计算结果</h2>
+    <div class="content-area">
+        <div class="step tile" style="margin-top: 16px; border-top-color:#10b981;">
+            <p style="font-size: 22px; line-height: 1.82;">
+                为了直观说明因子得分，我们用一个简化的得分函数：
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 21px; text-align:left; padding: 5px 24px;">
+                    \[
+                    \hat F_1 = 0.5Z_1 + 0.5Z_2;\qquad 
+                    \hat F_2 = 0.5Z_3 + 0.5Z_4
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 20px; line-height: 1.3; color:#64748b; margin-top: 10px;">
+                其中 \(Z_1,Z_2,Z_3,Z_4\) 为各变量标准化后的值。
+            </p>
+        </div>
+        <div class="step" style="margin-top: 8px;">
+            <table class="table-small" style="font-size: 15px; width:100%;">
+                <thead>
+                    <tr>
+                        <th>学生</th>
+                        <th>\(\hat F_1\)（学业能力）</th>
+                        <th>\(\hat F_2\)（社交表达）</th>
+                        <th>解释</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>A</td><td>0.55</td><td>-0.33</td>
+                        <td>学业较强，社交略弱于平均</td>
+                    </tr>
+                    <tr>
+                        <td>B</td><td>0.05</td><td>-0.70</td>
+                        <td>学业一般，社交表达较弱</td>
+                    </tr>
+                    <tr>
+                        <td>C</td><td>-0.56</td><td>1.28</td>
+                        <td>学业偏弱，社交表达很强</td>
+                    </tr>
+                    <tr>
+                        <td>D</td><td>0.99</td><td>-1.24</td>
+                        <td>学业能力最强，社交表达最弱</td>
+                    </tr>
+                    <tr>
+                        <td>E</td><td>-1.04</td><td>0.98</td>
+                        <td>学业较弱，社交表达较强</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        
+    </div>
+</div>
+
+
+<!-- ==================== 因子得分例题 3：计算结果与解释 ==================== -->
+<div class="slide" id="slide-fa-score-3">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例题：因子得分计算结果</h2>
+    <div class="content-area">
+       
+
+        <div class="step info-box" style="margin-top: 5px;">
+            <p style="font-size: 22px; line-height: 1.3;">
+                从表中可以看出：
+            </p>
+            <ul style="margin-top: 8px;  line-height: 1.3; padding-left: 26px; color:#334155;">
+                <li  style="font-size: 23px;">D 在“学业能力因子”上得分最高，是典型的“学霸型”；</li>
+                <li  style="font-size: 23px;">C 在“社交表达因子”上得分最高，是典型的“社交达人型”；</li>
+                <li  style="font-size: 23px;">A 较均衡，B 两方面都不突出，E 更偏社交型。</li>
+            </ul>
+        </div>
+
+        <div class="step tile" style="margin-top: 16px; border-top-color:#f59e0b;">
+            <p style="font-size: 18px; line-height: 1.3;">
+                因此，<strong>因子得分的本质</strong>就是：
+                在已知因子结构的前提下，把每个样本投影到公共因子空间中，
+                从而得到样本在各潜在维度上的具体位置。
+            </p>
+        </div>
+    </div>
+</div>
+<!-- ==================== 因子得分 vs 主成分得分 ==================== -->
+<div class="slide" id="slide-fa-vs-pca-score">
+    <h2 class="slide-title"><i class="fas fa-not-equal"></i> 因子得分与主成分得分的区别</h2>
+    <div class="content-area">
+        <div class="step info-box" style="margin-top: 8px;">
+            <p style="font-size: 23px; line-height: 1.82;">
+                因子分析和主成分分析都可以把多个原始变量变成少数几个综合变量，
+                但<strong>因子得分</strong>和<strong>主成分得分</strong>的含义并不相同。
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 16px;">
+            <table class="table-small" style="font-size: 19px; width:100%;">
+                <thead>
+                    <tr>
+                        <th style="width:18%;">比较项目</th>
+                        <th style="width:41%;">主成分得分</th>
+                        <th style="width:41%;">因子得分</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>出发点</strong></td>
+                        <td>从原始变量的总方差中提取信息，追求“保留尽可能多的信息”</td>
+                        <td>从变量的相关结构中提取潜在公共因子，追求“揭示隐藏结构”</td>
+                    </tr>
+                    <tr>
+                        <td><strong>综合变量含义</strong></td>
+                        <td>主成分是原变量的线性组合，强调方差最大</td>
+                        <td>因子得分表示样本在潜在因子上的位置，强调潜在特质</td>
+                    </tr>
+                    <tr>
+                        <td><strong>解释对象</strong></td>
+                        <td>更关注“信息压缩”和降维</td>
+                        <td>更关注“潜在结构”和变量分组解释</td>
+                    </tr>
+                    <tr>
+                        <td><strong>是否考虑特殊因子</strong></td>
+                        <td>不区分公共信息与特殊信息</td>
+                        <td>只解释变量间的共同变异，单独考虑特殊因子和误差</td>
+                    </tr>
+                    <tr>
+                        <td><strong>实际用途</strong></td>
+                        <td>综合评价、排序、降维、可视化</td>
+                        <td>心理测量、问卷分析、潜变量研究、样本类型分析</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+       
+    </div>
+</div>
+
+
+<!-- ==================== 因子得分 vs 主成分得分 ==================== -->
+<div class="slide" id="slide-fa-vs-pca-score">
+    <h2 class="slide-title"><i class="fas fa-not-equal"></i> 因子得分与主成分得分的区别</h2>
+    <div class="content-area">
+       
+
+      
+
+        <div class="step" style="display:grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px;">
+            <div class="tile" style="border-top-color:#3b82f6;">
+                <h3 style="font-size: 24px; color:#2563eb; margin-bottom: 10px;">主成分得分</h3>
+                <p style="font-size: 21px; line-height: 1.8;">
+                    可以理解为：<strong>样本在“最大方差方向”上的坐标</strong>。
+                    它更像是对原始变量做“信息压缩”后得到的新坐标。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#10b981;">
+                <h3 style="font-size: 24px; color:#059669; margin-bottom: 10px;">因子得分</h3>
+                <p style="font-size: 21px; line-height: 1.8;">
+                    可以理解为：<strong>样本在“潜在因子维度”上的位置</strong>。
+                    它更像是在回答：这个样本在某种隐藏特质上到底有多强。
+                </p>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color:#f59e0b;">
+            <p style="font-size: 22px; line-height: 1.82;">
+                例如，在宿舍成员综合评价中，如果我们关心的是“整体表现的综合排序”，常用<strong>主成分得分</strong>；
+                如果我们关心的是“外向性”“责任心”“情绪稳定性”等潜在心理维度，
+                则更适合使用<strong>因子得分</strong>。
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 16px; text-align:center;">
+            <p style="font-size: 24px; color:#dc2626; font-weight:bold;">
+                一句话概括：<br>
+                主成分得分重在“降维压缩信息”，因子得分重在“刻画潜在特质”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+    <div class="slide" id="slide-37">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 6.5.1 加权最小二乘法 (Bartlett得分解)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">因为各变量的特殊方差（噪音大小）$\sigma_i^2$ 不等，应当对残差采用**加权**惩罚，求得使误差：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; padding: 15px 30px;">
+                    \[\sum_{i=1}^p \left[ \frac{x_i - (a_{i1}f_1 + \dots + a_{im}f_m)}{\sigma_i^2} \right]^2 = (\boldsymbol{x} - \boldsymbol{A}\boldsymbol{f})^{\prime} \boldsymbol{D}^{-1} (\boldsymbol{x} - \boldsymbol{A}\boldsymbol{f})\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px;">达到最小的解 $\hat{\boldsymbol{f}}$。运用微积分求矩阵偏导令其为0，解得大名鼎鼎的 Bartlett 得分：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 32px; padding: 30px 50px; border-left: 8px solid #10b981; margin-top: 15px;">
+                    \[\hat{\boldsymbol{f}} = (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}(\boldsymbol{x} - \boldsymbol{\mu})\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-38">
+        <h2 class="slide-title"><i class="fas fa-shield-alt"></i> 证明 1：Bartlett 得分是无偏估计</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">若将 $\boldsymbol{f}$ 和 $\boldsymbol{\varepsilon}$ 独立，则在 $\boldsymbol{f}$ 给定时，求 $\hat{\boldsymbol{f}}$ 的条件数学期望：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 26px; text-align: left; padding: 25px 50px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    E(\hat{\boldsymbol{f}} \mid \boldsymbol{f}) &= E\big[ (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}(\boldsymbol{x} - \boldsymbol{\mu}) \mid \boldsymbol{f} \big] \\
+                    &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1} E[(\boldsymbol{A}\boldsymbol{f} + \boldsymbol{\varepsilon}) \mid \boldsymbol{f}] \\
+                    &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A}) \boldsymbol{f} + 0 \\
+                    &= \boldsymbol{f}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="text-align: center; color: #10b981; font-weight: bold; font-size: 28px; margin-top: 20px;">
+                从条件期望意义上，加权最小二乘得分是 $\boldsymbol{f}$ 的无偏估计。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-39">
+        <h2 class="slide-title"><i class="fas fa-crosshairs"></i> 证明 2：Bartlett 得分的平均估计误差</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">计算估计误差协方差矩阵：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; text-align: left; padding: 20px 40px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    \hat{\boldsymbol{f}} - \boldsymbol{f} &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}(\boldsymbol{A}\boldsymbol{f} + \boldsymbol{\varepsilon}) - \boldsymbol{f} \\
+                    &= \boldsymbol{f} + (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{\varepsilon} - \boldsymbol{f} \\
+                    &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{\varepsilon}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 24px; text-align: left; padding: 20px 40px; line-height: 2; margin-top: 15px; border-left: 6px solid #8b5cf6;">
+                    \[
+                    \begin{aligned}
+                    E[(\hat{\boldsymbol{f}} - \boldsymbol{f})(\dots)^{\prime}] &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1} E(\boldsymbol{\varepsilon}\boldsymbol{\varepsilon}^{\prime}) \boldsymbol{D}^{-1}\boldsymbol{A} (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \\
+                    &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1} \boldsymbol{D} \boldsymbol{D}^{-1}\boldsymbol{A}) (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \\
+                    &= (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-40">
+        <h2 class="slide-title"><i class="fas fa-code-branch"></i> 6.5.2 回归法 (Thompson 得分) 求解思路</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">换一条路。假设 $\left[\begin{matrix} \boldsymbol{f} \\ \boldsymbol{\varepsilon} \end{matrix}\right]$ 联合服从多元正态分布。求 $\left[\begin{matrix} \boldsymbol{f} \\ \boldsymbol{x}-\boldsymbol{\mu} \end{matrix}\right]$ 的联合协差阵：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 22px; text-align: left; padding: 5px 30px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    V\left[\begin{array}{c} \boldsymbol{f} \\ \boldsymbol{x}-\boldsymbol{\mu} \end{array}\right] &= 
+                    \left[\begin{array}{cc}
+                    E(\boldsymbol{f}\boldsymbol{f}^{\prime}) & E[\boldsymbol{f}(\boldsymbol{A}\boldsymbol{f}+\boldsymbol{\varepsilon})^{\prime}] \\
+                    E[(\boldsymbol{A}\boldsymbol{f}+\boldsymbol{\varepsilon})\boldsymbol{f}^{\prime}] & \boldsymbol{\Sigma}
+                    \end{array}\right] \\
+                    &= \left[\begin{array}{cc} \boldsymbol{I} & \boldsymbol{A}^{\prime} \\ \boldsymbol{A} & \boldsymbol{\Sigma} \end{array}\right]
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 20px; padding: 5px; border-top-color: #ec4899;">
+                <p style="font-size: 24px;">由正态分布剖分性质，给定 $\boldsymbol{x}$，$\boldsymbol{f}$ 的条件期望（即最优回归估计）为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; border-left: 6px solid #ec4899; padding: 5px 30px;">
+                        \[\bar{\boldsymbol{f}} = E(\boldsymbol{f} \mid \boldsymbol{x}) = \boldsymbol{A}^{\prime} \boldsymbol{\Sigma}^{-1} (\boldsymbol{x} - \boldsymbol{\mu})\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-41">
+        <h2 class="slide-title"><i class="fas fa-compress-arrows-alt"></i> 回归得分公式化简</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">由协方差分解 $\boldsymbol{\Sigma} = \boldsymbol{A}\boldsymbol{A}^{\prime} + \boldsymbol{D}$，利用矩阵求逆引理（Woodbury formula），上面的条件期望最终可化简为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 32px; padding: 30px 50px; border-left: 8px solid #ec4899; margin-top: 30px;">
+                    \[\bar{\boldsymbol{f}} = (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1} (\boldsymbol{x} - \boldsymbol{\mu})\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; text-align: center; margin-top: 40px; font-weight: bold; color: #1e293b;">
+                这就是商业软件 (如 SPSS) 最默认输出的 Thompson 因子得分公式。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-42">
+        <h2 class="slide-title"><i class="fas fa-exclamation-triangle"></i> 回归得分的有偏性证明</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">不同于 WLS 估计，回归得分是<strong>有偏估计</strong>！</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 26px; text-align: left; padding: 25px 40px; line-height: 2;">
+                    \[
+                    \begin{aligned}
+                    E(\bar{\boldsymbol{f}} \mid \boldsymbol{f}) &= (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1} E[(\boldsymbol{A}\boldsymbol{f}+\boldsymbol{\varepsilon}) \mid \boldsymbol{f}] \\
+                    &= (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A} \boldsymbol{f} \\
+                    &= (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} (\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A} + \boldsymbol{I} - \boldsymbol{I}) \boldsymbol{f} \\
+                    &= \boldsymbol{f} - (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} \boldsymbol{f} \neq \boldsymbol{f}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; text-align: center; color: #ef4444; margin-top: 15px; font-weight: bold;">
+                虽然有偏缩水，但这种“保守”带来了更优的均方误差表现。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-43">
+        <h2 class="slide-title"><i class="fas fa-check-square"></i> 回归得分的误差评估与比较</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">同理严密推导，回归法的平均估计误差矩阵为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; padding: 5px; border-left: 6px solid #10b981;">
+                    \[E[(\bar{\boldsymbol{f}} - \boldsymbol{f})(\dots)^{\prime}] = (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1}\]
+                </div>
+            </div>
+            
+            <div class="step tile" style="margin-top: 30px; padding: 5px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 26px;">终极PK：为何选用回归法？</h3>
+                <p style="font-size: 24px; margin-top: 15px;">对比 WLS 的误差 $(\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1}$：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 15px; background: transparent; box-shadow: none;">
+                        \[(\boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} - (\boldsymbol{I} + \boldsymbol{A}^{\prime}\boldsymbol{D}^{-1}\boldsymbol{A})^{-1} > 0 \quad \text{(正定矩阵)}\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; color: #1e293b; font-weight: bold; margin-top: 15px; text-align: center;">
+                    结论：回归法虽然有偏，但平均估计误差严格小于 WLS！因此是公认最佳打分方案。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-44">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 6 章 本章小结</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;">这一章真正该带走的，不只是几套复杂的矩阵求逆：</p>
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 24px;">
+                    <li><span class="highlight-blue">拆解的艺术：</span> 因子分析是主成分的逆问题，致力于用潜变量（公因子）加上残差（特殊因子）来还原可观测的指标数据。</li>
+                    <li><span class="highlight-blue">参数估计体系：</span> 深刻理解共性方差的保留，利用主成分法、主轴因子法、ML等逼近真实的载荷矩阵 $\boldsymbol{A}$。</li>
+                    <li><span class="highlight-blue">赋予灵魂的旋转：</span> $\boldsymbol{A}$ 是不唯一的！方差最大正交旋转通过向 0 和 1 两极分化，强制使晦涩的因数展现出现实解释的灵魂。</li>
+                    <li><span class="highlight-blue">落地的得分：</span> 为了给样本打分（综合评价），通过条件期望推出了统计最优（误差最小但有偏）的 Thompson 因子得分。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-45">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课堂思考与讨论</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 40px;">
+                <h3 style="font-size: 30px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 课后深入思考</h3>
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2; margin-top: 20px;">
+                    <li>如果经过各种正交旋转之后，公因子依然“粘糊不清”无法命名解释，我们是不是可以考虑突破底线，尝试“斜交旋转”（允许公因子之间存在相关性）？</li>
+                    <li>在对综合成绩排名时，主成分分析算出的直接得分，和提取完因子进行旋转后使用 Regression 回归算出的得分，在物理意义和防噪性上有何根本不同？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 60px;">
+                <a href="#" class="hw-btn" onclick="alert('即将跳转到网络作业库：Chapter 6 Assignment'); return false;" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); border: none; cursor: pointer;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Online Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结束页 ==================== -->
+    <div class="slide title-slide" id="slide-46">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content" style="background: transparent; box-shadow: none; border: none;">
+            <h1 style="font-size: 100px; color: #10b981; margin-bottom: 30px;"><i class="fas fa-check-circle"></i></h1>
+            <h1 style="color: #f8fafc; font-size: 64px;">透视深层结构，发现潜在基因</h1>
+            <p class="subtitle" style="color: #94a3b8; font-size: 32px; margin-top: 20px;">感谢聆听 (End of Chapter 6)</p>
+        </div>
+    </div>
+
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        const html = document.documentElement;
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+        let isSlideshowMode = false;
+
+        slides.forEach(slide => {
+            const steps = slide.querySelectorAll('.step');
+            steps.forEach(step => step.classList.remove('visible'));
+        });
+
+        function revealAllSteps() {
+            slides.forEach(slide => slide.querySelectorAll('.step').forEach(step => step.classList.add('visible')));
+        }
+
+        function hideAllSteps() {
+            slides.forEach(slide => slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible')));
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progress.style.width = percent + '%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function showSlide(index) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === currentSlideIndex);
+                slide.classList.toggle('current-browse-slide', i === currentSlideIndex);
+            });
+            updateProgressBar();
+        }
+
+        function updateBrowseScale() {
+            if (isSlideshowMode || window.matchMedia('print').matches) return;
+            const availableWidth = Math.max(320, window.innerWidth - 48);
+            const scale = Math.min(1, availableWidth / 1280);
+            container.style.transform = `scale(${scale})`;
+            container.style.marginBottom = `${Math.max(40, 40 * scale)}px`;
+        }
+
+        function updateSlideshowScale() {
+            if (!isSlideshowMode || window.matchMedia('print').matches) return;
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function updateScale() {
+            if (isSlideshowMode) {
+                updateSlideshowScale();
+            } else {
+                updateBrowseScale();
+            }
+        }
+
+        function getNearestSlideIndex() {
+            const viewportCenter = window.scrollY + window.innerHeight / 2;
+            let nearestIndex = 0;
+            let bestDistance = Number.POSITIVE_INFINITY;
+            slides.forEach((slide, index) => {
+                const rect = slide.getBoundingClientRect();
+                const slideCenter = window.scrollY + rect.top + rect.height / 2;
+                const distance = Math.abs(slideCenter - viewportCenter);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    nearestIndex = index;
+                }
+            });
+            return nearestIndex;
+        }
+
+        function syncCurrentSlideFromScroll() {
+            if (isSlideshowMode) return;
+            showSlide(getNearestSlideIndex());
+        }
+
+        function scrollToCurrentSlide(behavior = 'auto') {
+            slides[currentSlideIndex].scrollIntoView({behavior, block: 'start'});
+        }
+
+        function enterBrowseMode(scrollBehavior = 'auto') {
+            isSlideshowMode = false;
+            body.classList.add('browse-mode');
+            html.style.overflowY = 'auto';
+            body.style.overflowY = 'auto';
+            revealAllSteps();
+            showSlide(currentSlideIndex);
+            updateBrowseScale();
+            scrollToCurrentSlide(scrollBehavior);
+        }
+
+        function enterSlideshowMode(startIndex = currentSlideIndex) {
+            isSlideshowMode = true;
+            body.classList.remove('browse-mode');
+            html.style.overflow = 'hidden';
+            body.style.overflow = 'hidden';
+            hideAllSteps();
+            showSlide(startIndex);
+            updateSlideshowScale();
+        }
+
+        function advance() {
+            if (!isSlideshowMode) return;
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function goBack() {
+            if (!isSlideshowMode) return;
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+                slides[currentSlideIndex].querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+            }
+        }
+
+        async function startFullscreenFromCurrentSlide() {
+            currentSlideIndex = getNearestSlideIndex();
+            enterSlideshowMode(currentSlideIndex);
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                }
+            } catch (err) {
+                console.log(`全屏请求被拒绝: ${err.message}`);
+            }
+        }
+
+        async function exitFullscreenToBrowse() {
+            if (document.fullscreenElement) {
+                try {
+                    await document.exitFullscreen();
+                } catch (err) {
+                    console.log(`退出全屏失败: ${err.message}`);
+                }
+            }
+            enterBrowseMode('auto');
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                enterBrowseMode('auto');
+            } else {
+                enterSlideshowMode(currentSlideIndex);
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (e.target.closest('.hw-btn')) return;
+            const clickedSlide = e.target.closest('.slide');
+            if (!clickedSlide) return;
+            const clickedIndex = slides.indexOf(clickedSlide);
+            if (clickedIndex >= 0) showSlide(clickedIndex);
+            if (isSlideshowMode) {
+                advance();
+            }
+        });
+
+        window.addEventListener('resize', updateScale);
+        window.addEventListener('scroll', syncCurrentSlideFromScroll, { passive: true });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                if (isSlideshowMode && document.fullscreenElement) {
+                    exitFullscreenToBrowse();
+                } else {
+                    startFullscreenFromCurrentSlide();
+                }
+            } else if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                if (!isSlideshowMode) return;
+                e.preventDefault();
+                advance();
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                if (!isSlideshowMode) return;
+                e.preventDefault();
+                goBack();
+            } else if (e.key === 'Escape' && isSlideshowMode) {
+                e.preventDefault();
+                exitFullscreenToBrowse();
+            }
+        });
+
+        enterBrowseMode();
+    });
+</script>
+
+</body>
+</html>

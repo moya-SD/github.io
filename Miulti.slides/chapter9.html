@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第9章 定性数据建模分析</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+     <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #1e293b; 
+            width: 100vw; min-height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0; padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body.browse-mode {
+            background-color: #0f172a;
+            padding: 24px 0 48px;
+        }
+
+        body.slideshow-mode {
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器 (严格锁定 1280x720)
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        body.browse-mode #presentation-container {
+            position: relative;
+            top: auto; left: auto;
+            width: min(1280px, calc(100vw - 48px));
+            height: auto;
+            min-height: unset;
+            transform: none !important;
+            margin: 0 auto;
+            box-shadow: none;
+            border-radius: 0;
+            background: transparent;
+            overflow: visible;
+        }
+
+        #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        body.browse-mode .slide {
+            position: relative;
+            top: auto; left: auto;
+            width: 1280px; height: 720px;
+            opacity: 1 !important;
+            pointer-events: auto;
+            z-index: auto;
+            margin: 0 auto 28px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+            overflow: hidden;
+            page-break-after: always;
+            break-after: page;
+        }
+
+        body.browse-mode .slide:last-of-type {
+            margin-bottom: 0;
+        }
+
+        body.browse-mode .step {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #0f172a;
+            margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 65px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; 
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 26px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 12px; font-size: 26px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 30px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 30px; color: #0f172a; margin-bottom: 15px; font-family: 'Noto Serif SC', serif;}
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 24px; background: #fff;}
+        th, td { border: 2px solid #cbd5e1; padding: 10px 15px; text-align: center; color: #1e293b;}
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+        .table-small { font-size: 20px; } 
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 12px 25px;
+            color: #000000 !important; /* 强制纯黑 */
+            font-size: 28px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; font-size: 28px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 20px 30px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 26px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* 图片占位符 */
+        .image-placeholder {
+            width: 100%; height: 350px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: #64748b; font-size: 22px;
+        }
+        .image-placeholder i { font-size: 64px; color: #94a3b8; margin-bottom: 15px; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+         .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+          .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+        body.browse-mode .progress-bar,
+        body.browse-mode .slide-counter {
+            display: none !important;
+        }
+       body.browse-mode .slide.title-slide {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body.browse-mode .slide.title-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 1;
+}
+
+body.browse-mode .slide.section-slide {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+}
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+
+            html, body {
+                width: 100%;
+                min-height: auto;
+                background: #ffffff !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                display: block;
+            }
+
+            #presentation-container {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                transform: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
+            }
+
+            .slide {
+                position: relative !important;
+                width: 100vw !important;
+                height: calc(100vw * 9 / 16) !important;
+                max-height: 100vh !important;
+                min-height: 0 !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                page-break-after: always;
+                break-after: page;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: hidden !important;
+            }
+
+            .slide:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
+
+            .step {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            .progress-bar,
+            .slide-counter {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-sitemap"></i> 第9章</div>
+            <h1>定性数据建模分析：<span>当响应变量不再是连续数值</span></h1>
+          
+            
+           
+        </div>
+    </div>
+
+    <!-- ==================== 多元方法地图 ==================== -->
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-map"></i> 建立多元统计的方法地图</h2>
+        <div class="content-area">
+            <p style="font-size: 28px; margin-bottom: 20px;">这门课学到第9章，让我们理清所有模型的脉络：</p>
+            <div class="step tile" style="padding: 30px; background: #f8fafc; border-top-color: #3b82f6;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li><strong>主成分/因子分析：</strong> <span style="color:#475569;">一组连续变量太多，压缩信息、寻找潜在结构。</span></li>
+                    <li><strong>聚类分析：</strong> <span style="color:#475569;">样本没有标签，按相似性自动分堆。</span></li>
+                    <li><strong>判别分析：</strong> <span style="color:#475569;">类别已知，建立规则以识别新样本。</span></li>
+                    <li><strong>对应分析：</strong> <span style="color:#475569;">类别变量之间的结构关系，用图展示。</span></li>
+                    <li><strong>典型相关分析：</strong> <span style="color:#475569;">两组连续变量整体之间的关系提炼。</span></li>
+                    <li style="color: #ec4899; font-weight: bold; font-size: 26px;">
+                        <i class="fas fa-arrow-right"></i> 定性数据建模：<span style="color:#be185d;">当我们要预测的结果变成“类别”或“次数”时，如何正式建模。</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 趣味导入 ==================== -->
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> 导入：现实问题里，结果往往不是连续的数值</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">前几章我们做预测和回归，往往假设结果（因变量）是一个连续的数值，比如“收入多少元”、“血压多高”。但在现实中，我们更关心这些问题：</p>
+            <div class="tiled-content-3" style="margin-top: 20px;">
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 25px;">
+                    <h3 style="font-size: 24px; color: #3b82f6;"><i class="fas fa-shopping-cart"></i> 二分类结果</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li>用户是否付费？</li>
+                        <li>客户是否违约？</li>
+                        <li>患者是否确诊？</li>
+                        <li><span style="color: #475569; font-weight: bold;">(是 / 否)</span></li>
+                    </ul>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 25px;">
+                    <h3 style="font-size: 24px; color: #b45309;"><i class="fas fa-layer-group"></i> 分类/等级结果</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li>消费者满意度？</li>
+                        <li><span style="color: #475569; font-weight: bold;">(低 / 中 / 高)</span></li>
+                        <li>出行方式选择？</li>
+                        <li><span style="color: #475569; font-weight: bold;">(公交/地铁/打车)</span></li>
+                    </ul>
+                </div>
+                <div class="step tile" style="border-top-color: #10b981; padding: 25px;">
+                    <h3 style="font-size: 24px; color: #065f46;"><i class="fas fa-sort-numeric-up"></i> 计数结果</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li>某路口每天发生事故的次数？</li>
+                        <li>APP一周的打开次数？</li>
+                        <li><span style="color: #475569; font-weight: bold;">(0, 1, 2, 3...)</span></li>
+                    </ul>
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 20px; font-weight: bold; text-align: center; color: #1e293b;">
+                这些结果天然就是定性的或离散计数的。我们能直接用多元线性回归硬套吗？
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-times-circle"></i> 为什么线性回归不够用？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #ef4444;">
+                不是所有结果都适合拿直线去硬套。会算不等于该算。
+            </p>
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #ef4444; padding: 30px;">
+                    <h3 style="font-size: 26px; color: #ef4444;">对于二分类响应 (0或1)</h3>
+                    <p style="font-size: 22px; margin-top: 15px;">如果硬套 $y = \beta_0 + \beta_1 x$：</p>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li><strong>逻辑越界：</strong> 算出来的预测概率可能等于 1.5 或者 -0.3，非常荒谬。</li>
+                        <li><strong>方差不恒定：</strong> 0-1 变量的方差随均值变化，违背线性回归的前提假设。</li>
+                    </ul>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 30px;">
+                    <h3 style="font-size: 26px; color: #b45309;">对于计数响应 (0,1,2...)</h3>
+                    <p style="font-size: 22px; margin-top: 15px;">如果强行做线性回归：</p>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li>预测的发生次数可能出现<strong>负数</strong>。</li>
+                        <li>计数数据通常呈严重的“右偏”分布，并不服从正态分布假定。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 目录 ==================== -->
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 第9章 课程大纲：模型选择地图</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">本章一句话总结：<strong>根据响应变量类型，选择合适的统计模型。</strong></p>
+            <div class="tiled-content" style="width: 100%;">
+                <div class="tile step" style="border-top-color: #2563eb;">
+                    <h3 style="font-size: 24px;">9.1 定性变量数量化</h3>
+                    <p style="font-size: 20px;">如果自变量里有类别，如何进行 0-1 虚拟变量编码进入模型？</p>
+                </div>
+                <div class="tile step" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 24px;">9.2 二分类响应：Logistic 回归</h3>
+                    <p style="font-size: 20px;">核心工具。深入理解 Logit 变换、发生比 (Odds) 以及参数估计 (MLE 与 WLS)。</p>
+                </div>
+                <div class="tile step" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 24px;">9.3 Logistic 回归的落地步骤</h3>
+                    <p style="font-size: 20px;">怎样合理解释模型系数？模型的显著性该怎么看？</p>
+                </div>
+                <div class="tile step" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 24px;">(拓展) 多分类与计数响应模型</h3>
+                    <p style="font-size: 20px;">多项 Logistic、有序 Probit 与 Poisson 回归的思想与应用场景对比。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 9.1 节 ==================== -->
+    <div class="slide section-slide" id="slide-5">
+        <h2>9.1 定性变量数量化</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">让非数值属性优雅地进入数学方程</p>
+    </div>
+
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-font"></i> 为什么需要数量化？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">
+                在实际应用中，常常不可避免地涉及<strong>定性变量（名义尺度变量）</strong>，比如性别、地区、职业。<br>数学公式只认数字，不认汉字。
+            </p>
+            <div class="step tile" style="margin-top: 30px; padding: 40px; border-top-color: #f59e0b;">
+                <h3 style="font-size: 30px;">0-1 赋值法 (Dummy Variable Coding)</h3>
+                <p style="font-size: 26px; line-height: 1.8; margin-top: 15px;">
+                    这是数量化理论中最常用的一种方法（也叫虚拟变量、哑变量）。它不赋予类别实际大小意义，仅用 0 和 1 来说明观察单位的属性及特征，以此区分不同类别。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-venus-mars"></i> 例9.1：两类定性变量的赋值</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px;">如果定性变量是“性别”，仅有两个类别，我们可以用一个新变量 $X$ 来替代：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 30px; padding: 25px 50px; text-align: left; border-left: 6px solid #3b82f6;">
+                    \[
+                    X = \begin{cases}
+                    1, & \text{性别男} \\
+                    0, & \text{性别女}
+                    \end{cases}
+                    \quad \text{或} \quad
+                    X = \begin{cases}
+                    1, & \text{性别女} \\
+                    0, & \text{性别男}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 30px; color: #475569;">
+                <strong>注意：</strong>1 和 0 绝不代表男比女大、或者女比男大，它仅仅是一个用于区分的<strong>开关标签</strong>。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-map-marker-alt"></i> 例9.2：多类定性变量的赋值</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">有多种有害物质污染大气，将污染物分为 5 类地区：甲、乙、丙、丁、戊。</p>
+            <p class="step" style="font-size: 26px; margin-top: 10px;">如果直接赋值 $1,2,3,4,5$ 就会强行引入大小和等距关系（错误做法）。</p>
+            <p class="step" style="font-size: 26px; margin-top: 10px;">正确做法是：引入 <strong>4</strong> 个变量 $(X_1, X_2, X_3, X_4)$ 来共同表示它：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; text-align: left; padding: 20px 40px; border-left: 6px solid #ec4899;">
+                    \[
+                    (X_1, X_2, X_3, X_4) = \begin{cases}
+                    (0,0,0,0), & \text{甲地区} \\
+                    (1,0,0,0), & \text{乙地区} \\
+                    (0,1,0,0), & \text{丙地区} \\
+                    (0,0,1,0), & \text{丁地区} \\
+                    (0,0,0,1), & \text{戊地区}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 推广到一般情况与“陷阱防范”</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">一般地，某定性变量可取 $K$ 类时，必须用 <strong>$K-1$</strong> 个变量表示：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 26px; text-align: left; padding: 5px 30px;">
+                    \[
+                    (X_1, X_2, \cdots, X_{K-1}) = \begin{cases}
+                    (0,0,0, \cdots, 0), & \text{第 } 1 \text{ 类 (基准类)} \\
+                    (1,0,0, \cdots, 0), & \text{第 } 2 \text{ 类} \\
+                    (0,1,0, \cdots, 0), & \text{第 } 3 \text{ 类} \\
+                    \cdots \\
+                    (0,0,0, \cdots, 1), & \text{第 } K \text{ 类}
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 20px; background: #fff1f2; border-left-color: #ef4444;">
+                <p style="color: #b91c1c; font-size: 26px;"><i class="fas fa-radiation"></i> 虚拟变量陷阱 (Dummy Variable Trap)</p>
+                <span style="font-size: 20px; color: #7f1d1d; line-height: 1.6; display: block; margin-top: 10px;">
+                    为什么不用 $K$ 个变量？如果用 $K$ 个变量，则任何一个观测样本必然满足 $X_1 + X_2 + \dots + X_K = 1$。这会导致自变量之间出现<strong>完全多重共线性</strong>（其中任意 $K-1$ 个可推知剩余一个），令回归模型的矩阵无法求逆而彻底崩溃！
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 9.2 节 ==================== -->
+    <div class="slide section-slide" id="slide-10">
+        <h2>9.2 Logistic 回归</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">超越线性极限，概率建模的经典之作</p>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 只有两种结果时，最经典的工具</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">当被解释变量（因变量）是分类变量时，我们能用判别分析，为什么还要引入 Logistic 回归？</p>
+            <div class="two-column-top" style="margin-top: 20px;">
+                <div class="step tile" style="border-top-color: #ec4899; padding: 30px;">
+                    <h3 style="font-size: 26px; color: #ec4899;"><i class="fas fa-times-circle"></i> 判别分析的局限</h3>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li>依赖严格的多元正态性假设。</li>
+                        <li>依赖各组协方差矩阵相等的假设。</li>
+                        <li>如果有大量定性自变量（0-1变量），正态性假设根本不成立。</li>
+                    </ul>
+                </div>
+                <div class="step tile" style="border-top-color: #10b981; padding: 30px;">
+                    <h3 style="font-size: 26px; color: #10b981;"><i class="fas fa-check-circle"></i> Logistic 回归的优势</h3>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li>不需要多元正态等严格假设，稳健性极强。</li>
+                        <li>对自变量没有限制，定性、定量一律通吃。</li>
+                        <li>输出直观的发生概率，不仅能分类，更能做风险解释。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 神奇的 Logit 变换</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">解决概率出界问题的核心之道：我们不直接对概率 $p$ 建模，而是对 $p$ 进行一个严格单调的函数变换 $Q(p)$。</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 50px; border-left: 8px solid #3b82f6; margin-top: 20px;">
+                    \[Q = \ln \frac{p}{1-p}\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 30px; padding: 10px; border-top-color: #f59e0b;">
+                <p style="font-size: 28px; font-weight: bold; margin-bottom: 15px;"><i class="fas fa-star" style="color: #f59e0b;"></i> 为什么是它？</p>
+                <ul class="bullet-list" style="font-size: 22px;">
+                    <li style="font-size: 22px;">比值 $\frac{p}{1-p}$ 称为 <strong>胜算 / 发生比 (Odds)</strong>。</li>
+                    <li style="font-size: 22px;">当 $p \to 0$ 时，$Q \to -\infty$；当 $p \to 1$ 时，$Q \to +\infty$。</li>
+                    <li style="font-size: 22px;">完美实现了值域映射：从 <strong>$[0, 1]$ 映射到了 $(-\infty, +\infty)$</strong>。</li>
+                    <li style="font-size: 22px;">其导数在两端极度敏感，中间平缓，完全符合现实事物的阻力变化。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> Logistic 线性回归模型表达式</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px;">现在，我们可以将变换后的 $Q$（对数胜算）与自变量建立普通的线性方程：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 32px; padding: 5px 40px; border-left: 6px solid #10b981;">
+                    \[\ln \frac{p}{1-p} = \beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 25px;">反解出我们真正关心的概率 $p$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 32px; padding: 5px 40px; border-left: 6px solid #ec4899;">
+                    \[p = \frac{\exp(\beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k)}{1 + \exp(\beta_0 + \beta_1 x_1 + \cdots + \beta_k x_k)}\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; text-align: center; margin-top: 20px; font-weight: bold; color: #1e293b;">
+                这就是大名鼎鼎的 <strong>Logistic (逻辑斯谛) 曲线</strong>，呈现优美的 S 型结构！
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-comments"></i> 模型系数到底怎么解释？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #ef4444;">
+                Logistic 回归最怕的，不是不会估参数，而是估完不会说人话。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 28px; margin-bottom: 20px;">$\beta_j$ 的原始含义</h3>
+                <p style="font-size: 24px;">$\beta_j$ 表示 $x_j$ 每增加 1 个单位，<strong>对数胜算 (log-odds)</strong> 的变化量。但这太抽象了！</p>
+                
+                <h3 style="font-size: 28px; margin-top: 30px; margin-bottom: 20px; color: #ec4899;">$\exp(\beta_j)$ 的业务含义 (优势比 OR)</h3>
+                <p style="font-size: 24px;">我们将系数取指数化，$\exp(\beta_j)$ 表示 $x_j$ 增加 1 个单位时，<strong>事件发生比 (Odds) 变成原来的多少倍</strong>。</p>
+                <div class="info-box" style="margin-top: 15px; background: #fdf2f8; border-left-color: #ec4899;">
+                    <span style="font-size: 22px; color: #831843;">例如：研究是否患肺癌的模型中，吸烟特征的系数是 0.693。则 $\exp(0.693) \approx 2$。<br>这就意味着：<strong>吸烟者患肺癌的胜算是不吸烟者的 2 倍！</strong>（极其直白）</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 贯穿案例 ==================== -->
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-shopping-bag"></i> 贯穿案例：促销打折与购买转化</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">为了讲清接下来的两种估计方法，我们看一个具体场景：<strong>不同折扣力度对用户购买意愿的影响</strong>。</p>
+            <div class="two-column-top" style="margin-top: 15px;">
+                <div class="step tile" style="border-top-color: #ec4899; padding: 25px;">
+                    <h3 style="font-size: 24px; color: #ec4899;">形态一：未分组数据 (Raw Data)</h3>
+                    <p style="font-size: 20px;">记录了每个个体的独立行为，因变量是绝对的 0 或 1。</p>
+                    <table class="table-small" style="font-size: 18px; margin-top: 10px;">
+                        <thead><tr><th>用户ID</th><th>折扣力度 $X$</th><th>是否购买 $Y$</th></tr></thead>
+                        <tbody>
+                            <tr><td>001</td><td>10%</td><td>0</td></tr>
+                            <tr><td>002</td><td>10%</td><td>0</td></tr>
+                            <tr><td>003</td><td>20%</td><td>1</td></tr>
+                            <tr><td>...</td><td>...</td><td>...</td></tr>
+                            <tr><td>1000</td><td>50%</td><td>1</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 25px;">
+                    <h3 style="font-size: 24px; color: #3b82f6;">形态二：分组数据 (Aggregated)</h3>
+                    <p style="font-size: 20px;">按相同的自变量条件（如相同折扣）汇总，因变量是转化率 $p_i$。</p>
+                    <table class="table-small" style="font-size: 18px; margin-top: 10px;">
+                        <thead><tr><th>折扣组 $i$</th><th>折扣 $X_i$</th><th>总人数 $n_i$</th><th>购买率 $p_i$</th></tr></thead>
+                        <tbody>
+                            <tr><td>1</td><td>10%</td><td>200</td><td>0.05</td></tr>
+                            <tr><td>2</td><td>20%</td><td>300</td><td>0.15</td></tr>
+                            <tr><td>3</td><td>30%</td><td>150</td><td>0.40</td></tr>
+                            <tr><td>4</td><td>40%</td><td>250</td><td>0.70</td></tr>
+                            <tr><td>5</td><td>50%</td><td>100</td><td>0.90</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; text-align: center; color: #1e293b; font-weight: bold; margin-top: 15px;">同一批数据，可以表现为以上两种形态。它们分别对应了 WLS 和 MLE 两种解法！</p>
+        </div>
+    </div>
+
+    <!-- ==================== 9.2.2 分组数据的 Logistic 回归 ==================== -->
+    <div class="slide section-slide" id="slide-16">
+        <h2>分组数据 vs 未分组数据</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">数据形态决定了参数估计的底层思路</p>
+    </div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-users"></i> 9.2.2 分组数据的 Logistic 回归</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; line-height: 1.8;">
+                对于形态二的数据，我们已知每个折扣组 $i$ 的真实购买率 $p_i$ (如 10%折扣组 $p_1=0.05$)。
+            </p>
+            <div class="step tile" style="margin-top: 25px; padding: 5px; border-top-color: #3b82f6;">
+                <p style="font-size: 26px; margin-bottom: 20px;">我们可以直接用真实的比例做逻辑变换：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; padding: 15px 30px;">
+                        \[p_i^{\prime} = \ln \left(\frac{p_i}{1-p_i}\right)\]
+                    </div>
+                </div>
+                <p style="font-size: 26px; margin-top: 20px;">得到普通的线性回归模型形式：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; border-left: 6px solid #3b82f6; padding: 15px 30px;">
+                        \[p_i^{\prime} = \beta_0 + \beta_1 x_i + \varepsilon_i\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-weight-hanging"></i> 异方差与加权最小二乘估计 (WLS)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">上述转换后的线性模型，能直接用普通的最小二乘法 (OLS) 求解吗？<strong style="color: #ef4444;">绝对不能！</strong></p>
+            
+            <div class="step tile" style="margin-top: 20px; padding: 5px; border-top-color: #ec4899;">
+                <p style="font-size: 24px; line-height: 1.8;">因为 $p_i'$ 作为变换后的观测值，存在严重的异方差性。当组内样本 $n_i$ 较大时，$p_i'$ 的近似理论方差为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                        \[D(p_i^{\prime}) \approx \frac{1}{n_i \pi_i(1-\pi_i)}\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 15px;">为什么方差不同？打折 20% 组有 300 人，打折 50% 组只有 100 人。300 人算出的购买率更稳健（方差更小），所以权重 $\omega_i$ 应该更大！为了纠正异方差，必须使用<strong>加权最小二乘法 (WLS)</strong>。选取方差的倒数作为权数：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px; border-left: 6px solid #ec4899;">
+                        \[\omega_i = n_i p_i(1-p_i)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 9.2.3 未分组数据的 Logistic 回归 ==================== -->
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-user-alt"></i> 9.2.3 未分组数据的 Logistic 回归</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; line-height: 1.8;">
+                回到形态一：未分组数据。在现实商业中，我们往往只有 1000 行 0/1 的独立个体记录，没法算每个条件下的具体转化率了。WLS 失效，需启用<strong>极大似然估计 (MLE)</strong>。
+            </p>
+            <div class="step tile" style="margin-top: 25px; padding: 35px; border-top-color: #10b981;">
+                <h3 style="font-size: 26px;">Step 1: 构建个体概率模型</h3>
+                <p style="font-size: 24px;">每个用户 $y_i$ 的购买行为服从伯努利分布，概率函数可被巧妙地统一写为：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 30px; padding: 25px 40px; border-left: 6px solid #10b981;">
+                        \[P(y_i) = \pi_i^{y_i} (1-\pi_i)^{1-y_i}, \quad y_i \in \{0,1\}\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; color: #475569; text-align: center; margin-top: 15px;">
+                    (当 $y_i=1$ 时结果为购买概率 $\pi_i$，当 $y_i=0$ 时结果为不购买概率 $1-\pi_i$)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> MLE 推导：似然与对数似然 (1/2)</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 5px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 26px;">Step 2: 联合似然函数 $L$</h3>
+                <p style="font-size: 24px;">对于用户001(没买)概率是 $1-\pi_1$，用户003(买了)概率是 $\pi_3$。假设所有样本独立，全部联合发生（这1000人的实际表现）的概率即连乘：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                        \[L = \prod_{i=1}^n P(y_i) = \prod_{i=1}^n \pi_i^{y_i} (1-\pi_i)^{1-y_i}\]
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step tile" style="margin-top: 25px; padding: 5px; border-top-color: #ec4899;">
+                <h3 style="font-size: 26px;">Step 3: 取自然对数化简 $\ln L$</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px; text-align: left; width: 100%;">
+                        \[
+                        \begin{aligned}
+                        \ln L &= \sum_{i=1}^n \left[ y_i \ln \pi_i + (1-y_i) \ln(1-\pi_i) \right] 
+                        = \sum_{i=1}^n \left[ y_i \ln \frac{\pi_i}{1-\pi_i} + \ln(1-\pi_i) \right]
+                        \end{aligned}
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-21">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> MLE 推导：代入 Logistic 形式 (2/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">由 Logistic 模型的设定，第一项就是完美的线性组合：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; padding: 5px 20px;">
+                    \[\ln \frac{\pi_i}{1-\pi_i} = \beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip}\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 21px; margin-top: 15px;">将其代入对数似然函数中，得到关于参数 $\beta$ 的终极优化目标：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 21px; text-align: left; padding: 5px 40px; border-left: 8px solid #8b5cf6; width: 100%;">
+                    \[
+                    \ln L = \sum_{i=1}^n \left\{ y_i (\beta_0 + \dots + \beta_p x_{ip}) - \ln \left[ 1 + \exp(\beta_0 + \dots + \beta_p x_{ip}) \right] \right\}
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; padding: 5px;">
+                <span style="font-size: 22px; color: #334155; line-height: 1.6; display: block; margin-top: 10px;">
+                  求解方案：  极大似然估计就是利用计算机迭代算法（如牛顿-拉弗森法）寻找一组 $\hat{\beta}_0, \dots, \hat{\beta}_p$ 使得该非线性对数似然式达到极大。模型拟合度也是比较似然值而非 R 方。
+                </span>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="slide" id="slide-140">
+    <h2 class="slide-title"><i class="fas fa-book"></i> 学习时间与考试通过率：数据结构</h2>
+    <div class="content-area">
+
+        <p class="step">老师统计学生复习时间与是否通过统计学考试的关系：</p>
+
+        <ul class="step">
+            <li>有的老师记录每个学生情况（逐人统计）</li>
+            <li>有的老师记录时间段汇总数据</li>
+        </ul>
+
+        <p class="step">于是出现两种数据结构：</p>
+
+        <table class="step" style="width:100%; text-align:center;">
+            <tr>
+                <th>类型</th><th>数据形式</th><th>示例</th><th>响应变量</th><th>模型解释</th>
+            </tr>
+            <tr>
+                <td>未分组数据</td>
+                <td>每个学生一条记录</td>
+                <td>学10小时通过</td>
+                <td>\(Y_i=0/1\)</td>
+                <td>个体是否通过</td>
+            </tr>
+            <tr>
+                <td>分组数据</td>
+                <td>时间段汇总</td>
+                <td>30/40</td>
+                <td>\(y_i/n_i\)</td>
+                <td>每组通过率</td>
+            </tr>
+        </table>
+
+       
+
+    </div>
+</div>
+
+<div class="slide" id="slide-141">
+    <h2 class="slide-title"><i class="fas fa-user"></i> 未分组数据（逐个学生）</h2>
+    <div class="content-area">
+
+       
+
+        <table class="step">
+             <tr><td>学习时间 \(x_i\)</td><td>是否通过 \(Y_i\)</td></tr>
+            <tr><td>5</td><td>0</td></tr>
+            <tr><td>8</td><td>1</td></tr>
+            <tr><td>10</td><td>1</td></tr>
+            <tr><td>12</td><td>1</td></tr>
+            <tr><td>3</td><td>0</td></tr>
+            <tr><td>4</td><td>0</td></tr>
+        </table>
+
+        <p class="step">模型形式： \(
+            \text{logit}(p_i)=\beta_0+\beta_1 x_i,\quad Y_i \sim Binomial(1,p_i),\quad p_i = P(Y_i=1|x_i)
+            \)</p>
+
+   
+
+       
+
+      
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-142">
+    <h2 class="slide-title"><i class="fas fa-database"></i> 模拟数据（38名学生）</h2>
+    <div class="content-area">
+
+        <table class="step">
+            <tr><th>ID</th><th>StudyTime</th><th>Pass</th></tr>
+            <tr><td>S01</td><td>2.5</td><td>0</td></tr>
+            <tr><td>S02</td><td>3.0</td><td>0</td></tr>
+            <tr><td>S03</td><td>4.0</td><td>0</td></tr>
+            <tr><td>S04</td><td>5.0</td><td>1</td></tr>
+            <tr><td>S05</td><td>5.5</td><td>0</td></tr>
+            <tr><td>S06</td><td>6.0</td><td>1</td></tr>
+            <tr><td>...</td><td>...</td><td>...</td></tr>
+            <tr><td>S38</td><td>13.5</td><td>1</td></tr>
+        </table>
+
+       
+
+    </div>
+</div>
+
+
+
+
+<div class="slide" id="slide-143">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 未分组 Logistic 回归</h2>
+    <div class="content-area">
+
+        <p class="step">模型：</p>
+
+        <div class="math-box"  style="padding: 5px;">
+            \[
+            \text{logit}(p)=-4.9438+0.5434\times StudyTime
+            \]
+        </div>
+
+        <p class="step">预测公式：</p>
+
+        <div class="math-box" style="padding: 5px;">
+            \[
+            p=\frac{e^{-4.9438+0.5434x}}{1+e^{-4.9438+0.5434x}}
+            \]
+        </div>
+
+        <ul class="step"  style="padding: 5px;">
+            <li>\(\beta_1>0\)：学习时间越长，通过概率越大</li>
+            <li>x=5 → 0.097 ; x=10 → 0.620 ; x=13 → 0.893 </li>
+        
+        </ul>
+
+        
+
+    </div>
+</div>
+
+
+
+
+
+<div class="slide" id="slide-143">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 未分组 Logistic 回归</h2>
+    <div class="content-area">
+
+        <div class="step" style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            justify-items: center;
+            align-items: center;
+        ">
+
+            <!-- 图1 -->
+            <div class="img-box">
+                <img src="F9-1.png" style="max-width:200%; max-height:300px;">
+            </div>
+
+            <!-- 图2 -->
+            <div class="img-box">
+                <img src="F9-2.png" style="max-width:200%; max-height:300px;">
+            </div>
+
+            <!-- 图3 -->
+            <div class="img-box">
+                <img src="F9-3.png" style="max-width:200%; max-height:300px;">
+            </div>
+
+           
+
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-144">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 分组数据（时间段汇总）</h2>
+    <div class="content-area">
+
+        <table class="step">
+            <tr><th>区间</th><th>n</th><th>y</th><th>y/n</th></tr>
+            <tr><td>0-5</td><td>10</td><td>2</td><td>0.20</td></tr>
+            <tr><td>5-8</td><td>10</td><td>5</td><td>0.50</td></tr>
+            <tr><td>8-11</td><td>10</td><td>8</td><td>0.80</td></tr>
+            <tr><td>11-15</td><td>8</td><td>7</td><td>0.875</td></tr>
+        </table>
+
+        <p class="step">模型：</p>
+
+        <div class="math-box">
+            \[
+            Y_i \sim Binomial(n_i,p_i)
+            \]
+        </div>
+
+       
+    </div>
+</div>
+
+
+<div class="slide" id="slide-145">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 分组 Logistic 回归</h2>
+    <div class="content-area">
+
+        <div class="math-box">
+            \[
+            \text{logit}(p)=-2.2054+0.3478\times time_{mid}
+            \]
+        </div>
+
+        <div class="math-box">
+            \[
+            p=\frac{e^{-2.2054+0.3478x}}{1+e^{-2.2054+0.3478x}}
+            \]
+        </div>
+
+        <ul class="step">
+            <li>x=5 → 0.385</li>
+            <li>x=10 → 0.781</li>
+            <li>x=13 → 0.910</li>
+        </ul>
+
+       
+
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-143">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 分组 Logistic 回归</h2>
+    <div class="content-area">
+
+        <div class="step" style="
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 20px;
+            justify-items: center;
+            align-items: center;
+        ">
+
+            <!-- 图1 -->
+            <div class="img-box">
+                <img src="F9-4.png" style="max-width:200%; max-height:300px;">
+            </div>
+
+            <!-- 图2 -->
+            <div class="img-box">
+                <img src="F9-5.png" style="max-width:200%; max-height:300px;">
+            </div>
+
+            <!-- 图3 -->
+            <div class="img-box">
+                <img src="F9-6.png" style="max-width:200%; max-height:300px;">
+            </div>
+
+           
+
+        </div>
+
+    </div>
+</div>
+
+    <!-- ==================== 拓展模型类型 ==================== -->
+    <div class="slide section-slide" id="slide-22">
+        <h2>多分类与计数模型思想</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">如果结果不止两类怎么办？</p>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-list"></i> 结果不止两类：多分类 Logistic 框架</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 30px;">现实中很多问题不止“是/否”，人类很擅长搞出更多层次：</p>
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 26px; color: #3b82f6;">多分类无序变量</h3>
+                    <p style="font-size: 22px;">如交通方式选择：公交/地铁/打车</p>
+                    <p style="font-size: 20px; color: #475569; margin-top: 15px;"><strong>思路：多项 Logistic 回归。</strong>设定一个基准类（如公交），分别对“地铁vs公交”、“打车vs公交”建立发生比方程，比较不同类的相对选择。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b;">
+                    <h3 style="font-size: 26px; color: #b45309;">多分类有序变量</h3>
+                    <p style="font-size: 22px;">如满意度：低/中/高；病情：轻/中/重</p>
+                    <p style="font-size: 20px; color: #475569; margin-top: 15px;"><strong>思路：有序 Logistic/Probit。</strong>不仅比较类别，还要保留顺序信息。通过建立“累计概率”方程与隐变量的阈值跨越来建模等级推进趋势。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" id="slide-24">
+    <h2 class="slide-title"><i class="fas fa-coffee"></i> 多项 Logistic：模型建立</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 24px;">
+            研究三类饮料选择：可乐（1）、果汁（2）、咖啡（3），设咖啡为基准类。
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y=1)}{P(Y=3)} = \beta_{10} + \beta_{11}x_1 + \beta_{12}x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y=2)}{P(Y=3)} = \beta_{20} + \beta_{21}x_1 + \beta_{22}x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 21px;">
+                思想：将多分类问题拆解为“相对于基准类的多个对数几率模型”。
+            </span>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-25">
+    <h2 class="slide-title"><i class="fas fa-pen"></i> 参数结果（已估计）</h2>
+    <div class="content-area">
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P_1}{P_3} = 1.2 - 0.5x_1 + 0.8x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P_2}{P_3} = 0.5 - 0.2x_1 + 0.3x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 21px;">
+                系数解释：价格系数为负，甜度系数为正 → “贵且不甜”的东西基本没人爱。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-26">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 代入样本计算</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            给定：\( x_1 = 4 \)，\( x_2 = 6 \)
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P_1}{P_3} = 1.2 - 0.5\times4 + 0.8\times6 = 4.0
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P_2}{P_3} = 0.5 - 0.2\times4 + 0.3\times6 = 1.5
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 21px;">
+                指数化后得到相对优势：\( e^{4.0} \approx 54.6 \)，\( e^{1.5} \approx 4.48 \)
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-27">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 概率归一化</h2>
+    <div class="content-area">
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                P_3 = \frac{1}{1 + e^{4.0} + e^{1.5}}
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                P_1 = \frac{e^{4.0}}{1 + e^{4.0} + e^{1.5}}, \quad
+                P_2 = \frac{e^{1.5}}{1 + e^{4.0} + e^{1.5}}
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                (P_1, P_2, P_3) \approx (0.907,\; 0.074,\; 0.017)
+                \]
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-28">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 模型本质总结</h2>
+    <div class="content-area">
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                P(Y=k) = \frac{e^{\beta_k^T x}}{\sum_{j=1}^K e^{\beta_j^T x}}
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 25px;">
+            <span style="font-size: 22px;">
+                核心机制：先计算“相对优势”，再统一归一化为概率（Softmax 结构）。
+            </span>
+        </div>
+
+        <div class="step info-box" style="margin-top: 15px;">
+            <span style="font-size: 22px;">
+                直观理解：模型并不是在“选一个”，而是在让多个选项竞争胜出。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+<div class="slide" id="slide-30">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 多等级分类：问题设定</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 24px;">
+            外卖满意度分为三个等级：不满意 / 一般 / 满意（有序变量）
+        </p>
+
+        <div class="step info-box">
+            <span style="font-size: 21px;">
+                关键区别：类别之间存在“顺序关系”，不能当作普通多分类处理。
+            </span>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-31">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 累积 Logit 模型</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 23px;">
+            建立“是否超过某个等级”的对数几率模型：
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y \le 1)}{P(Y > 1)} = \alpha_1 - \beta_1 x_1 - \beta_2 x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y \le 2)}{P(Y > 2)} = \alpha_2 - \beta_1 x_1 - \beta_2 x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box">
+            <span style="font-size: 21px;">
+                特点：不同等级共享同一组 β（比例优势假设）
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-32">
+    <h2 class="slide-title"><i class="fas fa-pen"></i> 参数设定（已估计）</h2>
+    <div class="content-area">
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y \le 1)}{P(Y > 1)} = -1.5 + 0.08x_1 + 0.05x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y \le 2)}{P(Y > 2)} = 1.0 + 0.08x_1 + 0.05x_2
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box">
+            <span style="font-size: 21px;">
+                解释：配送时间、价格越高 → 更容易落在“低满意度”区间。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-33">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 代入样本计算</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            给定：配送时间 x₁ = 30 分钟，价格 x₂ = 25 元
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y \le 1)}{P(Y > 1)} = -1.5 + 0.08\times30 + 0.05\times25 = 2.15
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                \ln \frac{P(Y \le 2)}{P(Y > 2)} = 1.0 + 0.08\times30 + 0.05\times25 = 4.65
+                \]
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-34">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 转换为概率</h2>
+    <div class="content-area">
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                P(Y \le 1) = \frac{e^{2.15}}{1+e^{2.15}} \approx 0.896
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                P(Y \le 2) = \frac{e^{4.65}}{1+e^{4.65}} \approx 0.990
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px;">
+                \[
+                P(Y=1)=0.896,\quad
+                P(Y=2)=0.990-0.896=0.094,\quad
+                P(Y=3)=1-0.990=0.010
+                \]
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-35">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 模型本质理解</h2>
+    <div class="content-area">
+
+        <div class="step info-box">
+            <span style="font-size: 22px;">
+                多等级模型不是“选类别”，而是在判断：是否跨过某个等级阈值。
+            </span>
+        </div>
+
+        <div class="step info-box">
+            <span style="font-size: 22px;">
+                本质：存在一个潜在连续变量（满意度），分类只是对其进行区间划分。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+    <!-- ==================== 9.3 节 ==================== -->
+    <div class="slide section-slide" id="slide-25">
+        <h2>9.3 Logistic 回归方法步骤</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">严谨的统计建模流程</p>
+    </div>
+
+    <div class="slide" id="slide-26">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> Logistic 回归的标准 6 步法 (1/2)</h2>
+        <div class="content-area">
+            <div class="tiled-content" style="grid-template-columns: 1fr;">
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 30px;">
+                    <h3 style="font-size: 26px;">(1) 选择变量与预处理</h3>
+                    <p style="font-size: 22px;">确定分组因变量（0-1），并筛选定性与定量的自变量（定性变量需做 0-1 虚拟变量编码，规避陷阱）。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #8b5cf6; padding: 30px;">
+                    <h3 style="font-size: 26px;">(2) 划分样本 (Training / Holdout)</h3>
+                    <p style="font-size: 22px;">将数据切分。一部分用于训练估计模型，预留一部分作为测试集用于盲测模型的分类泛化能力。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #ec4899; padding: 30px;">
+                    <h3 style="font-size: 26px;">(3) 模型假定检验</h3>
+                    <p style="font-size: 22px;">虽然不需要正态性假设，但必须确保自变量之间<strong>不存在高度多重共线性</strong>，否则会导致极大似然迭代无法收敛。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-27">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> Logistic 回归的标准 6 步法 (2/2)</h2>
+        <div class="content-area">
+            <div class="tiled-content" style="grid-template-columns: 1fr;">
+                <div class="step tile" style="border-top-color: #10b981; padding: 10px;">
+                    <h3 style="font-size: 26px;">(4) 参数估计与拟合评估</h3>
+                    <p style="font-size: 22px;">运用 MLE 迭代求解回归系数。通过似然比检验 (Likelihood Ratio Test)、Wald 检验等评估整体模型与单个参数的显著性。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 10px;">
+                    <h3 style="font-size: 26px;">(5) 结果解释 (核心)</h3>
+                    <p style="font-size: 22px;">通过系数的符号（正负）和大小（Odds Ratio, $OR = e^{\beta}$），向业务方清晰解释各因素对事件发生概率的相对影响逻辑。</p>
+                </div>
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 10px;">
+                    <h3 style="font-size: 26px;">(6) 模型验证</h3>
+                    <p style="font-size: 22px;">将建好的模型拿到预留的测试样本中计算混淆矩阵、ROC 曲线与 AUC 值，验证实际判别分类精度。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="slide" id="slide-24">
+    <h2 class="slide-title"><i class="fas fa-sort-numeric-up-alt"></i> 有些结果是“发生了几次”：Poisson 回归</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 26px; margin-bottom: 20px;">
+            当响应变量是次数（0,1,2,...）时，不能再用普通回归或分类模型：
+        </p>
+
+        <div class="step info-box" style="margin-bottom: 20px;">
+            <span style="font-size: 23px;">
+                例子：一天内顾客下单次数、网站点击次数、事故发生次数……
+            </span>
+        </div>
+
+        <div class="step tile" style="padding: 5px; border-top-color: #10b981;">
+            <h3 style="font-size: 28px; margin-bottom: 20px;">Poisson 回归的思想（建模“平均发生率”）</h3>
+
+            <p style="font-size: 24px;">
+                我们不直接预测“具体发生几次”，而是预测：
+                <strong>平均发生次数（期望） \( \mu = E(Y|X) \)</strong>
+            </p>
+
+            <div class="math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #10b981;">
+                    \[
+                    \ln(\mu) = \beta_0 + \beta_1 x_1 + \cdots + \beta_p x_p
+                    \]
+                </div>
+            </div>
+
+            <ul class="bullet-list" style="font-size: 24px; margin-top: 20px;">
+                <li>使用<strong>对数连接函数</strong>，保证预测的均值 \( \mu > 0 \)。</li>
+                <li>模型本质：解释变量影响的是“发生强度”，不是具体次数。</li>
+            </ul>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-25">
+    <h2 class="slide-title"><i class="fas fa-search"></i> 模型展开：从均值到概率分布</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            给定 \( \mu \)，响应变量 \( Y \) 服从 Poisson 分布：
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 26px;">
+                \[
+                P(Y = y) = \frac{\mu^y e^{-\mu}}{y!}, \quad y=0,1,2,\dots
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 22px;">
+                关键假设：均值 = 方差（现实中经常被打脸，但先假装成立）。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-26">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 一个具体例子</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            研究：顾客一天的下单次数（Y）
+        </p>
+
+        <div class="step info-box">
+            <span style="font-size: 22px;">
+                自变量：浏览时长 \(x_1\)（分钟）、是否促销 \(x_2\)（0/1）
+            </span>
+        </div>
+
+        <div class="step math-center" style="margin-top: 20px;">
+            <div class="math-box" style="font-size: 24px;">
+                \[
+                \ln(\mu) = 0.5 + 0.03x_1 + 0.8x_2
+                \]
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-27">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 代入计算与解释</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            若：\( x_1 = 20 \)，\( x_2 = 1 \)
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 24px;">
+                \[
+                \ln(\mu) = 0.5 + 0.03\times20 + 0.8 = 1.9
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 24px;">
+                \[
+                \mu = e^{1.9} \approx 6.69
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box">
+            <span style="font-size: 22px;">
+                解释：该用户平均一天大约下单 6~7 次（别问，促销真的很可怕）。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-28">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 系数如何理解？</h2>
+    <div class="content-area">
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 24px;">
+                \[
+                \mu = e^{\beta_0 + \beta_1 x_1 + \cdots}
+                \]
+            </div>
+        </div>
+
+        <ul class="bullet-list" style="font-size: 24px; margin-top: 20px;">
+            <li>\( e^{\beta_1} \)：自变量增加1单位，发生率的<strong>倍数变化</strong></li>
+            <li>例如：\( e^{0.8} \approx 2.23 \)，促销使订单量<strong>翻倍以上</strong></li>
+        </ul>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 22px;">
+                核心理解：Poisson 回归不是“加多少”，而是“乘多少”。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-29">
+    <h2 class="slide-title"><i class="fas fa-exclamation-circle"></i> 模型局限（别太天真）</h2>
+    <div class="content-area">
+
+        <ul class="bullet-list" style="font-size: 24px;">
+            <li>方差 = 均值假设常常不成立（过度离散问题）</li>
+            <li>现实中很多数据“0很多”（零膨胀）</li>
+            <li>此时需要扩展模型（负二项、零膨胀模型）</li>
+        </ul>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 22px;">
+                现实世界：数据永远比模型更叛逆。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ========== 负二项回归（标准教学结构） ========== -->
+<div class="slide" id="slide-80">
+    <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 为什么需要负二项回归？</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            Poisson 模型假设：方差 = 均值
+        </p>
+
+        <div class="step info-box">
+            <span style="font-size: 22px;">
+                现实问题：数据波动远大于均值（过度离散）;
+            </span>
+             <span style="font-size: 22px;">
+                解决思路：引入额外随机性 → 使用负二项回归
+            </span>
+        </div>
+
+     
+       
+    
+         <div class="step math-center">
+            <div class="math-box">
+                \[
+                \ln(\mu) = \beta_0 + \beta_1 x,\quad Var(Y) = \mu + \alpha \mu^2
+                \]   
+            </div>
+        </div>
+      <ul class="bullet-list" style="font-size: 23px;">
+            <li>\(\beta_0\)：基准水平（基础点击率）</li>
+            <li>\(\beta_1\)：自变量对发生率的影响</li>
+            <li>\(\alpha\)：离散程度（越大 → 波动越大）</li>
+        </ul>
+        
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-83">
+    <h2 class="slide-title"><i class="fas fa-database"></i> 实际例子</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size: 24px;">
+            研究：用户一天点击次数
+        </p>
+
+        <p class="step" style="font-size: 25px;">
+            自变量：浏览时间 \(x\)（分钟）, 建立模型： \[
+                \ln(\mu)=0.3+0.05x
+                \]
+        </p>
+
+       <p class="step">设 \(x=30\)，设\(\alpha=0.5\)</p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 23px;">
+                \[
+                \ln(\mu)=0.3+0.05\times30=1.8
+               ,\quad
+                \mu=e^{1.8}\approx6.05
+                \]\[
+                Var(Y)=6.05+0.5\times6.05^2\approx24.3
+                \]
+            </div>
+        </div>
+
+       
+
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-85">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 结果解释</h2>
+    <div class="content-area">
+
+        <ul class="bullet-list" style="font-size: 23px;">
+            <li>平均点击次数 ≈ 6 次</li>
+            <li>方差远大于均值 → 数据波动很大</li>
+            <li>说明用户行为差异显著</li>
+        </ul>
+
+        <div class="step info-box">
+            <span style="font-size: 22px;">
+                Poisson 低估波动 → 负二项更符合现实
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-86">
+    <h2 class="slide-title"><i class="fas fa-exclamation-circle"></i> 为什么需要零膨胀模型？</h2>
+    <div class="content-area">
+
+        <p class="step">数据中“0”异常多</p>
+
+        <div class="step info-box">
+            <span>普通 Poisson 无法解释这种现象</span>
+        </div>
+         <p class="step">模型形式</p>
+       <div class="math-center">
+            <div class="math-box">
+                \[
+                P(Y=0)=\pi+(1-\pi)e^{-\mu}
+                \]
+            </div>
+        </div>
+         <ul class="bullet-list">
+            <li>\(\pi\)：结构性0的概率</li>
+            <li>\(\mu\)：Poisson均值</li>
+        </ul>
+    </div>
+</div>
+
+
+
+
+
+
+<div class="slide" id="slide-89">
+    <h2 class="slide-title"><i class="fas fa-database"></i> 实际例子</h2>
+    <div class="content-area">
+
+        <p>电商用户下单次数</p>
+
+        <p>很多用户：永远不买 → 0</p>
+     
+         <p>设：\(\pi=0.4,\ \mu=2\)</p>
+
+        <div class="math-center">
+            <div class="math-box">
+                \[
+                P(Y=0)=0.4+0.6\times e^{-2} \approx0.481
+                \]
+            </div>
+        </div>
+
+        <ul class="bullet-list">
+            <li>接近一半概率为0</li>
+            <li>说明大量用户“不会发生行为”</li>
+        </ul>
+
+
+    </div>
+</div>
+
+
+
+
+
+<div class="slide" id="slide-100">
+    <h2 class="slide-title"><i class="fas fa-wave-square"></i> 为什么需要 Probit 模型？</h2>
+    <div class="content-area">
+
+        <p class="step">Logistic 并不是唯一选择</p>
+
+        <div class="step info-box" style="font-size: 24px;">
+            <span>有些问题更符合“正态误差”的假设</span>  <span>→ 使用标准正态分布函数建模概率</span>
+        </div>
+
+      
+      
+         <p class="step">模型形式</p> 
+         <div class="math-center">
+            <div class="math-box">
+                \[
+                P(Y=1)=\Phi(\beta_0+\beta_1 x)
+                \]
+            </div>
+        </div>
+
+      <ul class="bullet-list">
+            <li>\(\beta_0\)：基础通过概率位置</li>
+            <li>\(\beta_1\)：x 对“潜在倾向”的影响</li>
+        </ul>
+
+
+    </div>
+</div>
+
+
+
+
+
+<div class="slide" id="slide-103">
+    <h2 class="slide-title"><i class="fas fa-database"></i> 实际例子</h2>
+    <div class="content-area">
+
+        <p>考试是否通过（0/1）</p>
+        <p>自变量：学习时间 x</p>
+
+        <div class="math-center">
+            <div class="math-box" style="font-size: 24px;padding: 5px;">
+                \[
+                P(Y=1)=\Phi(-1+0.1x)
+                \]
+            </div>
+        </div>
+       <p>x=15</p>
+
+        <div class="math-center">
+            <div class="math-box" style="font-size: 24px;padding: 5px;">
+                \[
+                z=-1+0.1\times15=0.5
+              ,\quad
+                \Phi(0.5)\approx0.691
+                \]
+            </div>
+        </div>
+      <ul class="bullet-list">
+            <li>通过概率 ≈ 69%</li>
+            <li>学习时间显著提高成功概率</li>
+        </ul>
+       
+    </div>
+</div>
+
+<div class="slide" id="slide-106">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 为什么需要层级模型？</h2>
+    <div class="content-area">
+
+        <p>数据存在“分组结构” :<span>不同学校 / 城市 / 班级存在差异</span></p>
+        <p>模型形式</p> 
+        <div class="math-center">
+            <div class="math-box">
+                \[
+                Y_{ij} = \beta_0 + \beta_1 x_{ij} + u_j + \epsilon_{ij}
+                \]
+            </div>
+        </div>
+       <ul class="bullet-list">
+            <li>\(u_j\)：第 j 组的偏移</li>
+            <li>\(\epsilon\)：个体随机误差</li>
+        </ul>
+
+    </div>
+</div>
+
+
+
+
+
+
+<div class="slide" id="slide-109">
+    <h2 class="slide-title"><i class="fas fa-database"></i> 实际例子</h2>
+    <div class="content-area">
+
+        <p>不同学校学生成绩</p>
+       <p>设：</p>
+
+        <div class="math-center">
+            <div class="math-box">
+                \[
+                \beta_0=50,\ \beta_1=2,\ x=10,\ u_j=5
+                \]
+            </div>
+        </div>
+
+        <div class="math-center">
+            <div class="math-box">
+                \[
+                Y=50+2\times10+5=75
+                \]
+            </div>
+        </div>
+        <ul class="bullet-list">
+            <li>同样努力，不同学校成绩不同</li>
+            <li>模型捕捉“群体差异”</li>
+        </ul>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-112">
+    <h2 class="slide-title"><i class="fas fa-chart-area"></i> 为什么需要 GAM？</h2>
+    <div class="content-area">
+
+        <p>现实关系通常不是直线</p>
+
+        <div class="info-box">
+            <span>线性模型过于简单</span>
+        </div>
+      <p>模型形式</p> 
+
+     <div class="math-center">
+            <div class="math-box">
+                \[
+                g(\mu)=\beta_0+f(x)
+                \]
+            </div>
+        </div>
+
+     <ul class="bullet-list">
+            <li>\(f(x)\)：非线性函数</li>
+        </ul>
+
+
+
+    </div>
+</div>
+
+
+
+
+<div class="slide" id="slide-115">
+    <h2 class="slide-title"><i class="fas fa-database"></i> 实际例子</h2>
+    <div class="content-area">
+
+        <p>温度与用电量</p>
+       <p>设 \(f(30)=1.2\)</p>
+
+        <div class="math-center">
+            <div class="math-box">
+                \[
+                \ln(\mu)=2+1.2=3.2
+                \]\[
+                \mu=e^{3.2}\approx24.5
+                \]
+            </div>
+        </div>
+
+       
+        <ul class="bullet-list">
+            <li>关系是非线性的</li>
+            <li>模型自动学习曲线趋势</li>
+        </ul>
+
+    </div>
+</div>
+
+
+
+
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 9 章 本章小结</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 20px;">这一章真正要带走的，不只是几个模型名字：</p>
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 24px;">
+                    <li><span class="highlight-blue">数据导向：</span> 当响应变量不再是连续数值时，必须根据其数据类型抛弃普通线性回归，选择匹配的统计模型。</li>
+                    <li><span class="highlight-blue">Logit 灵魂：</span> 直接对概率回归会导致荒谬越界。巧妙的 $\ln(p/(1-p))$ 变换，将约束区间平滑拓展至全实数域，既符合现实阻力，又适宜线性建模。</li>
+                    <li><span class="highlight-blue">多元广义模型架构：</span> 二分类用 Logistic，多分类无序/有序采用对应逻辑演化，计数模型利用 Poisson 结合对数均值连接构建。</li>
+                    <li><span class="highlight-blue">解释重于计算：</span> 模型建立之后，最关键的是把系数指数化 (OR值)，完成具备实际业务意义的参数解释、模型评价与分类决策。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-29">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课后思考与作业</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 40px;">
+                <h3 style="font-size: 30px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 实战场景推演</h3>
+                <p style="font-size: 24px; margin-top: 15px;">如果给你一个<strong>“用户是否购买高阶会员服务”</strong>的研究题目，你会怎么开始？</p>
+                <ul class="bullet-list" style="font-size: 22px; line-height: 2; margin-top: 15px;">
+                    <li>自变量中有没有诸如“操作系统类型”这样的类别变量需要做 0-1 虚拟编码？</li>
+                    <li>如果我们不顾异方差，强行对原始分组概率 $p_i$ 使用 OLS 拟合，会有什么严重后果？</li>
+                    <li>模型结果中，“年收入”的系数为 1.2。你应该如何用 OR (Odds Ratio) 的语言向老板解释它的业务意义？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 50px;">
+                <a href="#" class="hw-btn" onclick="alert('即将跳转到网络作业库：Chapter 9 Assignment'); return false;" style="background: linear-gradient(135deg, #2563eb, #ec4899); color: white; padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); border: none; cursor: pointer;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Online Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结束页 ==================== -->
+    <div class="slide title-slide" id="slide-30">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content" style="background: transparent; box-shadow: none; border: none;">
+            <h1 style="font-size: 100px; color: #10b981; margin-bottom: 30px;"><i class="fas fa-check-circle"></i></h1>
+            <h1 style="color: #f8fafc; font-size: 64px;">让不同数据找准它的模型</h1>
+            <p class="subtitle" style="color: #94a3b8; font-size: 32px; margin-top: 20px;">感谢聆听 (End of Chapter 9)</p>
+        </div>
+    </div>
+
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        const html = document.documentElement;
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+        let isSlideshowMode = false;
+
+        slides.forEach(slide => {
+            const steps = slide.querySelectorAll('.step');
+            steps.forEach(step => step.classList.remove('visible'));
+        });
+
+        function revealAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+        }
+
+        function hideAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progress.style.width = percent + '%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function showSlide(index) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            slides.forEach((slide, i) => {
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+        }
+
+        function advance() {
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function goBack() {
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+                revealAllSteps(slides[currentSlideIndex]);
+            }
+        }
+
+        function updateSlideshowScale() {
+            if (!isSlideshowMode) return;
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function scrollToCurrentSlide() {
+            const slide = slides[currentSlideIndex];
+            if (!slide) return;
+            slide.scrollIntoView({ block: 'start', behavior: 'auto' });
+            window.scrollBy(0, -12);
+        }
+
+        function enterBrowseMode() {
+            isSlideshowMode = false;
+            body.classList.add('browse-mode');
+            body.classList.remove('slideshow-mode');
+            html.classList.add('browse-mode');
+            slides.forEach(slide => {
+                slide.classList.add('active');
+                revealAllSteps(slide);
+            });
+            progress.style.width = '0%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+            requestAnimationFrame(scrollToCurrentSlide);
+        }
+
+        function enterSlideshowMode(targetIndex = currentSlideIndex) {
+            isSlideshowMode = true;
+            currentSlideIndex = Math.max(0, Math.min(targetIndex, slides.length - 1));
+            body.classList.add('slideshow-mode');
+            body.classList.remove('browse-mode');
+            html.classList.remove('browse-mode');
+            slides.forEach((slide, i) => {
+                hideAllSteps(slide);
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+            updateSlideshowScale();
+        }
+
+        function getClosestSlideIndexInBrowseMode() {
+            const viewportMid = window.scrollY + window.innerHeight * 0.35;
+            let bestIndex = 0;
+            let bestDistance = Infinity;
+            slides.forEach((slide, idx) => {
+                const top = slide.offsetTop;
+                const center = top + slide.offsetHeight / 2;
+                const dist = Math.abs(center - viewportMid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIndex = idx;
+                }
+            });
+            return bestIndex;
+        }
+
+        async function toggleFullScreenFromCurrent() {
+            if (!document.fullscreenElement) {
+                currentSlideIndex = getClosestSlideIndexInBrowseMode();
+                enterSlideshowMode(currentSlideIndex);
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.log(`全屏请求被拒绝: ${err.message}`);
+                    enterBrowseMode();
+                }
+            } else {
+                await document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                enterSlideshowMode(currentSlideIndex);
+            } else {
+                enterBrowseMode();
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (!isSlideshowMode) return;
+            if (e.target.closest('.hw-btn')) return;
+            advance();
+        });
+
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                await toggleFullScreenFromCurrent();
+                return;
+            }
+
+            if (!isSlideshowMode) return;
+
+            if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                e.preventDefault();
+                advance();
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                e.preventDefault();
+                goBack();
+            } else if (e.key === 'Escape' && document.fullscreenElement) {
+                e.preventDefault();
+                document.exitFullscreen();
+            }
+        });
+
+        window.addEventListener('resize', updateSlideshowScale);
+
+        enterBrowseMode();
+    });
+</script>
+
+</body>
+</html>

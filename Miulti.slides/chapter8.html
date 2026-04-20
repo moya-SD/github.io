@@ -1,0 +1,2784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第8章 典型相关分析</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+   <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #1e293b; 
+            width: 100vw; min-height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0; padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body.browse-mode {
+            background-color: #0f172a;
+            padding: 24px 0 48px;
+        }
+
+        body.slideshow-mode {
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器 (严格锁定 1280x720)
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        body.browse-mode #presentation-container {
+            position: relative;
+            top: auto; left: auto;
+            width: min(1280px, calc(100vw - 48px));
+            height: auto;
+            min-height: unset;
+            transform: none !important;
+            margin: 0 auto;
+            box-shadow: none;
+            border-radius: 0;
+            background: transparent;
+            overflow: visible;
+        }
+
+        #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        body.browse-mode .slide {
+            position: relative;
+            top: auto; left: auto;
+            width: 1280px; height: 720px;
+            opacity: 1 !important;
+            pointer-events: auto;
+            z-index: auto;
+            margin: 0 auto 28px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+            overflow: hidden;
+            page-break-after: always;
+            break-after: page;
+        }
+
+        body.browse-mode .slide:last-of-type {
+            margin-bottom: 0;
+        }
+
+        body.browse-mode .step {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #0f172a;
+            margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 65px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; 
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 26px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 12px; font-size: 26px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 30px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 30px; color: #0f172a; margin-bottom: 15px; font-family: 'Noto Serif SC', serif;}
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 24px; background: #fff;}
+        th, td { border: 2px solid #cbd5e1; padding: 10px 15px; text-align: center; color: #1e293b;}
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 15px 30px;
+            /* 强制内部一切颜色为黑色 */
+            color: #000000 !important; 
+            font-size: 28px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        
+        /* 强制 MathJax 生成的公式颜色为纯黑 */
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; font-size: 28px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 20px 30px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 26px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* 图片占位符 */
+        .image-placeholder {
+            width: 100%; height: 350px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: #64748b; font-size: 22px;
+        }
+        .image-placeholder i { font-size: 64px; color: #94a3b8; margin-bottom: 15px; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+        .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+
+        body.browsing .progress-bar,
+        body.browsing .slide-counter {
+            display: none;
+        }
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 5mm;
+            }
+
+            html, body {
+                background: #ffffff !important;
+                width: auto !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+            }
+
+            #presentation-container {
+                width: auto !important;
+                height: auto !important;
+                margin: 0 !important;
+                transform: none !important;
+                position: static !important;
+                overflow: visible !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            #presentation-container::before,
+            .progress-bar,
+            .slide-counter {
+                display: none !important;
+            }
+
+            .slide {
+                position: relative !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                display: flex !important;
+                width: 287mm !important;
+                height: 161.4375mm !important;
+                margin: 0 auto 0 auto !important;
+                page-break-after: always;
+                break-after: page;
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0;
+                border-radius: 0 !important;
+                overflow: hidden !important;
+                background: #ffffff !important;
+            }
+
+            .slide::before {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-link"></i>第八章</div>
+            <h1>典型相关分析：<span>研究两组变量整体间的关系</span></h1>
+            <p class="subtitle">从“一对一相关”走向“整组对整组关联”</p>
+            
+           
+        </div>
+    </div>
+
+    <!-- ==================== 多元方法地图 ==================== -->
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-map"></i> 建立多元统计的方法地图</h2>
+        <div class="content-area">
+            <p style="font-size: 28px; margin-bottom: 20px;">这门课不是散装零件，学到第8章，让我们理清思路：</p>
+            <div class="step tile" style="padding: 30px; background: #f8fafc; border-top-color: #3b82f6;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li><strong>主成分分析：</strong> <span style="color:#475569;">一组连续变量太多，先压缩提取信息。</span></li>
+                    <li><strong>因子分析：</strong> <span style="color:#475569;">一组连续变量高度相关，追问其背后的潜在维度结构。</span></li>
+                    <li><strong>聚类分析：</strong> <span style="color:#475569;">样本没有标签，按相似性自动分堆。</span></li>
+                    <li><strong>判别分析：</strong> <span style="color:#475569;">样本类别已知，建立规则以识别新样本。</span></li>
+                    <li><strong>对应分析：</strong> <span style="color:#475569;">两个“类别变量”之间的结构关系，用图展示。</span></li>
+                    <li style="color: #ec4899; font-weight: bold; font-size: 26px;">
+                        <i class="fas fa-arrow-right"></i> 典型相关分析：<span style="color:#be185d;">“两组”连续变量整体之间的关系，提炼出核心纽带。</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+   <div class="slide" id="slide-1">
+    <h2 class="slide-title"><i class="fas fa-headphones"></i> 趣味导入：你听什么歌，就是什么样的人？</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="margin-top: 10px; gap: 26px; align-items: stretch;">
+            <div class="step tile" style="border-top-color: #ec4899; padding: 30px;">
+                <h3 style="font-size: 28px; color: #ec4899;"><i class="fas fa-music"></i> 一个有趣的问题</h3>
+                <p style="font-size: 24px; line-height: 1.8; margin-top: 12px;">
+                    <strong>“你的播放列表，透露了你的性格。”</strong>
+                </p>
+                <ul class="bullet-list" style="margin-top: 18px; font-size: 24px; line-height: 1.8;">
+                    <li>有研究表明，喜欢听古典音乐的人往往思维更理性；</li>
+                    <li>喜欢摇滚的同学通常更独立；</li>
+                    <li>爱听流行的同学可能更外向、更爱社交。</li>
+                </ul>
+            </div>
+
+            <div class="step tile" style="border-top-color: #3b82f6; padding: 24px;">
+                <img src="F8-1.png"
+             alt="音乐播放列表示意图"
+             style="
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+                border-radius: 12px;
+                display: block;
+             ">
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                那么问题来了：<strong>音乐偏好与人格特质之间，是否存在某种更深层、更系统的对应关系？</strong>
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-2">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 两组变量：音乐偏好 vs 人格特质</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 28px; text-align: center; margin-bottom: 20px; color: #1e293b; font-weight: bold;">
+            我们并不是只研究“一个音乐类型”与“一个性格指标”的关系，<br>而是研究 <strong>两组变量整体之间的联系</strong>。
+        </p>
+
+        <div class="step two-column-top" style="margin-top: 12px;">
+            <div class="tile" style="border-top-color: #ec4899; padding: 30px;">
+                <h3 style="font-size: 28px; color: #ec4899;"><i class="fas fa-music"></i> 音乐偏好组</h3>
+                <ul class="bullet-list" style="margin-top: 18px; font-size: 26px; line-height: 1.9;">
+                    <li>流行</li>
+                    <li>摇滚</li>
+                    <li>古典</li>
+                    <li>电子</li>
+                    <li>民谣</li>
+                </ul>
+                <p style="font-size: 24px; margin-top: 16px; color: #475569;">
+                    记为：\(X_1, X_2, \dots, X_5\)
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #3b82f6; padding: 30px;">
+                <h3 style="font-size: 28px; color: #3b82f6;"><i class="fas fa-user-circle"></i> 人格特征组</h3>
+                <ul class="bullet-list" style="margin-top: 18px; font-size: 26px; line-height: 1.9;">
+                    <li>外向</li>
+                    <li>开放性</li>
+                    <li>责任心</li>
+                    <li>宜人性</li>
+                    <li>情绪稳定</li>
+                </ul>
+                <p style="font-size: 24px; margin-top: 16px; color: #475569;">
+                    记为：\(Y_1, Y_2, \dots, Y_5\)
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-3">
+    <h2 class="slide-title"><i class="fas fa-question"></i> 问题设定：我们到底要回答什么？</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #10b981; padding: 36px;">
+            <h3 style="font-size: 30px; color: #10b981;"><i class="fas fa-bullseye"></i> 研究目标</h3>
+            <ul class="bullet-list" style="margin-top: 20px; font-size: 26px; line-height: 2;">
+                <li>哪一组音乐喜好与哪一组性格特质最“共鸣”？</li>
+                <li>有没有隐藏的“音乐－性格模式”？</li>
+                <li>两组变量之间的整体关系，能不能用少数几个综合指标来概括？</li>
+            </ul>
+        </div>
+
+        <div class="step info-box" style="margin-top: 24px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                这就不是简单相关分析能解决的问题了。<br>
+                因为简单相关分析一次只能看 <strong>一个 \(X\)</strong> 和 <strong>一个 \(Y\)</strong> 的关系，  
+                而我们现在关心的是 <strong>两组变量整体之间的最强关联结构</strong>。
+            </p>
+        </div>
+    </div>
+</div>
+
+ <div class="slide" id="slide-4">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 典型相关分析的核心思想</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 28px; margin-bottom: 16px;">
+            典型相关分析（CCA）的想法是：
+            <strong>分别从两组变量中各提炼出一个综合指标，看看它们能相关到什么程度。</strong>
+        </p>
+
+        <div class="step two-column-top" style="margin-top: 12px; gap: 26px;">
+            <div class="tile" style="border-top-color: #ec4899; padding: 26px;">
+                <h3 style="font-size: 21px; color: #ec4899;">音乐偏好综合变量</h3>
+                <div class="math-center" style="margin-top: 18px;">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 20px;">
+                        \[
+                        U = a_1X_1 + a_2X_2 + \cdots + a_pX_p
+                        \]
+                    </div>
+                </div>
+
+                <h3 style="font-size: 21px; color: #3b82f6;">人格特征综合变量</h3>
+                <div class="math-center" style="margin-top: 18px;">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 20px;">
+                        \[
+                        V = b_1Y_1 + b_2Y_2 + \cdots + b_qY_q
+                        \]
+                    </div>
+                </div>
+            </div>
+            
+            <div class="step tile" style="margin-top: 18px; border-top-color: #8b5cf6; padding: 28px;">
+              <h3 style="font-size: 21px; color: #7c3aed;">优化目标</h3>
+              <div class="math-center" style="margin-top: 12px;">
+                  <div class="math-box" style="font-size: 21px; padding: 5px 18px; text-align: left;">
+                    \[
+                    \max \ \mathrm{corr}(U,V)
+                   \]
+                   \[
+                    \text{使得 } a^{\prime}\Sigma_{XX}a = 1,\qquad b^{\prime}\Sigma_{YY}b = 1
+                    \]
+                  </div>
+             </div>
+              
+           <div class="step" style="margin-top: 16px; text-align: center;">
+            <p style="font-size: 21px; font-weight: bold; color: #2563eb;">
+                今天我们要学习的，就是这种方法：<br>
+                <span style="color:#db2777;">典型相关分析（Canonical Correlation Analysis, CCA）</span>
+            </p>
+             </div>
+
+            </div>
+           
+
+
+
+        </div>
+
+       
+
+    </div>
+</div>
+
+ <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> 为什么逐个看相关系数不够？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                一个个看相关，像拿手电筒找地图，全是局部亮，全局不清楚。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #ef4444; background: #fff1f2;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2; color: #9d174d;">
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>信息碎片化：</strong> 4×4=16 个交叉相关系数，分析起来极其零散。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>重复解释：</strong> 行为组内部变量本身也高度相关，孤立解读容易重复算功劳。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>缺乏全局视角：</strong> 我们真正想问的是：“哪种<strong>学习行为的综合模式</strong>最能对应哪种<strong>学业结果的综合表现</strong>？”</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 30px; font-size: 28px; color: #475569;">
+                变量一多，相关矩阵会很热闹，但不一定很有条理。
+            </p>
+        </div>
+    </div>
+
+  <div class="slide" id="slide-5">
+    <h2 class="slide-title"><i class="fas fa-link"></i> 为什么不能只看简单相关？</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 28px; margin-bottom: 18px;">
+            如果我们只算“流行”和“外向”的相关系数，那当然能得到一个数字。  
+            但问题是：<strong>其他音乐偏好和其他人格特质怎么办？</strong>
+        </p>
+
+        <div class="step two-column-top" style="margin-top: 12px;">
+            <div class="tile" style="border-top-color: #ef4444; padding: 5px;">
+                <h3 style="font-size: 28px; color: #ef4444;"><i class="fas fa-times-circle"></i> 简单相关分析的局限</h3>
+                <ul class="bullet-list" style="margin-top: 16px; font-size: 24px; line-height: 1.85;">
+                    <li>一次只能看一个 \(X\) 和一个 \(Y\)；</li>
+                    <li>会得到很多相关系数，信息碎片化；</li>
+                    <li>看不出“两组变量整体”最强的对应结构；</li>
+                    <li>很难发现隐藏的综合模式。</li>
+                </ul>
+            </div>
+
+            <div class="tile" style="border-top-color: #10b981; padding: 5px;">
+                <h3 style="font-size: 28px; color: #10b981;"><i class="fas fa-check-circle"></i> CCA 的优势</h3>
+                <ul class="bullet-list" style="margin-top: 16px; font-size: 24px; line-height: 1.85;">
+                    <li>把一组 \(X\) 压缩成一个综合变量 \(U\)；</li>
+                    <li>把一组 \(Y\) 压缩成一个综合变量 \(V\)；</li>
+                    <li>直接寻找 \(U\) 和 \(V\) 的最大相关；</li>
+                    <li>抓住两组变量之间最核心的联系。</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 21px; line-height: 1.75;">
+                所以，典型相关分析不是“多算几个相关系数”，  
+                而是<strong>重新组织两组变量的信息</strong>，找出最有代表性的“共鸣方向”。
+            </p>
+        </div>
+    </div>
+</div>
+    
+
+
+<div class="slide" id="slide-6">
+    <h2 class="slide-title"><i class="fas fa-map-signs"></i> CCA 与前面方法有什么不同？</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 28px; margin-bottom: 18px; text-align: center; color: #1e293b; font-weight: bold;">
+            它和主成分分析、因子分析有点像，但目标完全不同。
+        </p>
+
+        <div class="step tiled-content-3" style="margin-top: 8px;">
+            <div class="tile" style="border-top-color: #3b82f6; padding: 24px;">
+                <h3 style="font-size: 24px; color: #3b82f6;">主成分分析 PCA</h3>
+                <p style="font-size: 21px; line-height: 1.75;">
+                    研究的是<strong>一组变量内部</strong>如何压缩信息，  
+                    找到方差最大的综合方向。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #ec4899; padding: 24px;">
+                <h3 style="font-size: 24px; color: #ec4899;">因子分析 FA</h3>
+                <p style="font-size: 21px; line-height: 1.75;">
+                    研究的是<strong>一组变量背后</strong>是否存在少数潜在公共因子，
+                    强调潜在结构解释。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #10b981; padding: 24px;">
+                <h3 style="font-size: 24px; color: #10b981;">典型相关分析 CCA</h3>
+                <p style="font-size: 21px; line-height: 1.75;">
+                    研究的是<strong>两组变量之间</strong>的整体联系，  
+                    找出最强的“对应组合”。
+                </p>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #8b5cf6; padding: 5px;">
+            <h3 style="font-size: 27px; color: #7c3aed;">一句话区分</h3>
+            <ul class="bullet-list" style="margin-top: 14px; font-size: 24px; line-height: 1.85;">
+                <li>PCA：一组变量内部怎么压缩；</li>
+                <li>FA：一组变量背后有什么潜在因子；</li>
+                <li>CCA：两组变量整体之间如何最强相关。</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+ <div class="slide" id="slide-7">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 一个直观图：音乐偏好与人格特质的共鸣</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap: 24px; align-items: stretch;">
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 28px;">
+                <h3 style="font-size: 28px; color: #7c3aed;"><i class="fas fa-lightbulb"></i> 图形直觉</h3>
+                <p style="font-size: 24px; line-height: 1.8; margin-top: 12px;">
+                    如果“流行、电子”组合更接近“外向、开放性”，  
+                    而“古典、民谣”组合更接近“责任心、情绪稳定”，  
+                    那就说明两组变量之间存在某种更深层的结构共鸣。
+                </p>
+                <p style="font-size: 24px; line-height: 1.8; margin-top: 14px;">
+                    典型相关分析做的，就是把这种“整体对应关系”用数学方法提炼出来。
+                </p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #3b82f6; padding: 16px;">
+                <svg viewBox="0 0 560 360" width="100%" height="100%" style="display:block; background:#ffffff; border-radius:12px;">
+                    <rect x="0" y="0" width="560" height="360" fill="#ffffff"></rect>
+
+                    <!-- 坐标轴 -->
+                    <line x1="280" y1="35" x2="280" y2="320" stroke="#94a3b8" stroke-width="2"></line>
+                    <line x1="50" y1="180" x2="520" y2="180" stroke="#94a3b8" stroke-width="2"></line>
+                    <circle cx="280" cy="180" r="4" fill="#64748b"></circle>
+                    <text x="288" y="196" font-size="13" fill="#94a3b8" font-family="Noto Sans SC, sans-serif">O</text>
+
+                    <!-- 音乐偏好组：圆点 -->
+                    <circle cx="150" cy="120" r="8" fill="#ec4899"></circle>
+                    <text x="165" y="125" font-size="20" fill="#ec4899" font-weight="bold">流行</text>
+
+                    <circle cx="190" cy="90" r="8" fill="#ec4899"></circle>
+                    <text x="205" y="95" font-size="20" fill="#ec4899" font-weight="bold">电子</text>
+
+                    <circle cx="390" cy="110" r="8" fill="#ec4899"></circle>
+                    <text x="405" y="115" font-size="20" fill="#ec4899" font-weight="bold">摇滚</text>
+
+                    <circle cx="360" cy="245" r="8" fill="#ec4899"></circle>
+                    <text x="375" y="250" font-size="20" fill="#ec4899" font-weight="bold">古典</text>
+
+                    <circle cx="320" cy="280" r="8" fill="#ec4899"></circle>
+                    <text x="335" y="285" font-size="20" fill="#ec4899" font-weight="bold">民谣</text>
+
+                    <!-- 性格特质组：菱形 -->
+                    <rect x="118" y="102" width="12" height="12" fill="#2563eb" transform="rotate(45 124 108)"></rect>
+                    <text x="70" y="105" font-size="18" fill="#2563eb" font-weight="bold">外向</text>
+
+                    <rect x="180" y="70" width="12" height="12" fill="#2563eb" transform="rotate(45 186 76)"></rect>
+                    <text x="195" y="80" font-size="18" fill="#2563eb" font-weight="bold">开放性</text>
+
+                    <rect x="418" y="90" width="12" height="12" fill="#2563eb" transform="rotate(45 424 96)"></rect>
+                    <text x="440" y="100" font-size="18" fill="#2563eb" font-weight="bold">独立</text>
+
+                    <rect x="390" y="225" width="12" height="12" fill="#2563eb" transform="rotate(45 396 231)"></rect>
+                    <text x="410" y="236" font-size="18" fill="#2563eb" font-weight="bold">责任心</text>
+
+                    <rect x="300" y="300" width="12" height="12" fill="#2563eb" transform="rotate(45 306 306)"></rect>
+                    <text x="320" y="312" font-size="18" fill="#2563eb" font-weight="bold">情绪稳定</text>
+
+                    <!-- 虚线 -->
+                    <line x1="150" y1="120" x2="124" y2="108" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                    <line x1="190" y1="90" x2="186" y2="76" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                    <line x1="390" y1="110" x2="424" y2="96" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                    <line x1="360" y1="245" x2="396" y2="231" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                    <line x1="320" y1="280" x2="306" y2="306" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+
+                    <!-- 图例 -->
+                    <g transform="translate(55,325)">
+                        <circle cx="0" cy="0" r="7" fill="#ec4899"></circle>
+                        <text x="15" y="6" font-size="16" fill="#334155">音乐偏好组</text>
+
+                        <rect x="120" y="-6" width="12" height="12" fill="#2563eb" transform="rotate(45 126 0)"></rect>
+                        <text x="140" y="6" font-size="16" fill="#334155">人格特质组</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+        <div class="step" style="margin-top: 16px; text-align: center;">
+            <p style="font-size: 26px; font-weight: bold; color: #2563eb;">
+                CCA 不是看某两个变量偶然相关，<br>
+                而是寻找两组变量之间最强的“整体共鸣模式”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+   <div class="slide" id="slide-8">
+    <h2 class="slide-title"><i class="fas fa-not-equal"></i> 这和对应分析图有什么不同？</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 28px; text-align: center; margin-bottom: 18px; color: #1e293b; font-weight: bold;">
+            虽然两者都能“画图”，但它们画出来的东西，数学含义并不一样。
+        </p>
+
+        <div class="step two-column-top" style="gap: 24px; align-items: stretch;">
+            <div class="tile" style="border-top-color: #ec4899; padding: 28px;">
+                <h3 style="font-size: 28px; color: #ec4899;"><i class="fas fa-map-marked-alt"></i> 对应分析（CA）</h3>
+                <ul class="bullet-list" style="margin-top: 16px; font-size: 24px; line-height: 1.85;">
+                    <li>研究对象通常是<strong>分类变量 / 列联表</strong>；</li>
+                    <li>图中“行点”和“列点”的远近，反映的是<strong>类别之间的对应关系</strong>；</li>
+                    <li>强调的是：<strong>谁和谁更接近，谁和谁更匹配</strong>；</li>
+                    <li>本质上是在看<strong>轮廓相似性</strong>与<strong>卡方距离</strong>。</li>
+                </ul>
+            </div>
+
+            <div class="tile" style="border-top-color: #3b82f6; padding: 28px;">
+                <h3 style="font-size: 28px; color: #3b82f6;"><i class="fas fa-wave-square"></i> 典型相关分析（CCA）</h3>
+                <ul class="bullet-list" style="margin-top: 16px; font-size: 24px; line-height: 1.85;">
+                    <li>研究对象通常是<strong>两组连续变量</strong>；</li>
+                    <li>不是在看“哪两个原始变量更靠近”，而是在看<strong>两组变量的线性组合</strong>；</li>
+                    <li>强调的是：<strong>两组综合变量之间能相关到多强</strong>；</li>
+                    <li>本质上是在寻找两组变量之间最强的<strong>整体关联结构</strong>。</li>
+                </ul>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-8">
+    <h2 class="slide-title"><i class="fas fa-not-equal"></i> 这和对应分析图有什么不同？</h2>
+    <div class="content-area">
+        
+
+     
+        <div class="step tile" style="margin-top: 18px; border-top-color: #10b981; padding: 28px;">
+            <h3 style="font-size: 28px; color: #10b981;"><i class="fas fa-lightbulb"></i> 最容易混淆的一点</h3>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 10px;">
+                在对应分析图里，我们更容易说：
+                <strong>“这个类别靠近那个类别，所以它们更对应。”</strong>
+            </p>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 10px;">
+                但在典型相关分析里，更准确的说法应当是：
+                <strong>“音乐偏好组和人格特质组，各自形成了一个综合变量，这两个综合变量之间存在较强相关。”</strong>
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                所以，刚才那张“音乐偏好－人格特质”图，更多是一种<strong>帮助理解的直观示意图</strong>，  
+                而不是对应分析意义下那种“谁和谁在空间里靠近就直接表示类别对应”的正式关系图。
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 16px; text-align: center;">
+            <p style="font-size: 26px; font-weight: bold; color: #2563eb;">
+                对应分析关注“类别关系图”，<br>
+                典型相关分析关注“两组变量整体共鸣的最大相关方向”。
+            </p>
+        </div>
+    </div>
+</div>
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 典型相关分析到底想做什么？</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 40px; border-top-color: #10b981;">
+                <p style="font-size: 32px; font-weight: bold; text-align: center; color: #065f46; margin-bottom: 30px;">
+                    一句话：在两组变量中，各找一个最能代表本组的“综合指标”，让它们尽量相关！
+                </p>
+                <ul class="bullet-list" style="font-size: 28px; line-height: 2.2;">
+                    <li>第一步：从 $X$ 组中构造一个线性组合（代表 $U$）。</li>
+                    <li>第二步：从 $Y$ 组中构造一个线性组合（代表 $V$）。</li>
+                    <li>第三步：调整组合的权重，让这两个代表 $U$ 和 $V$ 之间的<strong>相关系数达到最大</strong>。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 8.1 节 ==================== -->
+    <div class="slide section-slide" id="slide-5">
+        <h2>8.1 典型相关的直观思想与原理</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">派代表出来谈判的艺术</p>
+    </div>
+
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-users-cog"></i> 典型变量的直观理解</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; line-height: 1.8;">
+                不是让所有原始变量混战，而是让每组先派一个“代表”出来。
+            </p>
+            <div class="two-column-top" style="margin-top: 20px;">
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 30px;">
+                    <h3 style="font-size: 26px;">第一对典型变量</h3>
+                    <p style="font-size: 22px; line-height: 1.8;">
+                        它们专门负责抓住两组之间<strong>最强的那条联系</strong>。<br>
+                        它们各自是本组变量的线性组合，代表两组之间最核心、最主要的关联结构。
+                    </p>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 30px;">
+                    <h3 style="font-size: 26px;">后续典型变量</h3>
+                    <p style="font-size: 22px; line-height: 1.8;">
+                        第一对抓住了主线，但不代表剩下的信息都没用了。<br>
+                        第二对要在与第一对<strong>不重叠（正交/不相关）</strong>的前提下，再抓住次强的联系。后续依次类推。
+                    </p>
+                </div>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 25px; font-size: 26px; color: #475569; font-weight: bold;">
+                第一对像主旋律，后面几对像后续声部，通常越往后关联越弱。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-compress"></i> 典型相关分析与 PCA 有什么不同？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">它们都在做线性组合，但追求的目标完全不同：</p>
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #8b5cf6; padding: 35px;">
+                    <h3 style="font-size: 26px; color: #8b5cf6;"><i class="fas fa-compress-arrows-alt"></i> 主成分分析 (PCA)</h3>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li><strong>对象：</strong> 一组变量内部。</li>
+                        <li><strong>目标：</strong> 找本组内部<strong>方差最大</strong>的方向。</li>
+                        <li><strong>本质：</strong> 尽力留住自身的变异信息（自给自足）。</li>
+                    </ul>
+                </div>
+                <div class="step tile" style="border-top-color: #ec4899; padding: 35px; background: #fdf2f8;">
+                    <h3 style="font-size: 26px; color: #ec4899;"><i class="fas fa-link"></i> 典型相关分析 (CCA)</h3>
+                    <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                        <li><strong>对象：</strong> 两组变量之间。</li>
+                        <li><strong>目标：</strong> 找两组之间<strong>相关系数最大</strong>的方向。</li>
+                        <li><strong>本质：</strong> 尽力解释彼此的联系（跨界交流）。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 8.1 数学描述 ==================== -->
+    <div class="slide section-slide" id="slide-8">
+        <h2>数学定义与模型表达</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">把大白话正式写成数学公式</p>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-subscript"></i> 8.1.2 典型相关的数学描述 (1/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">设有两随机变量组 $\boldsymbol{X} = (X_1, X_2, \cdots, X_p)^{\prime}$ 和 $\boldsymbol{Y} = (Y_1, Y_2, \cdots, Y_q)^{\prime}$，不妨设 $p \leqslant q$。</p>
+            <p class="step" style="font-size: 26px; margin-top: 15px;">将其合并为大向量 $\boldsymbol{Z} = \left[\begin{array}{c}\boldsymbol{X} \\ \boldsymbol{Y}\end{array}\right]$，联合协方差矩阵（分块矩阵形式）为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; text-align: left; padding: 5px 40px; border-left: 6px solid #3b82f6;">
+                    \[
+                    \begin{aligned}
+                    \underset{(p+q) \times (p+q)}{\boldsymbol{\Sigma}} &= E[(\boldsymbol{Z}-\boldsymbol{\mu})(\boldsymbol{Z}-\boldsymbol{\mu})^{\prime}] \\
+                    &= \left[\begin{array}{cc}
+                    \underset{(p \times p)}{\boldsymbol{\Sigma}_{11}} & \underset{(p \times q)}{\boldsymbol{\Sigma}_{12}} \\
+                    \underset{(q \times p)}{\boldsymbol{\Sigma}_{21}} & \underset{(q \times q)}{\boldsymbol{\Sigma}_{22}}
+                    \end{array}\right]
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 24px; margin-top: 15px;">其中，$\boldsymbol{\Sigma}_{11}$ 和 $\boldsymbol{\Sigma}_{22}$ 是各组内部的协方差；$\boldsymbol{\Sigma}_{12}$ 是两组之间的交叉协方差。</p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 典型变量的数学形式 (2/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">构造两组变量的线性组合（即两位“代表”）：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 30px;">
+                    \[U = a_1 X_1 + \cdots + a_p X_p = \boldsymbol{a}^{\prime} \boldsymbol{X}\]
+                    \[V = b_1 Y_1 + \cdots + b_q Y_q = \boldsymbol{b}^{\prime} \boldsymbol{Y}\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 5px;">这两位代表的自身方差与跨组协方差为：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; text-align: left; padding: 5px 40px;">
+                    \[\operatorname{Var}(U) = \boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{11} \boldsymbol{a}, \quad \operatorname{Var}(V) = \boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{22} \boldsymbol{b}\]
+                    \[\operatorname{Cov}(U, V) = \boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-star"></i> 本章最重要的数字：第一典型相关系数</h2>
+        <div class="content-area">
+            <div class="step tile" style="padding: 5px; border-top-color: #ec4899;">
+                <p style="font-size: 28px; line-height: 1.8;">
+                    我们称 $U$ 与 $V$ 之间的相关系数 $\rho$ 为<strong>典型相关系数 (Canonical Correlation)</strong>：
+                </p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 36px; padding: 5px 50px; border-left: 8px solid #ec4899; margin-top: 20px;">
+                        \[\rho = \operatorname{Corr}(U, V) = \frac{\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b}}{\sqrt{\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{11} \boldsymbol{a}} \sqrt{\boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{22} \boldsymbol{b}}}\]
+                    </div>
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px;">
+                <p><i class="fas fa-lightbulb"></i> 核心提醒：</p>
+                <span style="font-size: 24px; color: #334155; line-height: 1.6; display: block; margin-top: 10px;">
+                    务必记住，典型相关系数<strong>不是普通原始变量之间的相关</strong>，而是我们精心构造的两个“代表”（线性组合）之间的最大相关。它衡量了两大系统之间最强的总体联系。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-9">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 典型变量是怎样逐对提取出来的？（1/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px;">
+            <h3 style="font-size: 28px; color: #7c3aed;"><i class="fas fa-bullseye"></i> 典型相关分析研究的核心问题</h3>
+            <p style="font-size: 21px; line-height: 1.8; margin-top: 12px;">
+                典型相关分析研究的问题是：
+                <strong>如何从两组变量中选取最优的线性组合，构造出一对一对的典型变量。</strong>
+            </p>
+            <p style="font-size: 21px; line-height: 1.8; margin-top: 12px;">
+                选取原则是：在所有线性组合 \(U\) 和 \(V\) 中，
+                先找出相关系数最大的那一对，然后再继续寻找下一对。
+            </p>
+        </div>
+
+        <div class="step two-column-top" style="margin-top: 18px; gap: 22px;">
+            <div class="tile" style="border-top-color: #ec4899; padding: 5px;">
+                <h3 style="font-size: 21px; color: #ec4899;">第一对典型变量</h3>
+                <p style="font-size: 21px; line-height: 1.8; margin-top: 10px;">
+                    选取 \(\boldsymbol{a}^{(1)}\) 和 \(\boldsymbol{b}^{(1)}\)，使得
+                </p>
+                <div class="math-center" style="margin-top: 10px;">
+                    <div class="math-box" style="font-size: 18px; padding:5px 18px; text-align: left;">
+                        \[
+                        U_1=\boldsymbol{a}^{\prime(1)}\boldsymbol{X},\qquad
+                        V_1=\boldsymbol{b}^{\prime(1)}\boldsymbol{Y}
+                        \]
+                    </div>
+                </div>
+                <p style="font-size: 21px; line-height: 1.8; margin-top: 10px;">
+                    在所有可能的线性组合中，
+                    <strong>\(\mathrm{corr}(U_1,V_1)\) 最大。</strong>
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #3b82f6; padding: 5px;">
+                <h3 style="font-size: 21px; color: #3b82f6;">第二对典型变量</h3>
+                <p style="font-size: 21px; line-height: 1.8; margin-top: 10px;">
+                    再选取 \(\boldsymbol{a}^{(2)}\) 和 \(\boldsymbol{b}^{(2)}\)，使得
+                </p>
+                <div class="math-center" style="margin-top: 10px;">
+                    <div class="math-box" style="font-size: 18px; padding: 5px 18px; text-align: left;">
+                        \[
+                        U_2=\boldsymbol{a}^{\prime(2)}\boldsymbol{X},\qquad
+                        V_2=\boldsymbol{b}^{\prime(2)}\boldsymbol{Y}
+                        \]
+                    </div>
+                </div>
+                <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                    在与 \(U_1\)、\(V_1\) 不相关的所有组合中，
+                    <strong>\(\mathrm{corr}(U_2,V_2)\) 最大。</strong>
+                </p>
+            </div>
+        </div>
+
+        <div class="step" style="margin-top: 16px; text-align: center;">
+            <p style="font-size: 20px; font-weight: bold; color: #2563eb;">
+                第一对抓住最强联系，第二对抓住“剩余信息中的最强联系”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-10">
+    <h2 class="slide-title"><i class="fas fa-sitemap"></i> 典型变量是怎样逐对提取出来的？（2/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #10b981; padding: 5px;">
+            <h3 style="font-size: 21px; color: #10b981;"><i class="fas fa-forward"></i> 继续向后提取</h3>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 10px;">
+                按照同样的原则，继续构造：
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 24px;">
+                    \[
+                    (U_3,V_3),\ (U_4,V_4),\ \dots,\ (U_p,V_p)
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 12px;">
+                其中每一对新的典型变量，都要分别与前面已经提取出的典型变量保持不相关。
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #f59e0b; padding: 5px;">
+            <h3 style="font-size: 21px; color: #b45309;"><i class="fas fa-ruler-combined"></i> 能提取多少对？</h3>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 10px;">
+                一直提取下去，直到所有分别与
+                \(U_1,U_2,\dots,U_{p-1}\) 和 \(V_1,V_2,\dots,V_{p-1}\)
+                都不相关的线性组合 \(U_p,V_p\) 为止。
+            </p>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 10px;">
+                这里的 \(p\) 等于两组变量 \(\boldsymbol{X}\) 与 \(\boldsymbol{Y}\) 之间协方差矩阵的秩。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 21px; line-height: 1.3;">
+                因此，典型变量
+                \(U_1\) 和 \(V_1\)、\(U_2\) 和 \(V_2\)、\(\dots\)、\(U_p\) 和 \(V_p\)，
+                是按照它们的相关系数从大到小逐对提取出来的，
+                直到两组变量之间的相关结构被分解完毕为止。
+            </p>
+        </div>
+
+       
+    </div>
+</div>
+    <!-- ==================== 8.2 节 ==================== -->
+    <div class="slide section-slide" id="slide-12">
+        <h2>8.2 典型变量与相关系数的求法</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">最后还是会走向矩阵特征值，但先搞懂它在求什么</p>
+    </div>
+
+
+    <div class="slide" id="slide-8">
+    <h2 class="slide-title"><i class="fas fa-superscript"></i> 8.2.1 总体典型变量与典型相关系数</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px;">
+            <h3 style="font-size: 23px; color: #7c3aed;"><i class="fas fa-bullseye"></i> 研究目标</h3>
+            <p style="font-size: 21px; line-height: 1.8; margin-top: 12px;">
+                典型相关分析希望寻求两个非零常数向量 \(\boldsymbol{a}\) 和 \(\boldsymbol{b}\)，
+                使得两组变量的线性组合
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 22px; padding: 5px 20px;">
+                    \[
+                    U=\boldsymbol{a}^{\prime}\boldsymbol{X}, \qquad
+                    V=\boldsymbol{b}^{\prime}\boldsymbol{Y}
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 22px; line-height: 1.8; margin-top: 12px;">
+                之间的相关系数 \(\rho=\mathrm{Corr}(U,V)\) 达到最大。
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #ec4899; padding: 5px;">
+            <h3 style="font-size: 23px; color: #ec4899;"><i class="fas fa-ban"></i> 为什么必须加约束？</h3>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 10px;">
+                由于随机变量乘以常数并不会改变它们的相关系数，
+                如果不加限制，那么 \(\boldsymbol{a}\) 和 \(\boldsymbol{b}\) 可以任意放大或缩小，
+                从而导致不必要的重复结果出现。因此，最自然的限制是要求：
+            </p>
+           
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 21px; padding: 5px 20px; border-left: 6px solid #ec4899;">
+                    \[
+                    \operatorname{Var}(U)=1,\qquad \operatorname{Var}(V)=1
+                    \]
+                </div>
+            </div>
+        </div>
+
+       
+
+    </div>
+</div>
+
+ <div class="slide" id="slide-8">
+    <h2 class="slide-title"><i class="fas fa-superscript"></i> 8.2.1 总体典型变量与典型相关系数</h2>
+    <div class="content-area">
+    
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #10b981; padding: 28px;">
+            <h3 style="font-size: 28px; color: #10b981;"><i class="fas fa-calculator"></i> 问题的数学表达</h3>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                于是，典型相关分析的问题就转化为：
+            </p>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 8px;">
+                在约束条件
+                \(\operatorname{Var}(U)=1\) 和 \(\operatorname{Var}(V)=1\) 下，
+                寻找非零常数向量 \(\boldsymbol{a}\) 和 \(\boldsymbol{b}\)，
+                使得相关系数
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 24px; padding: 14px 20px;">
+                    \[
+                    \operatorname{Corr}(U,V)
+                    = \boldsymbol{a}^{\prime}\boldsymbol{\Sigma}_{12}\boldsymbol{b}
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                达到最大。
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 16px; text-align: center;">
+            <p style="font-size: 26px; font-weight: bold; color: #2563eb;">
+                也就是说：我们要在“单位方差”的标准化条件下，<br>
+                找出两组变量中最相关的一对综合指标。
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-9">
+    <h2 class="slide-title"><i class="fas fa-divide"></i> 相关系数为什么可以化成这个形式？</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #3b82f6; padding: 5px;">
+            <h3 style="font-size: 26px; color: #3b82f6;"><i class="fas fa-function"></i> 一般情况下的相关系数</h3>
+            <p style="font-size: 18px; line-height: 1.8; margin-top: 12px;">
+                对于
+                \(
+                U=\boldsymbol{a}^{\prime}\boldsymbol{X},
+                V=\boldsymbol{b}^{\prime}\boldsymbol{Y}
+                \),
+                它们的相关系数一般应写成：
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 18px; padding: 5px 18px; text-align: left;">
+                    \[
+                    \operatorname{Corr}(U,V)
+                    =
+                    \frac{\boldsymbol{a}^{\prime}\boldsymbol{\Sigma}_{12}\boldsymbol{b}}
+                    {\sqrt{\boldsymbol{a}^{\prime}\boldsymbol{\Sigma}_{11}\boldsymbol{a}}
+                    \sqrt{\boldsymbol{b}^{\prime}\boldsymbol{\Sigma}_{22}\boldsymbol{b}}}
+                    \]
+                </div>
+            </div>
+        </div>
+       <div class="step tile" style="margin-top: 18px; border-top-color: #ec4899; padding:5px;">
+            <h3 style="font-size: 28px; color: #ec4899;"><i class="fas fa-lock"></i> 加入单位方差约束</h3>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 10px;">
+                为了避免 \(\boldsymbol{a}\) 和 \(\boldsymbol{b}\) 任意放大缩小，我们加上约束：
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 23px; padding: 5px 20px; border-left: 6px solid #ec4899;">
+                    \[
+                    \operatorname{Var}(U)=\boldsymbol{a}^{\prime}\boldsymbol{\Sigma}_{11}\boldsymbol{a}=1,
+                    \qquad
+                    \operatorname{Var}(V)=\boldsymbol{b}^{\prime}\boldsymbol{\Sigma}_{22}\boldsymbol{b}=1
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 10px;">
+                这时，相关系数分母中的两个平方根都等于 1。
+            </p>
+        </div>
+
+       
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-9">
+    <h2 class="slide-title"><i class="fas fa-divide"></i> 相关系数为什么可以化成这个形式？</h2>
+    <div class="content-area">
+       
+
+      
+        <div class="step tile" style="margin-top: 18px; border-top-color: #10b981; padding: 5px;">
+            <h3 style="font-size: 28px; color: #10b981;"><i class="fas fa-check-circle"></i> 因此目标函数被简化</h3>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                在上述约束条件下，
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 24px; padding: 5px 20px;">
+                    \[
+                    \operatorname{Corr}(U,V)
+                    =
+                    \boldsymbol{a}^{\prime}\boldsymbol{\Sigma}_{12}\boldsymbol{b}
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                所以，典型相关分析就变成了一个带约束的最优化问题：
+                在 \(\operatorname{Var}(U)=1,\ \operatorname{Var}(V)=1\) 下，
+                最大化 \(\boldsymbol{a}^{\prime}\boldsymbol{\Sigma}_{12}\boldsymbol{b}\)。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                也就是说，前面那条看似“突然变简单”的公式，不是凭空来的，  
+                而是因为我们先把 \(U\) 和 \(V\) 都标准化成了单位方差。
+            </p>
+        </div>
+    </div>
+</div>
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-wrench"></i> 8.2.1 利用 Lagrange 乘数法求解 (1/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-top: 15px;">问题转化为：在 $\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{11} \boldsymbol{a} = 1$ 和 $\boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{22} \boldsymbol{b} = 1$ 下，求最大化 $\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b}$。</p>
+            
+            <div class="step tile" style="margin-top: 20px; padding: 30px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 26px;">构造 Lagrange 函数</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 20px 40px;">
+                        \[\varphi(\boldsymbol{a}, \boldsymbol{b}) = \boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b} - \frac{\lambda}{2}(\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{11} \boldsymbol{a} - 1) - \frac{v}{2}(\boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{22} \boldsymbol{b} - 1)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 求偏导与相关系数的本质 (2/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">令 $\varphi$ 对向量 $\boldsymbol{a}$ 和 $\boldsymbol{b}$ 的偏导数等于零：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 40px; border-left: 6px solid #10b981;">
+                    \[
+                    \begin{cases}
+                    \frac{\partial \varphi}{\partial \boldsymbol{a}} = \boldsymbol{\Sigma}_{12} \boldsymbol{b} - \lambda \boldsymbol{\Sigma}_{11} \boldsymbol{a} = 0 \\[15pt]
+                    \frac{\partial \varphi}{\partial \boldsymbol{b}} = \boldsymbol{\Sigma}_{21} \boldsymbol{a} - v \boldsymbol{\Sigma}_{22} \boldsymbol{b} = 0
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 23px; margin-top: 20px;">分别用 $\boldsymbol{a}^{\prime}$ 和 $\boldsymbol{b}^{\prime}$ 左乘上面两式，结合约束条件等于1，得到：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 30px;">
+                    \[\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b} = \lambda \boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{11} \boldsymbol{a} = \lambda \quad
+                    \boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{21} \boldsymbol{a} = v \boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{22} \boldsymbol{b} = v\]
+                </div>
+                 <p class="step" style="font-size: 20px; margin-top: 15px; color: #ec4899; font-weight: bold; text-align: center;">
+                由于 $(\boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b})^{\prime} = \boldsymbol{b}^{\prime} \boldsymbol{\Sigma}_{21} \boldsymbol{a}$，故必有 $\lambda = v = \boldsymbol{a}^{\prime} \boldsymbol{\Sigma}_{12} \boldsymbol{b} = \rho$。<br>
+                （这就证明了拉格朗日乘数恰好就是我们要求的目标典型相关系数！）
+            </p>
+            </div>
+           
+        </div>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-crown"></i> 转化为特征值问题 (3/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">通过代数消元（消去 $\boldsymbol{b}$），原方程组化为一个标准的特征值问题：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 40px;  color: #38bdf8;">
+                    \[(\boldsymbol{\Sigma}_{11}^{-1} \boldsymbol{\Sigma}_{12} \boldsymbol{\Sigma}_{22}^{-1} \boldsymbol{\Sigma}_{21} - \lambda^2 \boldsymbol{I}) \boldsymbol{a} = 0\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 25px; margin-top: 20px;">令核心特征矩阵分别为 $\boldsymbol{A} = \boldsymbol{\Sigma}_{11}^{-1} \boldsymbol{\Sigma}_{12} \boldsymbol{\Sigma}_{22}^{-1} \boldsymbol{\Sigma}_{21}$，$\boldsymbol{B} = \boldsymbol{\Sigma}_{22}^{-1} \boldsymbol{\Sigma}_{21} \boldsymbol{\Sigma}_{11}^{-1} \boldsymbol{\Sigma}_{12}$。则：</p>
+            <div class="step tile" style="margin-top: 20px; padding: 5px; border-top-color: #8b5cf6;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 1.8;">
+                    <li>$\lambda^2$ 是矩阵 $\boldsymbol{A}$ (也是 $\boldsymbol{B}$) 的特征值，落在 $[0, 1]$ 之间。</li>
+                    <li><strong>第一对典型变量：</strong> 取最大特征值 $\lambda_1^2$ 的平方根 $\lambda_1$ 为最大相关系数。对应的特征向量即为最优系数 $\boldsymbol{a}^{(1)}, \boldsymbol{b}^{(1)}$。</li>
+                    <li>按特征值大小排序，最多可提取 $p$ 对正交的典型变量。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== Part 5 载荷与解释 ==================== -->
+    <div class="slide section-slide" id="slide-19">
+        <h2>典型载荷与结构解释</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">相关高，不代表你已经看懂了变量结构</p>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-tags"></i> 8.2.2 典型载荷 (Canonical Loading)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                想知道综合代表 $U$ 到底在代表谁，就要看载荷。
+            </p>
+            <div class="step tile" style="padding: 5px; border-top-color: #f59e0b;">
+                <h3 style="font-size: 28px;">典型负载系数 (结构相关系数)</h3>
+                <p style="font-size: 24px; line-height: 1.8;">
+                    它是<strong>原始变量</strong>与<strong>自己所在组的典型变量</strong>之间的相关系数：
+                </p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding:5px 40px;">
+                        \[
+                        G_U = \operatorname{Cov}(\boldsymbol{X}, U) = \boldsymbol{\Sigma}_{11} \boldsymbol{a}
+                        \]
+                        \[
+                        G_V = \operatorname{Cov}(\boldsymbol{Y}, V) = \boldsymbol{\Sigma}_{22} \boldsymbol{b}
+                        \]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 20px; color: #b45309; font-weight: bold;">
+                    解释法则：若某个原变量 $X_i$ 与 $U_1$ 的载荷极大，说明 $X_i$ 是这个维度模式的“主要发言人”。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-21">
+        <h2 class="slide-title"><i class="fas fa-random"></i> 交叉载荷 (Cross-loadings)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                除了看本组代表谁，还可以看它和对方组的变量有多贴近。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #ec4899;">
+                <h3 style="font-size: 28px;">交叉负载系数</h3>
+                <p style="font-size: 24px; line-height: 1.8;">
+                    它是原始变量与<strong>另一组</strong>的典型变量之间的相关系数：
+                </p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 20px 40px; border-left: 6px solid #ec4899;">
+                        \[\operatorname{Cov}(\boldsymbol{X}, V) = \boldsymbol{\Sigma}_{12} \boldsymbol{b}, \quad \operatorname{Cov}(\boldsymbol{Y}, U) = \boldsymbol{\Sigma}_{21} \boldsymbol{a}\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 20px; color: #9d174d;">
+                    这能极大帮助我们理解跨组关联的具体细节脉络。
+                </p>
+            </div>
+        </div>
+    </div>
+
+   <div class="slide" id="slide-22">
+    <h2 class="slide-title"><i class="fas fa-id-badge"></i> 怎么给典型变量起名字？</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 28px; color: #3b82f6;">
+            典型变量到底在表达什么，要从权重较大的原始变量里“读出来”。
+        </p>
+
+        <div class="two-column-top" style="gap: 24px;">
+            <div class="step tile" style="padding: 30px; border-top-color: #ec4899;">
+                <h3 style="font-size: 26px; color: #ec4899;">X组：音乐偏好</h3>
+                <p style="font-size: 22px; line-height: 1.8;">
+                    若在第一典型变量 \(U_1\) 中，
+                    <strong>流行、电子</strong> 的权重较大，
+                    而古典、民谣的权重较小，
+                    说明这一组合主要代表一种更活跃、更现代的音乐偏好模式。
+                </p>
+                <p style="font-size: 22px; color: #be185d; font-weight: bold; margin-top: 15px; line-height: 1.7;">
+                    👉 可以把 \(U_1\) 命名为：<br>
+                    “活跃型音乐偏好因子”
+                </p>
+            </div>
+
+            <div class="step tile" style="padding: 30px; border-top-color: #2563eb;">
+                <h3 style="font-size: 26px; color: #2563eb;">Y组：人格特质</h3>
+                <p style="font-size: 22px; line-height: 1.8;">
+                    若在对应的第一典型变量 \(V_1\) 中，
+                    <strong>外向、开放性</strong> 的权重较大，
+                    而责任心、情绪稳定的权重较小，
+                    说明这一组合主要反映一种更外放、更开放的人格模式。
+                </p>
+                <p style="font-size: 22px; color: #1d4ed8; font-weight: bold; margin-top: 15px; line-height: 1.7;">
+                    👉 可以把 \(V_1\) 命名为：<br>
+                    “外向开放型人格因子”
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <span style="font-size: 22px; color: #334155; font-weight: bold;">综合解释：</span>
+            <span style="font-size: 22px; color: #334155; line-height: 1.75;">
+                如果第一典型相关系数较高，就说明“活跃型音乐偏好因子”和“外向开放型人格因子”之间存在较强联系。
+                也就是说，音乐偏好组和人格特质组在这一方向上产生了最强的“共鸣”。
+            </span>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #10b981; padding: 26px;">
+            <h3 style="font-size: 26px; color: #10b981;">命名时要注意什么？</h3>
+            <ul class="bullet-list" style="font-size: 22px; line-height: 1.8; margin-top: 10px;">
+                <li>不要只看一个变量，要看一组权重较大的变量共同表达的含义；</li>
+                <li>命名应尽量概括“这一组合代表的共同特征”；</li>
+                <li>典型变量的名字不是数学规定出来的，而是研究者结合背景作出的解释。</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-23">
+    <h2 class="slide-title"><i class="fas fa-shapes"></i> 典型变量的性质（1/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 28px;">
+            <h3 style="font-size: 23px; color: #7c3aed;"><i class="fas fa-list-check"></i> 典型变量的整体性质</h3>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 12px;">
+                设两组变量经过典型相关分析后，得到 \(r\) 对典型变量
+                \(
+                U_1,U_2,\dots,U_r,\qquad V_1,V_2,\dots,V_r
+                \),
+                则它们具有如下性质：
+            </p>
+
+            <div class="math-center" style="margin-top: 12px;">
+                <div class="math-box" style="font-size: 21px; padding: 5px 18px; text-align: left; width: 100%;">
+                    \[
+                    D(U_k)=1,\qquad D(V_k)=1,\qquad k=1,2,\cdots,r
+                    \]
+                    \[
+                    \operatorname{Cov}(U_i,U_j)=0,\qquad \operatorname{Cov}(V_i,V_j)=0,\qquad i\neq j
+                    \]
+                    \[
+                    \operatorname{Cov}(U_i,V_j)=
+                    \begin{cases}
+                    \lambda_i\neq 0, & i=j,\ i=1,2,\cdots,r\\[4pt]
+                    0, & i\neq j\\[4pt]
+                    0, & j>r
+                    \end{cases}
+                    \]
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="slide-23">
+    <h2 class="slide-title"><i class="fas fa-shapes"></i> 典型变量的性质（1/2）</h2>
+    <div class="content-area">
+       
+        <div class="step two-column-top" style="margin-top: 18px; gap: 22px;">
+            <div class="tile" style="border-top-color: #ec4899; padding: 24px;">
+                <h3 style="font-size: 26px; color: #ec4899;">性质 1</h3>
+                <p style="font-size: 23px; line-height: 1.8;">
+                    每一个典型变量都被标准化，
+                    所以它们的方差都等于 1。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color: #3b82f6; padding: 24px;">
+                <h3 style="font-size: 26px; color: #3b82f6;">性质 2</h3>
+                <p style="font-size: 23px; line-height: 1.8;">
+                    同一组中的不同典型变量两两不相关，
+                    不同组中也只有“同一对”之间可能相关。
+                </p>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                这说明：典型相关分析把两组变量之间的整体相关性，
+                拆成了一对一对彼此独立的“相关通道”。
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-24">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 典型变量的性质（2/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #10b981; padding: 26px;">
+            <h3 style="font-size: 27px; color: #10b981;">1．同一组的典型变量之间互不相关</h3>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                设
+                \[
+                u_k=\mathbf{a}_k^{\prime}\mathbf{x},\qquad
+                v_k=\mathbf{b}_k^{\prime}\mathbf{y},\qquad
+                k,i=1,2,\cdots,r,\ k\neq i
+                \]
+                因为特征向量之间是正交的，所以 \(X\) 组的典型变量之间两两不相关：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 12px 16px; text-align: left; width: 100%;">
+                    \[
+                    \operatorname{cov}(u_k,u_i)
+                    =\operatorname{cov}(\mathbf{a}_k^{\prime}\mathbf{x},\mathbf{a}_i^{\prime}\mathbf{x})
+                    =\mathbf{a}_k^{\prime}\boldsymbol{\Sigma}_{11}\mathbf{a}_i=0
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                同理，\(Y\) 组的典型变量之间也两两不相关：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 12px 16px; text-align: left; width: 100%;">
+                    \[
+                    \operatorname{cov}(v_k,v_i)
+                    =\operatorname{cov}(\mathbf{b}_k^{\prime}\mathbf{y},\mathbf{b}_i^{\prime}\mathbf{y})
+                    =\mathbf{b}_k^{\prime}\boldsymbol{\Sigma}_{22}\mathbf{b}_i=0
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 16px; border-top-color: #f59e0b; padding: 26px;">
+            <h3 style="font-size: 27px; color: #b45309;">2．不同组的典型变量之间的相关性</h3>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                不同组内一对典型变量之间的协方差为：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 19px; padding: 12px 16px; text-align: left; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{cov}(u_i,v_j)
+                    &=\operatorname{cov}(\mathbf{a}_i^{\prime}\mathbf{x},\mathbf{b}_j^{\prime}\mathbf{y}) \\
+                    &=\mathbf{a}_i^{\prime}\operatorname{cov}(\mathbf{x},\mathbf{y})\mathbf{b}_j \\
+                    &=\mathbf{a}_i^{\prime}\boldsymbol{\Sigma}_{12}\mathbf{b}_j \\
+                    &=\boldsymbol{\alpha}_i^{\prime}
+                    \boldsymbol{\Sigma}_{11}^{-1/2}
+                    \boldsymbol{\Sigma}_{12}
+                    \boldsymbol{\Sigma}_{22}^{-1/2}
+                    \boldsymbol{\beta}_j
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 21px; padding: 12px 16px;">
+                    \[
+                    \operatorname{cov}(u_i,v_j)=
+                    \begin{cases}
+                    \rho_i, & i=j \\[4pt]
+                    0, & i\neq j
+                    \end{cases}
+                    \qquad i=1,2,\cdots,\min(p_1,p_2)
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                也就是说：<strong>同一对典型变量之间的协方差就是典型相关系数 \(\rho_i\)，而不同对之间的协方差为零。</strong>
+            </p>
+        </div>
+    </div>
+</div>
+  
+
+
+
+    <div class="slide" id="slide-24">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 典型变量的性质（2/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #10b981; padding: 5px;">
+            <h3 style="font-size: 27px; color: #10b981;">1．同一组的典型变量之间互不相关</h3>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                设
+                \[
+                u_k=\mathbf{a}_k^{\prime}\mathbf{x},\qquad
+                v_k=\mathbf{b}_k^{\prime}\mathbf{y},\qquad
+                k,i=1,2,\cdots,r,\ k\neq i
+                \]
+                因为特征向量之间是正交的，所以 \(X\) 组的典型变量之间两两不相关：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 16px; text-align: left; width: 100%;">
+                    \[
+                    \operatorname{cov}(u_k,u_i)
+                    =\operatorname{cov}(\mathbf{a}_k^{\prime}\mathbf{x},\mathbf{a}_i^{\prime}\mathbf{x})
+                    =\mathbf{a}_k^{\prime}\boldsymbol{\Sigma}_{11}\mathbf{a}_i=0
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                同理，\(Y\) 组的典型变量之间也两两不相关：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 16px; text-align: left; width: 100%;">
+                    \[
+                    \operatorname{cov}(v_k,v_i)
+                    =\operatorname{cov}(\mathbf{b}_k^{\prime}\mathbf{y},\mathbf{b}_i^{\prime}\mathbf{y})
+                    =\mathbf{b}_k^{\prime}\boldsymbol{\Sigma}_{22}\mathbf{b}_i=0
+                    \]
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+</div>
+
+<div class="slide" id="slide-24">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 典型变量的性质（2/2）</h2>
+    <div class="content-area">
+     
+        <div class="step tile" style="margin-top: 16px; border-top-color: #f59e0b; padding: 26px;">
+            <h3 style="font-size: 27px; color: #b45309;">2．不同组的典型变量之间的相关性</h3>
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                不同组内一对典型变量之间的协方差为：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 19px; padding: 5px 16px; text-align: left; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{cov}(u_i,v_j)
+                    &=\operatorname{cov}(\mathbf{a}_i^{\prime}\mathbf{x},\mathbf{b}_j^{\prime}\mathbf{y}) \\
+                    &=\mathbf{a}_i^{\prime}\operatorname{cov}(\mathbf{x},\mathbf{y})\mathbf{b}_j \\
+                    &=\mathbf{a}_i^{\prime}\boldsymbol{\Sigma}_{12}\mathbf{b}_j \\
+                    &=\boldsymbol{\alpha}_i^{\prime}
+                    \boldsymbol{\Sigma}_{11}^{-1/2}
+                    \boldsymbol{\Sigma}_{12}
+                    \boldsymbol{\Sigma}_{22}^{-1/2}
+                    \boldsymbol{\beta}_j
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 21px; padding: 5px 16px;">
+                    \[
+                    \operatorname{cov}(u_i,v_j)=
+                    \begin{cases}
+                    \rho_i, & i=j \\[4pt]
+                    0, & i\neq j
+                    \end{cases}
+                    \qquad i=1,2,\cdots,\min(p_1,p_2)
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 23px; line-height: 1.8; margin-top: 10px;">
+                也就是说：<strong>同一对典型变量之间的协方差就是典型相关系数 \(\rho_i\)，而不同对之间的协方差为零。</strong>
+            </p>
+        </div>
+    </div>
+</div>
+
+    <!-- ==================== Part 4 结果解释 ==================== -->
+    <div class="slide section-slide" id="slide-16">
+        <h2>结果怎么看？</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">不仅看相关有多强，还要看它意味着什么</p>
+    </div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 先看典型相关系数强不强</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">计算出 $p$ 个特征值后，我们就得到了 $p$ 个典型相关系数：$\lambda_1 \ge \lambda_2 \ge \cdots \ge \lambda_p$。</p>
+            <div class="step tile" style="padding: 40px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 28px;">观察重点：</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li><strong>第一典型相关系数 $\lambda_1$</strong> 通常最大，代表了两组变量之间最主要、最明显的关联途径。</li>
+                    <li>后续的系数依次递减，代表正交维度下的次级联系。</li>
+                    <li><span style="color: #ef4444; font-weight: bold;">并不是每一对都值得认真解释！</span>后面很小的相关系数可能全是噪声。</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 30px; font-size: 28px; color: #1e293b; font-weight: bold;">
+                自然的问题来了：这数字看着挺大，会不会只是样本偶尔热闹一下？
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-vial"></i> 8.3 典型相关系数的显著性检验</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">必须进行严格的假设检验，确认相关性具有统计学显著意义。</p>
+            <div class="step tile" style="padding: 5px; border-top-color: #ef4444; margin-top: 15px;">
+                <h3 style="font-size: 26px;">原假设：两组变量彻底不相关</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 30px;">
+                        \[H_0: \boldsymbol{\Sigma}_{12} = \boldsymbol{O} \quad (\text{即 } \operatorname{Cov}(\boldsymbol{X}, \boldsymbol{Y}) = 0)\]
+                    </div>
+                </div>
+            </div>
+            <div class="step tile" style="padding: 5px; border-top-color: #10b981; margin-top: 15px;">
+                <h3 style="font-size: 26px;">Wilks' $\Lambda$ 与 Bartlett $\chi^2$ 检验</h3>
+                <p style="font-size: 22px;">构造基于特征根连乘的 Wilks 统计量，并用卡方近似：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 21px; padding: 5px 40px; border-left: 6px solid #10b981;">
+                        \[\Lambda_1 = \prod_{i=1}^p (1 - \lambda_i^2),\quad
+                        Q_1 = -\left[ n - 1 - \frac{1}{2}(p+q+1) \right] \ln \Lambda_1 \sim \chi^2(p \times q)\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; color: #065f46; text-align: center; margin-top: 10px;">
+                    若 $Q_1$ 显著，则保留第一对。然后剥洋葱式地剔除 $\lambda_1$，检验剩下的乘积 $\Lambda_2$，直到不显著为止。
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="slide" id="slide-25">
+    <h2 class="slide-title"><i class="fas fa-vial"></i> 典型相关系数的显著性检验：整体检验（1/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 28px;">
+            <h3 style="font-size: 28px; color: #7c3aed;"><i class="fas fa-bullseye"></i> 检验目标</h3>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                首先要检验的是：两组变量之间是否<strong>整体上不存在相关关系</strong>。
+            </p>
+
+            <div class="math-center" style="margin-top: 12px;">
+                <div class="math-box" style="font-size: 22px; padding: 14px 18px; text-align: left;">
+                    \[
+                    H_0:\ \Sigma_{xy}=0
+                    \qquad ; \qquad
+                    H_1:\ \Sigma_{xy}\neq 0
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 12px;">
+                等价地，也可以写成：
+            </p>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 22px; padding: 14px 18px;">
+                    \[
+                    H_0:\ \rho_1=\rho_2=\cdots=\rho_r=0
+                    \]
+                    \[
+                    H_1:\ \rho_i\ (i=1,2,\cdots,r)\ \text{中至少有一个不为零}
+                    \]
+                </div>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+
+    <div class="slide" id="slide-25">
+    <h2 class="slide-title"><i class="fas fa-vial"></i> 典型相关系数的显著性检验：整体检验（1/2）</h2>
+    <div class="content-area">
+       
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #ec4899; padding: 28px;">
+            <h3 style="font-size: 28px; color: #ec4899;"><i class="fas fa-calculator"></i> 似然比统计量</h3>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                根据随机向量检验理论，用于整体检验的似然比统计量为：
+            </p>
+
+            <div class="math-center" style="margin-top: 12px;">
+                <div class="math-box" style="font-size: 21px; padding: 14px 18px; text-align: left; width: 100%;">
+                    \[
+                    \Lambda_1
+                    =
+                    \frac{|\hat{\boldsymbol{\Sigma}}|}
+                    {|\hat{\boldsymbol{\Sigma}}_{11}|\ |\hat{\boldsymbol{\Sigma}}_{22}|}
+                    =
+                    \prod_{i=1}^{r}\left(1-\hat{\lambda}_i^2\right)
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                这个统计量反映的是：如果原假设成立，那么两组变量之间的协方差结构是否接近于“完全没有联系”的状态。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-26">
+    <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 典型相关系数的显著性检验：整体检验（2/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #10b981; padding: 5px;">
+            <h3 style="font-size: 28px; color: #10b981;"><i class="fas fa-function"></i> 构造检验统计量</h3>
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 10px;">
+                在原假设 \(H_0\) 成立的条件下，构造统计量：
+            </p>
+
+            <div class="math-center" style="margin-top: 12px;">
+                <div class="math-box" style="font-size: 22px; padding: 5px 18px; width: 100%; text-align: left;">
+                    \[
+                    Q=
+                    -\left[(n-1)-\frac{p+q+1}{2}\right]\ln \Lambda_1
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 24px; line-height: 1.8; margin-top: 14px;">
+                该统计量近似服从自由度为 \(pq\) 的卡方分布：
+            </p>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 22px; padding: 5px 18px;">
+                    \[
+                    Q \sim \chi^2(pq)
+                    \]
+                </div>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-26">
+    <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 典型相关系数的显著性检验：整体检验（2/2）</h2>
+    <div class="content-area">
+      
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #f59e0b; padding: 5px;">
+            <h3 style="font-size: 28px; color: #b45309;"><i class="fas fa-gavel"></i> 判决规则</h3>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 10px;">
+                在给定显著性水平 \(\alpha\) 下，如果
+            </p>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 22px; padding: 5px 18px;">
+                    \[
+                    Q \ge \chi^2_{\alpha}(pq)
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 12px;">
+                则拒绝原假设 \(H_0\)，说明两组变量之间的整体相关性显著，
+                即至少存在一对典型变量之间的相关性不为零。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                所以，整体检验回答的是一个最基本的问题：  
+                <strong>两组变量之间到底有没有值得进一步分析的整体联系？</strong>
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 16px; text-align: center;">
+            <p style="font-size: 26px; font-weight: bold; color: #2563eb;">
+                先做整体检验，显著了，才有必要继续研究第一对、第二对典型变量。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-27">
+    <h2 class="slide-title"><i class="fas fa-step-forward"></i> 典型相关系数的显著性检验：逐次检验（1/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #8b5cf6; padding: 5px;">
+            <h3 style="font-size: 23px; color: #7c3aed;"><i class="fas fa-bullseye"></i> 为什么还需要逐次检验？</h3>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 10px;">
+                整体检验只能告诉我们：两组变量之间是否<strong>整体上存在相关性</strong>。  
+                但它并不能回答：<strong>到底有几对典型变量是显著的？</strong>
+            </p>
+            <p style="font-size: 21px; line-height: 1.85; margin-top: 10px;">
+                因此，在整体检验显著之后，还要进一步做逐次检验，
+                依次判断后面的典型相关系数是否仍然显著。
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #ec4899; padding: 5px;">
+            <h3 style="font-size: 23px; color: #ec4899;"><i class="fas fa-list-ol"></i> 逐次检验的思路</h3>
+            <ul class="bullet-list" style="margin-top: 14px; font-size: 21px; line-height: 1.85;">
+                <li>先检验：\(\rho_1,\rho_2,\dots,\rho_r\) 是否全为 0；</li>
+                <li>若拒绝原假设，再检验：\(\rho_2,\rho_3,\dots,\rho_r\) 是否全为 0；</li>
+                <li>若仍拒绝，再检验：\(\rho_3,\rho_4,\dots,\rho_r\) 是否全为 0；</li>
+                <li>如此继续，直到某一步不能拒绝原假设为止。</li>
+            </ul>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 20px; line-height: 1.75;">
+                也就是说：逐次检验的任务，就是确定<strong>到底保留前几对典型变量</strong>，
+                以及从哪一对开始，相关性已经不再显著。
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-28">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 典型相关系数的显著性检验：逐次检验（2/2）</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color: #10b981; padding: 5px;">
+            <h3 style="font-size: 22px; color: #10b981;"><i class="fas fa-function"></i> 第 \(k\) 步的原假设： 在第 \(k\) 步，我们检验：</h3>
+           
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 18px; text-align: left;">
+                    \[
+                    H_0:\ \rho_k=\rho_{k+1}=\cdots=\rho_r=0
+                    \]
+                    \[
+                    H_1:\ \rho_k,\rho_{k+1},\dots,\rho_r \text{ 中至少有一个不为零}
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color: #f59e0b; padding: 28px;">
+            <h3 style="font-size: 22px; color: #b45309;"><i class="fas fa-chart-bar"></i> 检验统计量：第 \(k\) 步的似然比统计量为：</h3>
+           
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 20px; padding:5px 18px;">
+                    \[
+                    \Lambda_k=\prod_{i=k}^{r}(1-\hat{\lambda}_i^2)
+                    \]
+                </div>
+            </div>
+
+            
+        </div>
+
+       
+    </div>
+</div>
+
+
+<div class="slide" id="slide-28">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 典型相关系数的显著性检验：逐次检验（2/2）</h2>
+    <div class="content-area">
+       
+        <div class="step tile" style="margin-top: 18px; border-top-color: #f59e0b; padding: 5px;">
+           
+
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 12px;">
+                对应的检验统计量可写为：
+            </p>
+
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 22px; padding: 5px 18px; width: 100%; text-align: left;">
+                    \[
+                    Q_k=
+                    -\left[(n-1)-\frac{p+q+1}{2}\right]\ln \Lambda_k
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 12px;">
+                其近似服从自由度为
+                \(
+                (p-k+1)(q-k+1)
+                \)
+                的卡方分布。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top: 18px;">
+            <p style="font-size: 24px; line-height: 1.75;">
+                若第 \(k\) 步检验不显著，就说明从第 \(k\) 对开始，后面的典型变量都可以不再保留。  
+                所以前面显著的那几对，才是真正值得解释和分析的核心结构。
+            </p>
+        </div>
+    </div>
+</div>
+  <!-- ==================== Part 6 冗余分析 ==================== -->
+    <div class="slide section-slide" id="slide-23">
+        <h2>冗余分析 (Redundancy Analysis)</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">既要相关得高，也要代表得住</p>
+    </div>
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> 为什么还要看冗余分析？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #ef4444;">
+                相关系数高，不等于整体解释能力就一定强！
+            </p>
+            <div class="step tile" style="padding: 40px; background: #fff1f2; border-top-color: #ef4444;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2;">
+                    <li>典型相关高，只表示两位“代表”（$U, V$）彼此聊得很投机。</li>
+                    <li>但如果这两位代表在各自团队里是个非主流（方差占比极低），那他们的投机就毫无全局意义。</li>
+                    <li><strong>冗余分析衡量的是：一组典型变量对另一组原变量的平均解释程度。</strong></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-25">
+        <h2 class="slide-title"><i class="fas fa-chart-pie"></i> 冗余度怎么算，怎么理解</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">冗余的本质是：在对方组方差中，能被本组提取并解释的<strong>共享方差百分比</strong>。</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #10b981;">
+                    \[R_{du}^{(i)} = \frac{G_U^{\prime} G_U}{p} \times \lambda_i\]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 25px; padding: 30px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 26px;">直白分解：好看不好用？看它！</h3>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 1.8;">
+                    <li>前半部分 $\frac{G_U^{\prime} G_U}{p}$：典型变量先解释了<strong>本组</strong>多少方差（代表性能否服众）。</li>
+                    <li>后半部分 $\lambda_i$：典型相关的平方（与外组联系紧不紧密）。</li>
+                    <li>两者相乘，才是一个具有极强实战价值的全局解释力指标。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Part 7 边界与局限 ==================== -->
+    <div class="slide section-slide" id="slide-26">
+        <h2>适用条件与常见误区</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">典型相关分析不是谁都能硬上</p>
+    </div>
+
+    <div class="slide" id="slide-27">
+        <h2 class="slide-title"><i class="fas fa-check-square"></i> 什么场景适合做典型相关分析？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                只要你关心的是“两组变量整体之间”的关系，它就有用武之地。
+            </p>
+            <div class="step tile" style="padding: 40px; background: #f8fafc;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2;">
+                    <li>心理特质量表组 $\times$ 行为表现反馈组</li>
+                    <li>生活饮食方式组 $\times$ 血液健康生化指标组</li>
+                    <li>企业研发经济投入组 $\times$ 市场转化产出绩效组</li>
+                    <li>APP用户使用行为组 $\times$ 平台留存变现结果组</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" id="slide-31">
+    <h2 class="slide-title"><i class="fas fa-music"></i> 例题：音乐偏好与人格特质的典型相关分析</h2>
+    <div class="content-area">
+       
+
+        <div class="step two-column-top" style="margin-top:18px; gap:22px;">
+            <div class="tile" style="border-top-color:#ec4899; padding:5px;">
+                <h3 style="font-size:26px; color:#ec4899;">音乐偏好组 \(X\)</h3>
+                <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                    \(X_1\)：流行偏好<br>
+                    \(X_2\)：古典偏好
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#2563eb; padding:5px;">
+                <h3 style="font-size:26px; color:#2563eb;">人格特质组 \(Y\)</h3>
+                <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                    \(Y_1\)：外向性<br>
+                    \(Y_2\)：责任心
+                </p>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#10b981; padding:5px;">
+            <h3 style="font-size:26px; color:#10b981;">样本相关矩阵</h3>
+            <div class="math-center" style="margin-top:10px;">
+                <div class="math-box" style="font-size:22px; padding:14px 20px; text-align:left;">
+                    \[
+                    R=
+                    \begin{pmatrix}
+                    1 & 0.3 & 0.6 & 0.2\\
+                    0.3 & 1 & 0.3 & 0.5\\
+                    0.6 & 0.3 & 1 & 0.4\\
+                    0.2 & 0.5 & 0.4 & 1
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                样本量取 \(n=100\)。
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-32">
+    <h2 class="slide-title"><i class="fas fa-th"></i> 第一步：写出分块矩阵并构造特征方程</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#3b82f6; padding:5px;">
+            <h3 style="font-size:26px; color:#2563eb;">分块矩阵</h3>
+            <div class="math-center" style="margin-top:10px;">
+                <div class="math-box" style="font-size:18px; padding:5px 18px; text-align:left;">
+                    \[
+                    R_{11}=
+                    \begin{pmatrix}
+                    1 & 0.3\\
+                    0.3 & 1
+                    \end{pmatrix},\quad
+                    R_{22}=
+                    \begin{pmatrix}
+                    1 & 0.4\\
+                    0.4 & 1
+                    \end{pmatrix}
+                    \]
+                    \[
+                    R_{12}=
+                    \begin{pmatrix}
+                    0.6 & 0.2\\
+                    0.3 & 0.5
+                    \end{pmatrix},\quad
+                    R_{21}=R_{12}^{\prime}
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#ec4899; padding:5px;">
+            <h3 style="font-size:26px; color:#ec4899;">求逆矩阵</h3>
+            <div class="math-center" style="margin-top:10px;">
+                <div class="math-box" style="font-size:18px; padding:5px 18px; text-align:left; width:100%;">
+                    \[
+                    R_{11}^{-1}
+                    =
+                    \frac{1}{1-0.3^2}
+                    \begin{pmatrix}
+                    1 & -0.3\\
+                    -0.3 & 1
+                    \end{pmatrix}
+                    =
+                    \begin{pmatrix}
+                    1.0989 & -0.3297\\
+                    -0.3297 & 1.0989
+                    \end{pmatrix}
+                    \]
+                    \[
+                    R_{22}^{-1}
+                    =
+                    \frac{1}{1-0.4^2}
+                    \begin{pmatrix}
+                    1 & -0.4\\
+                    -0.4 & 1
+                    \end{pmatrix}
+                    =
+                    \begin{pmatrix}
+                    1.1905 & -0.4762\\
+                    -0.4762 & 1.1905
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-32">
+    <h2 class="slide-title"><i class="fas fa-th"></i> 第一步：写出分块矩阵并构造特征方程</h2>
+    <div class="content-area">
+       
+        <div class="step tile" style="margin-top:18px; border-top-color:#10b981; padding:5px;">
+            <h3 style="font-size:26px; color:#10b981;">构造矩阵</h3>
+            <p style="font-size:23px; line-height:1.8; margin-top:8px;">
+                计算
+                \[
+                M=R_{11}^{-1}R_{12}R_{22}^{-1}R_{21}
+                \]
+            </p>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:21px; padding:5px 18px;">
+                    \[
+                    M=
+                    \begin{pmatrix}
+                    94/273 & 25/273\\
+                    16/273 & 64/273
+                    \end{pmatrix}
+                    \approx
+                    \begin{pmatrix}
+                    0.3443 & 0.0916\\
+                    0.0586 & 0.2344
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide" id="slide-33">
+    <h2 class="slide-title"><i class="fas fa-square-root-alt"></i> 第二步：求典型相关系数</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#8b5cf6; padding:26px;">
+            <h3 style="font-size:26px; color:#7c3aed;">特征方程： 设 \(\lambda\) 为矩阵 \(M\) 的特征值，则满足：</h3>
+           
+            <div class="math-center" style="margin-top:10px;">
+                <div class="math-box" style="font-size:21px; padding:5px 18px; text-align:left;">
+                    \[
+                    |M-\lambda I|=0
+                    \]
+                    \[
+                    \left|
+                    \begin{matrix}
+                    94/273-\lambda & 25/273\\
+                    16/273 & 64/273-\lambda
+                    \end{matrix}
+                    \right|=0
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#ec4899; padding:5px;">
+            <h3 style="font-size:26px; color:#ec4899;">求得两个特征值</h3>
+            <div class="math-center" style="margin-top:10px;">
+                <div class="math-box" style="font-size:22px; padding:5px 18px;">
+                    \[
+                    \lambda_1=\frac{8}{21}\approx 0.3810,\qquad
+                    \lambda_2=\frac{18}{91}\approx 0.1978
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="slide" id="slide-33">
+    <h2 class="slide-title"><i class="fas fa-square-root-alt"></i> 第二步：求典型相关系数</h2>
+    <div class="content-area">
+       
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#ec4899; padding:5px;">
+           
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                因而两个典型相关系数分别为：
+            </p>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:22px; padding:5px 18px; border-left:6px solid #ec4899;">
+                    \[
+                    \rho_1=\sqrt{\lambda_1}=\sqrt{\frac{8}{21}}\approx 0.6172
+                    \]
+                    \[
+                    \rho_2=\sqrt{\lambda_2}=\sqrt{\frac{18}{91}}\approx 0.4447
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top:18px;">
+            <p style="font-size:24px; line-height:1.75;">
+                这说明：音乐偏好组与人格特质组之间，第一对综合变量的相关性最强，
+                其典型相关系数约为 <strong>0.6172</strong>；
+                第二对典型变量的相关性次之，约为 <strong>0.4447</strong>。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-34">
+    <h2 class="slide-title"><i class="fas fa-1"></i> 第三步：求第一对典型变量 \(U_1,V_1\)</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#3b82f6; padding:26px;">
+            <h3 style="font-size:26px; color:#2563eb;">求 \(a_1\)</h3>
+            <p style="font-size:23px; line-height:1.8; margin-top:8px;">
+                对应于 \(\lambda_1=8/21\)，可求得特征向量比例为：
+            </p>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:22px; padding:14px 18px;">
+                    \[
+                    a_1 \propto
+                    \begin{pmatrix}
+                    5/2\\
+                    1
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                再按约束 \(a_1^{\prime}R_{11}a_1=1\) 标准化，得到：
+            </p>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:22px; padding:14px 18px;">
+                    \[
+                    a_1=
+                    \begin{pmatrix}
+                    \sqrt{35}/7\\
+                    2\sqrt{35}/35
+                    \end{pmatrix}
+                    \approx
+                    \begin{pmatrix}
+                    0.8452\\
+                    0.3381
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+
+
+       
+    </div>
+</div>
+
+   <div class="slide" id="slide-34">
+    <h2 class="slide-title"><i class="fas fa-1"></i> 第三步：求第一对典型变量 \(U_1,V_1\)</h2>
+    <div class="content-area">
+       
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#ec4899; padding:5px;">
+            <h3 style="font-size:21px; color:#ec4899;">求 \(b_1\): 利用
+                \(
+                b_1=\frac{1}{\rho_1}R_{22}^{-1}R_{21}a_1
+                \),
+                可得</h3>
+            
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:20px; padding:5px 18px;">
+                    \[
+                    b_1=
+                    \begin{pmatrix}
+                    \sqrt{30}/6\\
+                    \sqrt{30}/30
+                    \end{pmatrix}
+                    \approx
+                    \begin{pmatrix}
+                    0.9129\\
+                    0.1826
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#10b981; padding:5px;">
+            <h3 style="font-size:22px; color:#10b981;">第一对典型变量</h3>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:20px; padding:5px 18px; text-align:left; width:100%;">
+                    \[
+                    U_1=0.8452X_1+0.3381X_2
+                    \]
+                    \[
+                    V_1=0.9129Y_1+0.1826Y_2
+                    \]
+                </div>
+            </div>
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                其中 \(U_1\) 更偏向于“流行偏好”，而 \(V_1\) 更偏向于“外向性”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+  <div class="slide" id="slide-35">
+    <h2 class="slide-title"><i class="fas fa-2"></i> 第四步：求第二对典型变量 \(U_2,V_2\)</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#8b5cf6; padding:5px;">
+            <h3 style="font-size:26px; color:#7c3aed;">第二对典型系数</h3>
+            <p style="font-size:23px; line-height:1.8; margin-top:8px;">
+                对应于 \(\lambda_2=18/91\)，可求得：
+            </p>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:22px; padding:5px 18px; text-align:left; width:100%;">
+                    \[
+                    a_2 \approx
+                    \begin{pmatrix}
+                    -0.6202\\
+                    0.9923
+                    \end{pmatrix},
+                    \qquad
+                    b_2 \approx
+                    \begin{pmatrix}
+                    -0.5976\\
+                    1.0757
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#3b82f6; padding:5px;">
+            <h3 style="font-size:26px; color:#2563eb;">第二对典型变量</h3>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:21px; padding:5px 18px; text-align:left; width:100%;">
+                    \[
+                    U_2=-0.6202X_1+0.9923X_2
+                    \]
+                    \[
+                    V_2=-0.5976Y_1+1.0757Y_2
+                    \]
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-35">
+    <h2 class="slide-title"><i class="fas fa-2"></i> 第四步：求第二对典型变量 \(U_2,V_2\)</h2>
+    <div class="content-area">
+       
+
+
+        <div class="step two-column-top" style="margin-top:18px; gap:22px;">
+            <div class="tile" style="border-top-color:#ec4899; padding:5px;">
+                <h3 style="font-size:25px; color:#ec4899;">解释 \(U_2\)</h3>
+                <p style="font-size:22px; line-height:1.8;">
+                    \(U_2\) 中古典偏好的系数为正且较大，
+                    流行偏好的系数为负，
+                    说明这一维更像是“古典倾向相对于流行倾向”的对比方向。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#10b981; padding:24px;">
+                <h3 style="font-size:25px; color:#10b981;">解释 \(V_2\)</h3>
+                <p style="font-size:22px; line-height:1.8;">
+                    \(V_2\) 中责任心的系数更大，
+                    外向性的系数为负，
+                    说明这一维更像是“责任心相对于外向性”的对比方向。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="slide" id="slide-36">
+    <h2 class="slide-title"><i class="fas fa-vial"></i> 第五步：显著性检验</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#ec4899; padding:5px;">
+            <h3 style="font-size:26px; color:#ec4899;">1．整体检验</h3>
+            <p style="font-size:23px; line-height:1.8; margin-top:8px;">
+                原假设：
+            </p>
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:21px; padding:5px 18px;">
+                    \[
+                    H_0:\rho_1=\rho_2=0
+                    \qquad
+                    H_1:\text{至少有一个}\rho_i\neq 0
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                由
+                \(
+                \Lambda_1=(1-\rho_1^2)(1-\rho_2^2)
+                =(1-0.3810)(1-0.1978)\approx 0.4966
+                \)
+            </p>
+
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:21px; padding:5px 18px; width:100%; text-align:left;">
+                    \[
+                    Q=
+                    -\left[(n-1)-\frac{p+q+1}{2}\right]\ln\Lambda_1
+                   
+                    =
+                    -\left[99-\frac{5}{2}\right]\ln(0.4966)
+                    \approx 67.55
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                自由度为 \(pq=4\)，查表得
+                \(\chi^2_{0.05}(4)=9.488\)。
+                因为
+                \(
+                67.55>9.488
+                \),
+                所以拒绝 \(H_0\)，说明两组变量之间整体相关性显著。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+<div class="slide" id="slide-36">
+    <h2 class="slide-title"><i class="fas fa-vial"></i> 第五步：显著性检验</h2>
+    <div class="content-area">
+   
+
+        <div class="step tile" style="margin-top:18px; border-top-color:#10b981; padding:5px;">
+            <h3 style="font-size:26px; color:#10b981;">2．逐次检验第二对典型相关系数</h3>
+            <p style="font-size:23px; line-height:1.8; margin-top:8px;">
+                检验:
+                \(
+                H_0:\rho_2=0
+                \qquad
+                H_1:\rho_2\neq 0
+                \)
+            </p>
+
+            <p style="font-size:23px; line-height:1.8; margin-top:8px;">
+                此时
+                \(
+                \Lambda_2=1-\rho_2^2=1-0.1978=0.8022
+                \)
+            </p>
+
+            <div class="math-center" style="margin-top:8px;">
+                <div class="math-box" style="font-size:21px; padding:5px 18px;">
+                    \[
+                    Q_2=
+                    -\left[99-\frac{5}{2}\right]\ln(0.8022)
+                    \approx 21.27
+                    \]
+                </div>
+            </div>
+
+            <p style="font-size:23px; line-height:1.8; margin-top:10px;">
+                自由度为 \((2-2+1)(2-2+1)=1\)，查表得
+                \(\chi^2_{0.05}(1)=3.841\)。
+                因为
+                \(
+                21.27>3.841
+                \),
+                所以第二对典型相关系数也显著。
+            </p>
+        </div>
+
+        <div class="step info-box" style="margin-top:18px;">
+            <p style="font-size:24px; line-height:1.75;">
+                结论：本例中两对典型变量都显著。  
+                第一对反映“流行偏好－外向性”方向上的最强联系，  
+                第二对则反映“古典偏好－责任心”方向上的次强联系。
+            </p>
+        </div>
+    </div>
+</div>
+
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-bomb"></i> 避坑提醒：常见使用误区</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">这些坑，第一次做 CCA 时特别容易踩：</p>
+            <div class="step tile" style="border-top-color: #ef4444; padding: 40px; background: #fff1f2;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2.2; color: #9d174d;">
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>过度解读弱相关：</strong> 只看第一典型相关系数，不做显著性检验。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>本末倒置看系数：</strong> 解释维度时只看组合系数 $\boldsymbol{a}$，而不看结构载荷 $G_U$（系数可能因为共线性而失真）。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>无视冗余：</strong> 报告了很高的典型相关，却不报冗余度（结果发现只解释了原变量的 5%）。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> <strong>样本太少变量太多：</strong> 当 $n$ 不够大时，算出来的极值全是在拟合随机噪声。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-29">
+        <h2 class="slide-title"><i class="fas fa-map-signs"></i> 方法边界：与其他多元方法的区别</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">它像很多方法，但它有自己明确的地盘：</p>
+            <div class="step tile" style="padding: 30px; border-top-color: #3b82f6;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li><strong>与简单相关分析：</strong> 相关是一对一，CCA 是“组对组”。</li>
+                    <li><strong>与多元回归：</strong> 回归强调不对称的因果预测（很多 $X$ 预测一个 $Y$），CCA 强调<strong>完全对称的整体关联</strong>。</li>
+                    <li><strong>与主成分 (PCA)：</strong> PCA 关注<strong>本组内部</strong>的方差提炼，CCA 关注<strong>两组之间</strong>的相关提炼。</li>
+                    <li><strong>与判别分析：</strong> 判别有离散类别标签，CCA 两边都是连续变量（无分类任务）。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-30">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 8 章 本章小结</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 26px;">
+                    <li><span class="highlight-blue">方法定位：</span> 典型相关分析用于研究“两组变量整体之间”的线性关联结构，弥补了简单相关只能碎片化计算的不足。</li>
+                    <li><span class="highlight-blue">数学本质：</span> 通过寻找两组变量各自的最优线性组合（典型变量），使得它们之间的相关系数在所有可能性中达到最大。</li>
+                    <li><span class="highlight-blue">主次分明：</span> 第一对典型变量反映最主要的组间联系，后续典型变量在正交前提下反映次级联系。</li>
+                    <li><span class="highlight-blue">科学解释：</span> 结果解释绝不能只看典型相关系数大小，还要严格结合显著性检验、典型载荷矩阵和<strong>冗余分析</strong>综合评判。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-31">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课后思考与作业</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 50px;">
+                <h3 style="font-size: 32px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 课堂深入探讨</h3>
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2; margin-top: 20px;">
+                    <li>如果你面对一份“生活方式组量表”和“健康体检指标组”，你会怎么开始做 CCA？需要提前做标准化吗？</li>
+                    <li>如果算出来第一典型相关系数高达 0.85，但是冗余度只有 0.05，这在现实中意味着什么尴尬局面？</li>
+                    <li>什么时候你应该停下，不要过度去解释后面微弱的典型变量？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 60px;">
+                <a href="#" class="hw-btn" onclick="alert('即将跳转到网络作业库：Chapter 8 Assignment'); return false;" style="background: linear-gradient(135deg, #2563eb, #8b5cf6); color: white; padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); border: none; cursor: pointer;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Online Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+  
+
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        const html = document.documentElement;
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+        let isSlideshowMode = false;
+
+        slides.forEach(slide => {
+            const steps = slide.querySelectorAll('.step');
+            steps.forEach(step => step.classList.remove('visible'));
+        });
+
+        function revealAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+        }
+
+        function hideAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progress.style.width = percent + '%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function showSlide(index) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            slides.forEach((slide, i) => {
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+        }
+
+        function advance() {
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function goBack() {
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+                revealAllSteps(slides[currentSlideIndex]);
+            }
+        }
+
+        function updateSlideshowScale() {
+            if (!isSlideshowMode) return;
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function scrollToCurrentSlide() {
+            const slide = slides[currentSlideIndex];
+            if (!slide) return;
+            slide.scrollIntoView({ block: 'start', behavior: 'auto' });
+            window.scrollBy(0, -12);
+        }
+
+        function enterBrowseMode() {
+            isSlideshowMode = false;
+            body.classList.add('browse-mode');
+            body.classList.remove('slideshow-mode');
+            html.classList.add('browse-mode');
+            slides.forEach(slide => {
+                slide.classList.add('active');
+                revealAllSteps(slide);
+            });
+            progress.style.width = '0%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+            requestAnimationFrame(scrollToCurrentSlide);
+        }
+
+        function enterSlideshowMode(targetIndex = currentSlideIndex) {
+            isSlideshowMode = true;
+            currentSlideIndex = Math.max(0, Math.min(targetIndex, slides.length - 1));
+            body.classList.add('slideshow-mode');
+            body.classList.remove('browse-mode');
+            html.classList.remove('browse-mode');
+            slides.forEach((slide, i) => {
+                hideAllSteps(slide);
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+            updateSlideshowScale();
+        }
+
+        function getClosestSlideIndexInBrowseMode() {
+            const viewportMid = window.scrollY + window.innerHeight * 0.35;
+            let bestIndex = 0;
+            let bestDistance = Infinity;
+            slides.forEach((slide, idx) => {
+                const top = slide.offsetTop;
+                const center = top + slide.offsetHeight / 2;
+                const dist = Math.abs(center - viewportMid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIndex = idx;
+                }
+            });
+            return bestIndex;
+        }
+
+        async function toggleFullScreenFromCurrent() {
+            if (!document.fullscreenElement) {
+                currentSlideIndex = getClosestSlideIndexInBrowseMode();
+                enterSlideshowMode(currentSlideIndex);
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.log(`全屏请求被拒绝: ${err.message}`);
+                    enterBrowseMode();
+                }
+            } else {
+                await document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                enterSlideshowMode(currentSlideIndex);
+            } else {
+                enterBrowseMode();
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (!isSlideshowMode) return;
+            if (e.target.closest('.hw-btn')) return;
+            advance();
+        });
+
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                await toggleFullScreenFromCurrent();
+                return;
+            }
+
+            if (!isSlideshowMode) return;
+
+            if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                e.preventDefault();
+                advance();
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                e.preventDefault();
+                goBack();
+            } else if (e.key === 'Escape' && document.fullscreenElement) {
+                e.preventDefault();
+                document.exitFullscreen();
+            }
+        });
+
+        window.addEventListener('resize', updateSlideshowScale);
+
+        enterBrowseMode();
+    });
+</script>
+
+</body>
+</html>

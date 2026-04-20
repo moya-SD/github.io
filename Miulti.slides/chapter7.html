@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 第7章 对应分析</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+     <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #1e293b; 
+            width: 100vw; min-height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0; padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body.browse-mode {
+            background-color: #0f172a;
+            padding: 24px 0 48px;
+        }
+
+        body.slideshow-mode {
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器 (严格锁定 1280x720)
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        body.browse-mode #presentation-container {
+            position: relative;
+            top: auto; left: auto;
+            width: min(1280px, calc(100vw - 48px));
+            height: auto;
+            min-height: unset;
+            transform: none !important;
+            margin: 0 auto;
+            box-shadow: none;
+            border-radius: 0;
+            background: transparent;
+            overflow: visible;
+        }
+
+        #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        body.browse-mode .slide {
+            position: relative;
+            top: auto; left: auto;
+            width: 1280px; height: 720px;
+            opacity: 1 !important;
+            pointer-events: auto;
+            z-index: auto;
+            margin: 0 auto 28px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+            overflow: hidden;
+            page-break-after: always;
+            break-after: page;
+        }
+
+        body.browse-mode .slide:last-of-type {
+            margin-bottom: 0;
+        }
+
+        body.browse-mode .step {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #0f172a;
+            margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 65px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; 
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 26px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 12px; font-size: 26px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 30px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 30px; color: #0f172a; margin-bottom: 15px; font-family: 'Noto Serif SC', serif;}
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 24px; background: #fff;}
+        th, td { border: 2px solid #cbd5e1; padding: 10px 15px; text-align: center; color: #1e293b;}
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+        .table-small { font-size: 20px; } 
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 12px 25px;
+            color: #000000 !important; /* 强制纯黑 */
+            font-size: 28px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; font-size: 28px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 20px 30px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 26px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* 图片占位符 */
+        .image-placeholder {
+            width: 100%; height: 350px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: #64748b; font-size: 22px;
+        }
+        .image-placeholder i { font-size: 64px; color: #94a3b8; margin-bottom: 15px; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+         .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+          .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+        body.browse-mode .progress-bar,
+        body.browse-mode .slide-counter {
+            display: none !important;
+        }
+       body.browse-mode .slide.title-slide {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body.browse-mode .slide.title-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 1;
+}
+
+body.browse-mode .slide.section-slide {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+}
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+
+            html, body {
+                width: 100%;
+                min-height: auto;
+                background: #ffffff !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                display: block;
+            }
+
+            #presentation-container {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                transform: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
+            }
+
+            .slide {
+                position: relative !important;
+                width: 100vw !important;
+                height: calc(100vw * 9 / 16) !important;
+                max-height: 100vh !important;
+                min-height: 0 !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                page-break-after: always;
+                break-after: page;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: hidden !important;
+            }
+
+            .slide:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
+
+            .step {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            .progress-bar,
+            .slide-counter {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-map-marked-alt"></i> 第7章</div>
+            <h1>对应分析：<span>把列联表变成关系地图</span></h1>
+            <p class="subtitle">从“频数表”走向直观的“类别关系图”</p>
+            
+           
+        </div>
+    </div>
+
+
+     <!-- ==================== 封面页 ==================== -->
+    
+
+    <!-- ==================== Part 1 导入 ==================== -->
+    <div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 导入案例：一张列联表，真的只能看“频数高低”吗？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px; line-height: 1.3;">假设我们在调查“不同专业的研究生，对常用 AI 工具的偏好”。我们得到了如下的交叉频数表（列联表）：</p>
+            <div class="step" style="margin-top: 10px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>专业 \ AI用途</th>
+                            <th>代码辅助</th>
+                            <th>论文润色</th>
+                            <th>数据绘图</th>
+                            <th>日常摸鱼</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><th>计算机</th><td style="font-weight:bold; color:#2563eb;">85</td><td>15</td><td>20</td><td>10</td></tr>
+                        <tr><th>统计学</th><td>30</td><td>25</td><td style="font-weight:bold; color:#ec4899;">60</td><td>15</td></tr>
+                        <tr><th>文学</th><td>5</td><td style="font-weight:bold; color:#10b981;">75</td><td>10</td><td>40</td></tr>
+                        <tr><th>艺术</th><td>10</td><td>35</td><td>20</td><td style="font-weight:bold; color:#f59e0b;">65</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box" style="margin-top: 20px; background: #fff1f2; border-left-color: #ef4444;">
+                <p style="color: #b91c1c; font-size: 26px;"><i class="fas fa-question-circle"></i> 现实的困惑：</p>
+                <span style="font-size: 24px; color: #7f1d1d; line-height: 1.6; display: block; margin-top: 10px;">
+                    频数高低很容易看，但如果表格扩展到 20个专业 × 15种用途，你还能一眼看清整体结构吗？<br>
+                    <strong>哪些专业的人彼此最像？哪些用途天然绑定在一起？</strong>
+                </span>
+            </div>
+        </div>
+       
+
+   
+    </div>
+   
+
+
+
+
+
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 表能装信息，但不擅长讲关系</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px;">
+                频数表会记账，但不太会讲故事。
+            </p>
+            <div class="step tiled-content">
+                <div class="tile" style="border-top-color: #ec4899; padding: 40px;">
+                    <h3 style="font-size: 28px; color: #ec4899;"><i class="fas fa-times-circle"></i> 列联表的局限性</h3>
+                    <ul class="bullet-list" style="font-size: 24px; line-height: 2; margin-top: 20px;">
+                        <li>行列类别一多，表格数字密密麻麻，变得极其难看。</li>
+                        <li>很难一眼看出整体的<strong>关联模式</strong>。</li>
+                        <li>不容易判断哪些行类别彼此更接近。</li>
+                        <li>行与列的关系缺少直观的<strong>空间表达</strong>。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #3b82f6; padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                    <i class="fas fa-project-diagram" style="font-size: 80px; color: #3b82f6; margin-bottom: 20px;"></i>
+                    <p style="font-size: 26px; color: #1e293b; font-weight: bold;">
+                        我们需要一种工具，<br>把沉闷的数字表格，<br>变成一张清晰的“关系地图”！
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+       <!-- ==================== Part 1 导入 ==================== -->
+    <div class="slide" id="slide-1">
+        
+        <div class="step tile" style="margin-top: 20px; border-top-color: #8b5cf6; padding: 24px 28px;">
+          <h3 style="font-size: 28px; color: #8b5cf6; margin-bottom: 14px;">
+             <i class="fas fa-project-diagram"></i> 对应分析二维关系图
+          </h3>
+
+          <div style="width: 100%; height: 430px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 14px; overflow: hidden;">
+            <svg viewBox="0 0 900 430" width="100%" height="100%">
+            <!-- 背景 -->
+            <rect x="0" y="0" width="900" height="430" fill="#ffffff"></rect>
+
+            <!-- 坐标轴 -->
+            <line x1="450" y1="40" x2="450" y2="380" stroke="#94a3b8" stroke-width="2"></line>
+            <line x1="80" y1="210" x2="820" y2="210" stroke="#94a3b8" stroke-width="2"></line>
+
+            <!-- 轴标签 -->
+            <text x="790" y="200" font-size="18" fill="#64748b" font-family="Noto Sans SC, sans-serif">维度1</text>
+            <text x="462" y="55" font-size="18" fill="#64748b" font-family="Noto Sans SC, sans-serif">维度2</text>
+
+            <!-- 原点 -->
+            <circle cx="450" cy="210" r="4" fill="#64748b"></circle>
+            <text x="458" y="228" font-size="14" fill="#94a3b8" font-family="Noto Sans SC, sans-serif">O</text>
+
+            <!-- 行点：专业 -->
+            <!-- 计算机 -->
+            <circle cx="170" cy="115" r="9" fill="#2563eb"></circle>
+            <text x="185" y="120" font-size="24" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC, sans-serif">计算机</text>
+
+            <!-- 统计学 -->
+            <circle cx="360" cy="305" r="9" fill="#ec4899"></circle>
+            <text x="375" y="310" font-size="24" fill="#ec4899" font-weight="bold" font-family="Noto Sans SC, sans-serif">统计学</text>
+
+            <!-- 文学 -->
+            <circle cx="650" cy="145" r="9" fill="#10b981"></circle>
+            <text x="665" y="150" font-size="24" fill="#10b981" font-weight="bold" font-family="Noto Sans SC, sans-serif">文学</text>
+
+            <!-- 艺术 -->
+            <circle cx="610" cy="205" r="9" fill="#f59e0b"></circle>
+            <text x="625" y="210" font-size="24" fill="#f59e0b" font-weight="bold" font-family="Noto Sans SC, sans-serif">艺术</text>
+
+            <!-- 列点：AI用途 -->
+            <!-- 代码辅助 -->
+            <rect x="145" y="92" width="14" height="14" fill="#1e293b" transform="rotate(45 152 99)"></rect>
+            <text x="78" y="92" font-size="22" fill="#1e293b" font-family="Noto Sans SC, sans-serif">代码辅助</text>
+
+            <!-- 论文润色 -->
+            <rect x="637" y="118" width="14" height="14" fill="#1e293b" transform="rotate(45 644 125)"></rect>
+            <text x="660" y="128" font-size="22" fill="#1e293b" font-family="Noto Sans SC, sans-serif">论文润色</text>
+
+            <!-- 数据绘图 -->
+            <rect x="355" y="330" width="14" height="14" fill="#1e293b" transform="rotate(45 362 337)"></rect>
+            <text x="380" y="342" font-size="22" fill="#1e293b" font-family="Noto Sans SC, sans-serif">数据绘图</text>
+
+            <!-- 日常摸鱼 -->
+            <rect x="690" y="130" width="14" height="14" fill="#1e293b" transform="rotate(45 697 137)"></rect>
+            <text x="715" y="142" font-size="22" fill="#1e293b" font-family="Noto Sans SC, sans-serif">日常摸鱼</text>
+
+            <!-- 辅助虚线：体现靠近关系 -->
+            <line x1="170" y1="115" x2="152" y2="99" stroke="#2563eb" stroke-width="2" stroke-dasharray="5,4" opacity="0.6"></line>
+            <line x1="360" y1="305" x2="362" y2="337" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.6"></line>
+            <line x1="650" y1="145" x2="644" y2="125" stroke="#10b981" stroke-width="2" stroke-dasharray="5,4" opacity="0.6"></line>
+            <line x1="610" y1="205" x2="697" y2="137" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,4" opacity="0.6"></line>
+
+            <!-- 图例 -->
+              <g transform="translate(70,355)">
+                <circle cx="0" cy="0" r="8" fill="#2563eb"></circle>
+                <text x="18" y="7" font-size="20" fill="#334155" font-family="Noto Sans SC, sans-serif">专业（行点）</text>
+
+                <rect x="150" y="-7" width="14" height="14" fill="#1e293b" transform="rotate(45 157 0)"></rect>
+                <text x="175" y="7" font-size="20" fill="#334155" font-family="Noto Sans SC, sans-serif">AI用途（列点）</text>
+              </g>
+            </svg>
+          </div>
+
+           <p style="font-size: 21px; color: #475569; line-height: 1.75; margin-top: 14px;">
+                图中距离越近，表示“专业”和“AI用途”之间的对应关系越强。
+                例如：<strong style="color:#2563eb;">计算机</strong>靠近<strong>代码辅助</strong>，
+               <strong style="color:#ec4899;">统计学</strong>靠近<strong>数据绘图</strong>，
+              <strong style="color:#10b981;">文学</strong>靠近<strong>论文润色</strong>。
+           </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 对应分析到底想做什么？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                一句话：同时刻画行类别与列类别之间的结构关系。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #10b981;">
+                <h3 style="font-size: 30px; margin-bottom: 25px;">对应分析 (Correspondence Analysis) 的定位</h3>
+                <ul class="bullet-list" style="font-size: 28px; line-height: 2;">
+                    <li><strong>数据来源：</strong> 定性变量（分类变量）构成的列联表（频数表）。</li>
+                    <li><strong>研究对象：</strong> 两个或多个类别变量之间的结构与交互对应关系。</li>
+                    <li><strong>核心目标：</strong> 寻求解耦降维，把“行因素”和“列因素”同时映射到同一个低维空间（通常是二维平面）中进行完美的<strong>联立可视化解释</strong>。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+ 
+    <!-- ==================== Part 2 思想 ==================== -->
+    <div class="slide section-slide" id="slide-4">
+        <h2>对应分析的直观思想</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">超越显著性检验，看见关系的真容</p>
+    </div>
+
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 对应分析 vs. 卡方检验</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 40px; color: #1e293b;">
+                卡方检验告诉你“有关”，对应分析告诉你“怎么有关”。
+            </p>
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 40px;">
+                    <h3 style="font-size: 28px; color: #b45309;"><i class="fas fa-check-square"></i> $\chi^2$ 独立性检验</h3>
+                    <p style="font-size: 24px; line-height: 1.8; margin-top: 15px;">
+                        计算出一个 $p$ 值，结论停留在：“专业与AI用途之间存在显著关联”。<br><br>
+                        <strong>局限：</strong> 检验结束了，但细节全无。不知道谁和谁关联。
+                    </p>
+                </div>
+                <div class="step tile" style="border-top-color: #8b5cf6; padding: 40px; background: #faf5ff;">
+                    <h3 style="font-size: 28px; color: #7e22ce;"><i class="fas fa-map-marked-alt"></i> 对应分析</h3>
+                    <p style="font-size: 24px; line-height: 1.8; margin-top: 15px;">
+                        不仅肯定有关联，还能把这种关联的<strong>模式刻画出来</strong>。<br><br>
+                        <strong>优势：</strong> 将关系展现为一张图，让决策者一眼看穿数据底层的逻辑骨架。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-user-circle"></i> 一个直观想法：看“轮廓 (Profile)”</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">如果两个类别的分布模式很像，它们在图上就应该离得近一点。</p>
+            <div class="step tile" style="padding: 40px; border-top-color: #3b82f6;">
+                <h3 style="font-size: 28px;">什么是轮廓？</h3>
+                <p style="font-size: 24px; line-height: 1.8; margin-top: 15px;">
+                    对某个行类别（比如“计算机专业”），我们不看绝对人数，而是看它在各列（各AI用途）上的<strong>分布比例（条件分布）</strong>。<br>这就构成了计算机专业的“行为画像/轮廓”。
+                </p>
+                <ul class="bullet-list" style="margin-top: 20px; font-size: 24px; line-height: 1.8;">
+                    <li>若两个行类别在列方向上的分布比例极其相似，说明它们本质上属于一类人群，在空间里应<strong>相互靠近</strong>。</li>
+                    <li>列类别（如各 AI 用途的受众构成）同理。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-ca-profile-1">
+    <h2 class="slide-title"><i class="fas fa-percentage"></i> 对应分析：先看“轮廓”而不是绝对人数</h2>
+    <div class="content-area">
+        <div class="step" style="margin-top: 10px;">
+            <table style="font-size: 18px;">
+                <thead>
+                    <tr>
+                        <th>专业</th>
+                        <th>代码辅助</th>
+                        <th>论文润色</th>
+                        <th>数据绘图</th>
+                        <th>日常摸鱼</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>计算机</th>
+                        <td style="color:#2563eb; font-weight:bold;">0.6538</td>
+                        <td>0.1154</td>
+                        <td>0.1538</td>
+                        <td>0.0769</td>
+                    </tr>
+                    <tr>
+                        <th>统计学</th>
+                        <td>0.2308</td>
+                        <td>0.1923</td>
+                        <td style="color:#ec4899; font-weight:bold;">0.4615</td>
+                        <td>0.1154</td>
+                    </tr>
+                    <tr>
+                        <th>文学</th>
+                        <td>0.0385</td>
+                        <td style="color:#10b981; font-weight:bold;">0.5769</td>
+                        <td>0.0769</td>
+                        <td>0.3077</td>
+                    </tr>
+                    <tr>
+                        <th>艺术</th>
+                        <td>0.0769</td>
+                        <td>0.2692</td>
+                        <td>0.1538</td>
+                        <td style="color:#f59e0b; font-weight:bold;">0.5000</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+         
+        <div class="step tile" style="padding: 5px; border-top-color: #8b5cf6;">
+            <h3 style="font-size: 28px;">从行轮廓看专业差异</h3>
+            <ul class="bullet-list" style="margin-top: 16px; font-size: 18px; line-height: 1.3;">
+                <li style="font-size: 18px;" ><strong style="color:#2563eb;">计算机</strong>专业中，<strong>65.38%</strong> 的 AI 使用集中在“代码辅助”，轮廓最偏向代码场景。</li>
+                <li style="font-size: 18px;"><strong style="color:#ec4899;">统计学</strong>专业中，<strong>46.15%</strong> 集中在“数据绘图”，说明其画像更偏向分析与可视化。</li>
+                <li style="font-size: 18px;"><strong style="color:#10b981;">文学</strong>专业中，<strong>57.69%</strong> 集中在“论文润色”，且“日常摸鱼”比例也较高，画像明显不同于理工类。</li>
+                <li style="font-size: 18px;"><strong style="color:#f59e0b;">艺术</strong>专业中，<strong>50.00%</strong> 集中在“日常摸鱼”，同时也有一定比例用于论文润色，形成另一种使用模式。</li>
+            </ul>
+        </div>
+
+       
+
+       
+    </div>
+</div>
+
+<div class="slide" id="slide-ca-profile-2">
+    <h2 class="slide-title"><i class="fas fa-search"></i> 轮廓告诉我们什么？</h2>
+    <div class="content-area">
+       
+
+        <div class="step info-box" style="margin-top: 20px;">
+            <p style="font-size: 24px; line-height: 1.82;">
+                所以，对应分析并不是直接比较“谁人数多”，而是比较
+                <strong>各类别在对方分类上的分布结构是否相似</strong>。
+                分布越像，轮廓越相近，在对应分析图中的距离就越近。
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 18px; text-align:center;">
+            <p style="font-size: 26px; font-weight:bold; color:#2563eb;">
+                对应分析的核心不是“比大小”，而是“比画像”。
+            </p>
+        </div>
+
+         <div class="step tile" style="padding: 34px; border-top-color: #3b82f6;">
+            <h3 style="font-size: 28px;">不是看人数多少，而是看结构像不像</h3>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 14px;">
+                在对应分析中，我们关心的不是某个专业总共有多少人使用 AI，
+                而是这个专业内部在不同 AI 用途上的<strong>分布比例</strong>。
+            </p>
+            <p style="font-size: 24px; line-height: 1.85; margin-top: 12px;">
+                因为总人数会受到样本规模影响，但分布比例更能反映一个类别真正的<strong>行为结构</strong>。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+
+  <div class="slide" id="slide-ca-profile-3">
+    <h2 class="slide-title"><i class="fas fa-chart-pie"></i> 为什么对应分析更关注“分布比例”？</h2>
+    <div class="content-area">
+       
+
+        <div class="step info-box" style="margin-top: 8px;">
+            <p style="font-size: 20px; line-height: 1.3;">
+                例如，计算机专业这一行：
+            </p>
+            <div class="math-center" style="margin-top: 10px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 24px;">
+                    \[
+                    (0.6538,\ 0.1154,\ 0.1538,\ 0.0769)
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 20px; line-height: 1.3; margin-top: 10px; color:#334155;">
+                这表示：计算机专业的 AI 使用中，约 <strong>65.38%</strong> 用于代码辅助，
+                <strong>11.54%</strong> 用于论文润色，<strong>15.38%</strong> 用于数据绘图，
+                <strong>7.69%</strong> 用于日常摸鱼。
+            </p>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color:#ec4899; padding: 5px;">
+            <h3 style="font-size: 25px; color:#ec4899;">分布比例的解释重点</h3>
+            <ul class="bullet-list" style="margin-top: 14px; font-size: 20px; line-height: 1.3;">
+                <li><strong>比例高</strong>，说明该类别在这一方向上的使用倾向更明显；</li>
+                <li><strong>比例低</strong>，说明该类别较少体现这一用途特征；</li>
+                <li>若两个类别的比例向量很接近，说明它们的“使用画像”相似，在对应分析图中就应靠得更近。</li>
+            </ul>
+        </div>
+
+       
+    </div>
+</div>
+
+
+<div class="slide" id="slide-ca-profile-3">
+    <h2 class="slide-title"><i class="fas fa-chart-pie"></i> 为什么对应分析更关注“分布比例”？</h2>
+    <div class="content-area">
+       
+
+      
+
+        <div class="step" style="margin-top: 18px; display:grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+            <div class="tile" style="border-top-color:#10b981;">
+                <h3 style="font-size: 28px; color:#10b981;">例如：计算机 vs 统计学</h3>
+                <p style="font-size: 25px; line-height: 1.8;">
+                    计算机专业主要偏向<strong>代码辅助</strong>，
+                    而统计学专业主要偏向<strong>数据绘图</strong>。
+                    它们的比例结构不同，因此在图上不会特别靠近。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#f59e0b;">
+                <h3 style="font-size: 28px; color:#b45309;">例如：文学 vs 艺术</h3>
+                <p style="font-size: 25px; line-height: 1.8;">
+                    文学专业主要偏向<strong>论文润色</strong>，
+                    艺术专业主要偏向<strong>日常摸鱼</strong>，
+                    虽然两者都不像计算机那样偏代码，但画像仍有明显差别。
+                </p>
+            </div>
+        </div>
+
+        <div class="step" style="margin-top: 18px; text-align:center;">
+            <p style="font-size: 25px; font-weight:bold; color:#2563eb;">
+                对应分析比较的是“分布比例模式”，不是“频数大小本身”。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+
+
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 神奇之处：行与列的同图展示</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #ec4899;">
+                行类别和列类别，竟然能一起画在同一个空间里！
+            </p>
+            <div class="two-column-top">
+                <div class="step tile" style="padding: 30px;">
+                    <p style="font-size: 24px; line-height: 1.8;">
+                        对应分析通过精妙的矩阵对偶分解，将行点和列点同时映射到了低维空间中。<br><br>
+                        通过观察相对位置：<br>
+                        <strong>靠近，意味着“关联模式相近”或“对应程度极强”！</strong>
+                    </p>
+                </div>
+               <div class="step tile" style="border-top: 5px solid #ec4899; padding: 20px 16px; min-height: 360px;">
+    <svg viewBox="0 0 520 340" width="100%" height="100%" style="display:block; background:#ffffff; border-radius:12px;">
+        <!-- 背景 -->
+        <rect x="0" y="0" width="520" height="340" fill="#ffffff"></rect>
+
+        <!-- 坐标轴 -->
+        <line x1="260" y1="30" x2="260" y2="300" stroke="#94a3b8" stroke-width="2"></line>
+        <line x1="40" y1="165" x2="490" y2="165" stroke="#94a3b8" stroke-width="2"></line>
+
+        <!-- 原点 -->
+        <circle cx="260" cy="165" r="4" fill="#64748b"></circle>
+        <text x="268" y="182" font-size="13" fill="#94a3b8" font-family="Noto Sans SC, sans-serif">O</text>
+
+        <!-- 轴标签 -->
+        <text x="445" y="155" font-size="14" fill="#64748b" font-family="Noto Sans SC, sans-serif">维度1</text>
+        <text x="270" y="45" font-size="14" fill="#64748b" font-family="Noto Sans SC, sans-serif">维度2</text>
+
+        <!-- 行点：专业（圆点） -->
+        <!-- 计算机 -->
+        <circle cx="120" cy="95" r="8" fill="#2563eb"></circle>
+        <text x="134" y="100" font-size="20" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC, sans-serif">计算机</text>
+
+        <!-- 统计学 -->
+        <circle cx="215" cy="250" r="8" fill="#ec4899"></circle>
+        <text x="228" y="255" font-size="20" fill="#ec4899" font-weight="bold" font-family="Noto Sans SC, sans-serif">统计学</text>
+
+        <!-- 文学 -->
+        <circle cx="360" cy="105" r="8" fill="#10b981"></circle>
+        <text x="374" y="110" font-size="20" fill="#10b981" font-weight="bold" font-family="Noto Sans SC, sans-serif">文学</text>
+
+        <!-- 艺术 -->
+        <circle cx="365" cy="210" r="8" fill="#f59e0b"></circle>
+        <text x="379" y="215" font-size="20" fill="#f59e0b" font-weight="bold" font-family="Noto Sans SC, sans-serif">艺术</text>
+
+        <!-- 列点：AI用途（菱形） -->
+        <!-- 代码辅助 -->
+        <rect x="102" y="78" width="12" height="12" fill="#1e293b" transform="rotate(45 108 84)"></rect>
+        <text x="48" y="78" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">代码辅助</text>
+
+        <!-- 数据绘图 -->
+        <rect x="228" y="270" width="12" height="12" fill="#1e293b" transform="rotate(45 234 276)"></rect>
+        <text x="246" y="281" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">数据绘图</text>
+
+        <!-- 论文润色 -->
+        <rect x="382" y="85" width="12" height="12" fill="#1e293b" transform="rotate(45 388 91)"></rect>
+        <text x="401" y="95" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">论文润色</text>
+
+        <!-- 日常摸鱼 -->
+        <rect x="410" y="185" width="12" height="12" fill="#1e293b" transform="rotate(45 416 191)"></rect>
+        <text x="432" y="195" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">日常摸鱼</text>
+
+        <!-- 虚线强调“靠近关系” -->
+        <line x1="120" y1="95" x2="108" y2="84" stroke="#2563eb" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+        <line x1="215" y1="250" x2="234" y2="276" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+        <line x1="360" y1="105" x2="388" y2="91" stroke="#10b981" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+        <line x1="365" y1="210" x2="416" y2="191" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+
+        <!-- 图例 -->
+        <g transform="translate(48,305)">
+            <circle cx="0" cy="0" r="7" fill="#2563eb"></circle>
+            <text x="15" y="6" font-size="16" fill="#334155" font-family="Noto Sans SC, sans-serif">行点：专业</text>
+
+            <rect x="108" y="-6" width="12" height="12" fill="#1e293b" transform="rotate(45 114 0)"></rect>
+            <text x="128" y="6" font-size="16" fill="#334155" font-family="Noto Sans SC, sans-serif">列点：AI用途</text>
+        </g>
+    </svg>
+
+    <p style="font-size: 19px; color:#475569; line-height:1.7; margin-top:12px; text-align:center;">
+        行点和列点可以同时放在同一个低维空间中。<strong>距离越近，表示对应关系越强、分布模式越相似。</strong>
+    </p>
+</div>
+            </div>
+        </div>
+    </div>
+
+  
+
+
+    <!-- ==================== Part 3 数学基础 ==================== -->
+    <div class="slide section-slide" id="slide-8">
+        <h2>对应分析的基础对象</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">把表格换成更适合分析的概率语言</p>
+    </div>
+
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 从频数表到相对频率表</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 15px;">对应分析不是直接对频数瞪眼，而是先做标准化理解。</p>
+            <p class="step" style="font-size: 26px;">设 $\boldsymbol{K} = (k_{ij})_{r \times c}$ 为一个 $r$ 行 $c$ 列的原始频数列联表。总频数为 $k_{..}$。</p>
+            <div class="step tile" style="margin-top: 20px; border-top-color: #10b981; padding: 30px;">
+                <h3 style="font-size: 26px;">频率矩阵 $\boldsymbol{F}$</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 26px; padding: 15px 30px;">
+                        \[\boldsymbol{F} = (f_{ij})_{r \times c}, \quad f_{ij} = \frac{k_{ij}}{k_{..}}\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; margin-top: 15px;">
+                    同时定义行边际概率 $f_{i.}$ 和列边际概率 $f_{.j}$。它们代表了该类别在总体中的天然规模占比（基线）。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-user-circle"></i> 行轮廓与列轮廓 (Profiles)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; font-weight: bold; text-align: center; margin-bottom: 25px;">
+                每一行、每一列，都可以看成一种“分布特征画像”。
+            </p>
+            <div class="step tile" style="border-top-color: #ec4899; padding: 40px;">
+                <h3 style="font-size: 28px;">行分布轮廓</h3>
+                <p style="font-size: 24px; margin-top: 15px;">针对因素 $\boldsymbol{A}$（行），第 $i$ 个水平的分布轮廓 $f_r^i$ 是一组条件概率向量（它属于 $\mathbb{R}^c$ 空间的一点）：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 28px; padding: 20px 40px; border-left: 6px solid #ec4899;">
+                        \[ f_r^i = \left( \frac{f_{i1}}{f_{i.}}, \frac{f_{i2}}{f_{i.}}, \cdots, \frac{f_{ic}}{f_{i.}} \right) \]
+                    </div>
+                </div>
+                <p style="font-size: 22px; color: #475569; margin-top: 20px; text-align: center;">
+                    <strong>通俗表达：</strong> 某类人群把关注点都投向了哪些选项（加和为1）。<br>列轮廓亦然。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-ruler"></i> 距离度量：为什么不用欧氏距离？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">如果考虑行因素各水平之间的远近，最粗暴的想法是算欧氏距离：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; padding: 20px 40px;">
+                    \[D^2(i, i^{\prime}) = \sum_{j=1}^c \left( \frac{f_{ij}}{f_{i.}} - \frac{f_{i^{\prime}j}}{f_{i^{\prime}.}} \right)^2\]
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; padding: 30px; background: #fef2f2; border-left-color: #ef4444;">
+                <p style="color: #b91c1c; font-size: 26px;"><i class="fas fa-exclamation-triangle"></i> 直线距离的致命缺陷：</p>
+                <span style="font-size: 24px; color: #7f1d1d; line-height: 1.8; display: block; margin-top: 15px;">
+                    类别分布的差异，不能简单拿直线距离硬算！<br>
+                    因为上述定义<strong>没有考虑到列因素 $\boldsymbol{B}$ 各水平边缘概率（规模）的影响</strong>。<br>
+                    比如“大众选项”稍微波动一点点绝对值就很大，而“罕见选项”被彻底淹没。这极不公平！
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-weight-hanging"></i> 引入加权：卡方 ($\chi^2$) 距离</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">为了消除数量级的不公，应该对每一项除以它的“天然体量” $f_{.j}$ 作为惩罚权数：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 25px; padding: 5px 50px; border-left: 8px solid #3b82f6;">
+                    \[
+                    \begin{aligned}
+                    D_w^2(i, i^{\prime}) &= \sum_{j=1}^c \left( \frac{f_{ij}}{f_{i.}} - \frac{f_{i^{\prime}j}}{f_{i^{\prime}.}} \right)^2 \frac{1}{f_{.j}} \\
+                    &= \sum_{j=1}^c \left( \frac{f_{ij}}{f_{i.} \sqrt{f_{.j}}} - \frac{f_{i^{\prime}j}}{f_{i^{\prime}.} \sqrt{f_{.j}}} \right)^2
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 30px; padding: 5px; border-top-color: #10b981; text-align: center;">
+                <p style="font-size: 25px; font-weight: bold; color: #065f46; margin: 0;">
+                    我们称 $D_w^2(i, i^{\prime})$ 为行因素水平间的 <strong>$\chi^2$ 距离 (Chi-square Distance)</strong>。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-eye"></i> 卡方距离的直观意义</h2>
+        <div class="content-area">
+            <div class="step info-box" style="padding: 40px;">
+                <p style="font-size: 32px;"><i class="fas fa-glasses"></i> 为什么它如此巧妙？</p>
+                <span style="font-size: 26px; color: #334155; line-height: 1.8; display: block; margin-top: 20px;">
+                    不是只看差多少，还要看这种差异在整体背景下算不算“显眼”。<br><br>
+                    经过加权后，<strong>罕见类别上的细微差异会被放大（受到重视），而大众类别上的巨大绝对波动会被缩放压缩</strong>。<br><br>
+                    它真正反映了深层的结构性差别。
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Part 4 核心推导 ==================== -->
+    <div class="slide section-slide" id="slide-14">
+        <h2>对应分析的核心思想与分解</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">剥离平庸，提炼灵魂</p>
+    </div>
+
+    <div class="slide" id="slide-15">
+        <h2 class="slide-title"><i class="fas fa-search-minus"></i> 对应分析在做什么分解？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 32px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #db2777;">
+                本质上，是把“偏离独立”的那部分结构提炼出来。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #f59e0b;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2;">
+                    <li>如果行和列完全独立（大家口味完全一致），频率 $f_{ij}$ 理论上就应该等于 $f_{i.} \times f_{.j}$。此时图表结构非常平庸。</li>
+                    <li>但如果不独立，某些特定组合的频数就会异常偏高或偏低！</li>
+                    <li>对应分析研究的，正是这种 <strong>“偏离独立状态”的残差结构</strong>。</li>
+                </ul>
+            </div>
+            <p class="step" style="margin-top: 25px; font-size: 24px; text-align: center; color: #475569; font-weight: bold;">
+                我们关心的不是谁人数多，而是谁和“独立时应有的状态”不一样！
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-16">
+        <h2 class="slide-title"><i class="fas fa-weight"></i> 坐标重构：均值重心的威力</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">从前面的 $\chi^2$ 距离公式可以看出，每个行点可以映射到新空间的新坐标：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; padding: 20px 40px; background: transparent; color: #1e293b; border: 2px dashed #8b5cf6; box-shadow: none;">
+                    \(\left( \frac{f_{i1}}{f_{i.} \sqrt{f_{.1}}}, \frac{f_{i2}}{f_{i.} \sqrt{f_{.2}}}, \cdots, \frac{f_{ic}}{f_{i.} \sqrt{f_{.c}}} \right)\)
+                </div>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 20px;">这 $r$ 个点的加权平均水平（按行权重 $f_{i.}$ 加权），其第 $j$ 分量的重心正好是：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 28px; text-align: left; padding: 20px 40px; border-left: 6px solid #8b5cf6;">
+                    \[
+                    \sum_{i=1}^r \frac{f_{ij}}{f_{i.} \sqrt{f_{.j}}} f_{i.} = \frac{1}{\sqrt{f_{.j}}} \sum_{i=1}^r f_{ij} = \frac{f_{.j}}{\sqrt{f_{.j}}} = \sqrt{f_{.j}}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 构建离差矩阵与过渡矩阵 $\boldsymbol{Z}$</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 24px;">每个点减去重心的离差项，构成了我们最终要分析的核心元素 $z_{\alpha i}$：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 23px; text-align: left; padding: 5px 40px; border-left: 6px solid #ec4899; width: 100%;">
+                    \[
+                    \begin{aligned}
+                    z_{\alpha i} &= \frac{f_{\alpha i}}{f_{\alpha.} \sqrt{f_{.i}}} - \sqrt{f_{.i}} \\
+                    &= \frac{f_{\alpha i} - f_{\alpha.} f_{.i}}{\sqrt{f_{\alpha.} f_{.i}}} \\
+                    &= \frac{k_{\alpha i} - (k_{\alpha.} k_{.i} / k_{..})}{\sqrt{k_{\alpha.} k_{.i}}}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <div class="step tile" style="margin-top: 20px; padding: 20px; border-top-color: #3b82f6; text-align: center;">
+                <p style="font-size: 26px; margin: 0; font-weight: bold;">
+                    这个 $z_{\alpha i}$ 极其优美！它精准衡量了“实际频数”偏离“独立理论频数”的程度。我们将它们拼成<strong>过渡矩阵 $\boldsymbol{Z} = (z_{ij})_{r \times c}$</strong>。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-balance-scale-right"></i> 协差阵对等关系 (R型与Q型)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px;">有了 $\boldsymbol{Z}$ 之后，计算协差阵变得异常简洁：</p>
+            <div class="step two-column" style="margin-top: 20px;">
+                <div class="tile" style="border-top-color: #3b82f6; padding: 40px; text-align: center;">
+                    <h3 style="justify-content: center; color: #1e293b;">列因素 $\boldsymbol{B}$ 的协差阵</h3>
+                    <div class="math-box" style="font-size: 30px; padding: 20px;">
+                        \[\boldsymbol{\Sigma}_c = \boldsymbol{Z}^{\prime} \boldsymbol{Z}\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899; padding: 40px; text-align: center;">
+                    <h3 style="justify-content: center; color: #1e293b;">行因素 $\boldsymbol{A}$ 的协差阵</h3>
+                    <div class="math-box" style="font-size: 30px; padding: 20px;">
+                        \[\boldsymbol{\Sigma}_r = \boldsymbol{Z} \boldsymbol{Z}^{\prime}\]
+                    </div>
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top: 30px; padding: 25px; background: #e0f2fe; border-left-color: #2563eb;">
+                <span style="font-size: 24px; color: #1e40af; font-weight: bold; line-height: 1.6; display: block;">
+                    矩阵 $\boldsymbol{Z} \boldsymbol{Z}^{\prime}$ 和 $\boldsymbol{Z}^{\prime} \boldsymbol{Z}$ 对于两个因素具有完美的对等性。它们将共享相同的非零特征根！
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 核心定理：特征向量的转换对偶性</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 22px;">设 $\lambda_j$ 为共有非零特征根。设 $\boldsymbol{u}_j$ 为 $\boldsymbol{\Sigma}_c = \boldsymbol{Z}^{\prime} \boldsymbol{Z}$ 的特征向量，即：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 20px; padding: 5px 30px;">
+                    \[(\boldsymbol{Z}^{\prime} \boldsymbol{Z}) \boldsymbol{u}_j = \lambda_j \boldsymbol{u}_j\]
+                </div>
+            </div>
+            <p class="step" style="font-size: 22px; margin-top: 15px;">用矩阵 $\boldsymbol{Z}$ <strong>左乘</strong>上述方程的两端：</p>
+            <div class="step math-center">
+                <div class="math-box" style="font-size: 20px; text-align: left; padding: 5px 40px; border-left: 6px solid #10b981;">
+                    \[
+                    \begin{aligned}
+                    \boldsymbol{Z} (\boldsymbol{Z}^{\prime} \boldsymbol{Z}) \boldsymbol{u}_j &= \boldsymbol{Z} (\lambda_j \boldsymbol{u}_j) \\[15pt]
+                    (\boldsymbol{Z} \boldsymbol{Z}^{\prime}) (\boldsymbol{Z} \boldsymbol{u}_j) &= \lambda_j (\boldsymbol{Z} \boldsymbol{u}_j) \\[15pt]
+                    \boldsymbol{\Sigma}_r (\boldsymbol{Z} \boldsymbol{u}_j) &= \lambda_j (\boldsymbol{Z} \boldsymbol{u}_j)
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p class="step" style="font-size: 20px; margin-top: 15px; font-weight: bold; text-align: center; color: #065f46;">
+                证明完毕！这意味着 $\boldsymbol{Z} \boldsymbol{u}_j$ 恰好就是行协差阵 $\boldsymbol{\Sigma}_r$ 的特征向量。算出一头，即可推得另一头！
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-atom"></i> 总惯量 (Total Inertia) 是什么？</h2>
+        <div class="content-area">
+            <div class="step info-box" style="padding: 40px; background: #fdf2f8; border-left-color: #ec4899;">
+                <p style="color: #be185d; font-size: 30px;"><i class="fas fa-fire"></i> 如果说 PCA 看“总方差”，对应分析更关心“总惯量”。</p>
+                <span style="font-size: 26px; color: #831843; line-height: 1.8; display: block; margin-top: 15px;">
+                    “总惯量”就是矩阵 $\boldsymbol{Z}$ 所有元素的平方和。它直接等价于皮尔逊卡方统计量除以总频数 ($\chi^2 / k_{..}$)。<br><br>
+                    <strong>一句话直白表达：</strong><br>惯量越大，说明这张表越不像“彼此独立时的平庸样子”，结构关联越强烈！
+                </span>
+            </div>
+            <p class="step" style="font-size: 26px; margin-top: 30px; text-align: center;">
+                我们做奇异值分解（SVD），就是想用少数几个维度（特征向量），把这种偏离结构尽量表现出来！第一维解释最大一部分惯量，依次类推。
+            </p>
+        </div>
+    </div>
+
+    <!-- ==================== Part 5 图解 ==================== -->
+    <div class="slide section-slide" id="slide-21">
+        <h2>对应图与结果解释</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">图画出来了，真正的难点才刚开始</p>
+    </div>
+
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-map-marked-alt"></i> 对应图 (Biplot) 怎么看？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">通常取前两个特征根，将行坐标和列坐标投影到同一个二维平面上。</p>
+            <div class="step tiled-content-3">
+                <div class="tile" style="border-top-color: #3b82f6; padding: 25px;">
+                    <h3 style="font-size: 24px;">同类点距离</h3>
+                    <p style="font-size: 20px;">行点越近（或列点越近），说明它们的分布轮廓越相似，偏好模式雷同。</p>
+                </div>
+                <div class="tile" style="border-top-color: #f59e0b; padding: 25px;">
+                    <h3 style="font-size: 24px;">离原点远近</h3>
+                    <p style="font-size: 20px;">原点代表总体平均水平。<strong>离原点越远，说明该类别特征越鲜明</strong>；越近越“随大流”。</p>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899; padding: 25px;">
+                    <h3 style="font-size: 24px;">维度的对立</h3>
+                    <p style="font-size: 20px;">横轴纵轴往往代表了数据中最大的矛盾结构（如“传统 vs 创新”、“实用 vs 兴趣”）。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 行点与列点之间的迷人关系</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                这部分最迷人，也最容易被“过度解读”。
+            </p>
+            <div class="step tile" style="padding: 40px; border-top-color: #10b981;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2;">
+                    <li>行点与某个列点非常接近（并落在同一象限内），通常提示它们之间有<strong>极强的内在对应关系</strong>。</li>
+                    <li><strong style="color: #ef4444;">但是警告：</strong> 这种解释是相对性的、结构性的。不能简单粗暴地当成绝对数值最高。距离近只能说明它们的“牵绊程度”远超平均水平。</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; font-size: 26px; margin-top: 30px; color: #475569; font-weight: bold;">
+                一句提醒：行列点之间的接近，更像“关系线索”，而不是一锤定音的官宣。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-weight"></i> 贡献率与表示质量</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #db2777;">
+                不是每个点、每个维度都同样值得你认真对待。
+            </p>
+            <div class="step two-column-top">
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 30px;">
+                    <h3 style="font-size: 26px;">点对维度的贡献 (Contribution)</h3>
+                    <p style="font-size: 22px;">决定某个主轴方向的，通常是那几个离得极远、比重极大的核心点。它们是定义这个维度的“主角”。</p>
+                </div>
+                <div class="tile" style="border-top-color: #3b82f6; padding: 30px;">
+                    <h3 style="font-size: 26px;">维度对点的质量 (Quality)</h3>
+                    <p style="font-size: 22px;">有的点在低维图上离得近，可能是因为投影扭曲产生的视觉错觉。看“表示质量”能判断这个点是否被二维图真实还原。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Part 6 算法步骤 ==================== -->
+    <div class="slide section-slide" id="slide-25">
+        <h2>标准算法流程</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">理论落地，如何敲代码实现</p>
+    </div>
+
+    <div class="slide" id="slide-26">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 7.2 对应分析的计算步骤 (1/2)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 23px;">设有 $p$ 个变量、$n$ 个样品的观测矩阵 $\boldsymbol{X} = (x_{ij})_{n \times p} > 0$。</p>
+            
+            <div class="step tile" style="border-top-color: #3b82f6; margin-top: 15px; padding: 30px;">
+                <h3 style="font-size: 23px; margin-bottom: 15px;">步骤 1：概率矩阵规格化</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 30px;">
+                        \[p_{ij} = x_{ij} / x_{..}\]
+                    </div>
+                </div>
+            </div>
+
+            <div class="step tile" style="border-top-color: #ec4899; margin-top: 15px; padding: 30px;">
+                <h3 style="font-size: 23px; margin-bottom: 15px;">步骤 2：计算过渡矩阵 $\boldsymbol{Z}$</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 23px; padding: 5px 40px; border-left: 6px solid #ec4899; width: 100%;">
+                        \[
+                        \boldsymbol{Z} = (z_{ij}) = \left[ \frac{p_{ij} - p_{i.} p_{.j}}{\sqrt{p_{i.} p_{.j}}} \right]_{n \times p} = \left( \frac{x_{ij} - x_{i.}x_{.j}/x_{..}}{\sqrt{x_{i.}x_{.j}}} \right)_{n \times p}
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-27">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 7.2 对应分析的计算步骤 (2/2)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #10b981; padding: 5px;">
+                <h3 style="font-size: 26px;">步骤 3：进行双向因子分解</h3>
+                <p style="font-size: 22px; margin-top: 15px;"><strong>1) R型分析 (列映射)：</strong> 计算 $\boldsymbol{Z}^{\mathrm{T}} \boldsymbol{Z}$ 的特征根 $\lambda_1 \ge \lambda_2 \ge \dots$。取前 $m$ 个单位特征向量 $\boldsymbol{u}_j$。得到列坐标矩阵：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; padding: 5px;">
+                        \[\boldsymbol{F} = [u_{ij}\sqrt{\lambda_j}]_{p \times m}\]
+                    </div>
+                </div>
+                <p style="font-size: 22px; margin-top: 15px;"><strong>2) Q型分析 (行映射)：</strong> 直接由 $\boldsymbol{u}_j$ 转换出单位向量 $\boldsymbol{v}_j = \frac{1}{\sqrt{\lambda_j}} \boldsymbol{Z} \boldsymbol{u}_j$。得到行坐标矩阵：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 22px; padding: 5px; border-left: 6px solid #10b981;">
+                        \[\boldsymbol{G} = [v_{ij}\sqrt{\lambda_j}]_{n \times m}\]
+                    </div>
+                </div>
+            </div>
+            <p class="step" style="text-align: center; margin-top: 15px; font-size: 24px; color: #475569;">
+                最后：在同一张图上绘制 $\boldsymbol{F}$ 和 $\boldsymbol{G}$，即得绝妙的对应关系图！
+            </p>
+        </div>
+    </div>
+
+
+
+<!-- ==================== 对应分析计算例题 1 ==================== -->
+<div class="slide" id="slide-ca-calc-1">
+    <h2 class="slide-title"><i class="fas fa-table"></i> 对应分析计算例题：原始列联表</h2>
+    <div class="content-area">
+      
+
+        <div class="step" style="margin-top: 18px;">
+            <table style="font-size: 21px;">
+                <thead>
+                    <tr>
+                        <th>专业</th>
+                        <th>代码辅助</th>
+                        <th>论文润色</th>
+                        <th>数据绘图</th>
+                        <th>日常摸鱼</th>
+                        <th>行和</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th>计算机</th>
+                        <td style="color:#2563eb; font-weight:bold;">85</td>
+                        <td>15</td>
+                        <td>20</td>
+                        <td>10</td>
+                        <td>130</td>
+                    </tr>
+                    <tr>
+                        <th>统计学</th>
+                        <td>30</td>
+                        <td>25</td>
+                        <td style="color:#ec4899; font-weight:bold;">60</td>
+                        <td>15</td>
+                        <td>130</td>
+                    </tr>
+                    <tr>
+                        <th>文学</th>
+                        <td>5</td>
+                        <td style="color:#10b981; font-weight:bold;">75</td>
+                        <td>10</td>
+                        <td>40</td>
+                        <td>130</td>
+                    </tr>
+                    <tr>
+                        <th>艺术</th>
+                        <td>10</td>
+                        <td>35</td>
+                        <td>20</td>
+                        <td style="color:#f59e0b; font-weight:bold;">65</td>
+                        <td>130</td>
+                    </tr>
+                    <tr>
+                        <th>列和</th>
+                        <td>130</td>
+                        <td>150</td>
+                        <td>110</td>
+                        <td>130</td>
+                        <td><strong>520</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step tile" style="margin-top: 18px; border-top-color:#3b82f6;">
+            <h3 style="font-size: 26px;">说明</h3>
+            <p style="font-size: 23px; line-height: 1.82;">
+                对应分析的目标不是直接比较绝对人数，而是通过标准化，把行类别和列类别共同映射到一个低维空间中，
+                研究它们的<strong>对应结构</strong>。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 对应分析计算例题 2 ==================== -->
+<div class="slide" id="slide-ca-calc-2">
+    <h2 class="slide-title"><i class="fas fa-divide"></i> 步骤 1：构造概率矩阵 \(\boldsymbol{P}\)</h2>
+    <div class="content-area">
+        <p class="step" style="font-size: 24px;">
+            先把原始频数矩阵规格化为概率矩阵：
+        </p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 20px; padding: 5px 24px;">
+                \[
+                p_{ij}=\frac{x_{ij}}{x_{..}}=\frac{x_{ij}}{520}
+                \]
+            </div>
+        </div>
+
+        <div class="step" style="margin-top: 16px;">
+            <table style="font-size: 21px;">
+                <thead>
+                    <tr>
+                        <th>专业</th>
+                        <th>代码辅助</th>
+                        <th>论文润色</th>
+                        <th>数据绘图</th>
+                        <th>日常摸鱼</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><th>计算机</th><td>0.1635</td><td>0.0288</td><td>0.0385</td><td>0.0192</td></tr>
+                    <tr><th>统计学</th><td>0.0577</td><td>0.0481</td><td>0.1154</td><td>0.0288</td></tr>
+                    <tr><th>文学</th><td>0.0096</td><td>0.1442</td><td>0.0192</td><td>0.0769</td></tr>
+                    <tr><th>艺术</th><td>0.0192</td><td>0.0673</td><td>0.0385</td><td>0.1250</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+      
+    </div>
+</div>
+
+
+<!-- ==================== 对应分析计算例题 2 ==================== -->
+<div class="slide" id="slide-ca-calc-2">
+    <h2 class="slide-title"><i class="fas fa-divide"></i> 步骤 1：构造概率矩阵 \(\boldsymbol{P}\)</h2>
+    <div class="content-area">
+       
+
+        
+
+        <div class="step tile" style="margin-top: 18px; border-top-color:#ec4899;">
+            <h3 style="font-size: 25px;">行边际与列边际</h3>
+            <p style="font-size: 22px; line-height: 1.8;">
+                行边际概率：
+                \[
+                \boldsymbol{p}_{i\cdot}=(0.25,\ 0.25,\ 0.25,\ 0.25)
+                \]
+            </p>
+            <p style="font-size: 22px; line-height: 1.8; margin-top: 8px;">
+                列边际概率：
+                \[
+                \boldsymbol{p}_{\cdot j}=(0.25,\ 0.2885,\ 0.2115,\ 0.25)
+                \]
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 对应分析计算例题 3 ==================== -->
+<div class="slide" id="slide-ca-calc-3">
+    <h2 class="slide-title"><i class="fas fa-wave-square"></i> 步骤 2：计算过渡矩阵 \(\boldsymbol{Z}\)</h2>
+    <div class="content-area">
+        <div class="step math-center">
+            <div class="math-box" style="font-size: 22px; padding: 10px 20px; text-align:left;">
+                \[
+                z_{ij}=\frac{p_{ij}-p_{i\cdot}p_{\cdot j}}{\sqrt{p_{i\cdot}p_{\cdot j}}}
+                \]
+            </div>
+        </div>
+
+        <div class="step tile" style="margin-top: 14px; border-top-color:#3b82f6;">
+            <p style="font-size: 22px; line-height: 1.8;">
+                例如，计算“计算机-代码辅助”这一项：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 22px; padding: 10px 18px;">
+                    \[
+                    z_{11}=
+                    \frac{0.1635-0.25\times0.25}{\sqrt{0.25\times0.25}}
+                    =
+                    \frac{0.1635-0.0625}{0.25}
+                    =
+                    0.4038
+                    \]
+                </div>
+            </div>
+        </div>
+
+        
+       
+    </div>
+</div>
+
+
+<div class="slide" id="slide-ca-calc-3">
+    <h2 class="slide-title"><i class="fas fa-wave-square"></i> 步骤 2：计算过渡矩阵 \(\boldsymbol{Z}\)</h2>
+    <div class="content-area">
+      
+
+        <div class="step" style="margin-top: 16px;">
+            <table style="font-size: 18px;">
+                <thead>
+                    <tr>
+                        <th>\(Z\)</th>
+                        <th>代码辅助</th>
+                        <th>论文润色</th>
+                        <th>数据绘图</th>
+                        <th>日常摸鱼</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><th>计算机</th><td>0.4038</td><td>-0.1611</td><td>-0.0627</td><td>-0.1731</td></tr>
+                    <tr><th>统计学</th><td>-0.0192</td><td>-0.0895</td><td>0.2718</td><td>-0.1346</td></tr>
+                    <tr><th>文学</th><td>-0.2115</td><td>0.2685</td><td>-0.1463</td><td>0.0577</td></tr>
+                    <tr><th>艺术</th><td>-0.1731</td><td>-0.0179</td><td>-0.0627</td><td>0.2500</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step info-box" style="margin-top: 16px;">
+            <p style="font-size: 23px; line-height: 1.82;">
+                这个矩阵的作用，是把“实际联合分布”与“独立假设下的期望分布”之间的偏离进行标准化。
+                所以它刻画的，正是行类别和列类别之间的<strong>对应程度</strong>。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== 对应分析计算例题 4 ==================== -->
+<div class="slide" id="slide-ca-calc-4">
+    <h2 class="slide-title"><i class="fas fa-equals"></i> 步骤 3：求 \(\boldsymbol{Z}^\top\boldsymbol{Z}\) 的特征根与特征向量</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#10b981;">
+            <p style="font-size: 20px; line-height: 1.3;">
+                先计算列方向的矩阵：
+            </p>
+            <div class="math-center" style="margin-top: 8px;">
+                <div class="math-box" style="font-size: 20px; padding: 5px 20px;">
+                    \[
+                    \boldsymbol{Z}^\top\boldsymbol{Z}
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 20px; line-height: 1.3; margin-top: 10px;">
+                对其进行特征值分解，得到前三个非零特征根： \(
+                    \lambda_1=0.3842,\quad
+                    \lambda_2=0.1183,\quad
+                    \lambda_3=0.0591
+                    \)
+            </p>
+            
+        </div>
+
+        <div class="step" style="margin-top: 16px;">
+            <table style="font-size: 18px;">
+                <thead>
+                    <tr>
+                        <th>维度</th>
+                        <th>特征根</th>
+                        <th>惯量占比</th>
+                        <th>累计占比</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>第1维</td><td>0.3842</td><td>68.41%</td><td>68.41%</td></tr>
+                    <tr><td>第2维</td><td>0.1183</td><td>21.07%</td><td>89.48%</td></tr>
+                    <tr><td>第3维</td><td>0.0591</td><td>10.52%</td><td>100.00%</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="step info-box" style="margin-top: 16px;">
+            <p style="font-size: 20px; line-height: 1.3;">
+                由于前两维已经解释了 <strong>89.48%</strong> 的总惯量，因此通常保留二维作图已经足够。
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 对应分析计算例题 5 ==================== -->
+<div class="slide" id="slide-ca-calc-5">
+    <h2 class="slide-title"><i class="fas fa-map-marked-alt"></i> 步骤 4：计算列坐标矩阵 \(\boldsymbol{F}\) 与行坐标矩阵 \(\boldsymbol{G}\)</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#8b5cf6;">
+            <p style="font-size: 20px; line-height: 1.3;">
+                根据算法：
+            </p>
+            <div class="math-center" style="margin-top: 5px;">
+                <div class="math-box" style="font-size: 18px; padding: 5px 20px;">
+                    \[
+                    \boldsymbol{F}=[u_{ij}\sqrt{\lambda_j}],\qquad
+                    \boldsymbol{G}=[v_{ij}\sqrt{\lambda_j}]
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 22px; line-height: 1.8; margin-top: 8px;">
+                取前两维后，得到列点坐标与行点坐标如下(这些坐标就是最终绘图时行点与列点在二维空间中的位置。)。
+            </p>
+        </div>
+
+        <div class="step" style="display:grid; grid-template-columns: 1fr 1fr; gap:18px; margin-top:16px;">
+            <div class="tile" style="border-top-color:#1d4ed8;">
+                <h3 style="font-size:24px; color:#1d4ed8;">列坐标矩阵 \(\boldsymbol{F}\)</h3>
+                <table style="font-size: 15px;">
+                    <thead>
+                        <tr><th>AI用途</th><th>维度1</th><th>维度2</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>代码辅助</td><td>-0.4648</td><td>0.1483</td></tr>
+                        <tr><td>论文润色</td><td>0.2705</td><td>0.0701</td></tr>
+                        <tr><td>数据绘图</td><td>-0.1194</td><td>-0.2981</td></tr>
+                        <tr><td>日常摸鱼</td><td>0.2841</td><td>0.0506</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="tile" style="border-top-color:#be185d;">
+                <h3 style="font-size:24px; color:#be185d;">行坐标矩阵 \(\boldsymbol{G}\)</h3>
+                <table style="font-size: 15px;">
+                    <thead>
+                        <tr><th>专业</th><th>维度1</th><th>维度2</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>计算机</td><td>-0.4404</td><td>0.1702</td></tr>
+                        <tr><td>统计学</td><td>-0.1387</td><td>-0.2818</td></tr>
+                        <tr><td>文学</td><td>0.3305</td><td>0.0988</td></tr>
+                        <tr><td>艺术</td><td>0.2487</td><td>0.0128</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+<!-- ==================== 对应分析计算例题 6 ==================== -->
+<div class="slide" id="slide-ca-calc-6">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 步骤 5：绘制二维对应图</h2>
+    <div class="content-area">
+        <div class="step tile" style="border-top-color:#ec4899; padding: 18px 16px;">
+            <svg viewBox="0 0 760 360" width="100%" height="320" style="display:block; background:#ffffff; border-radius:12px;">
+                <rect x="0" y="0" width="760" height="360" fill="#ffffff"></rect>
+
+                <!-- 坐标轴 -->
+                <line x1="380" y1="35" x2="380" y2="320" stroke="#94a3b8" stroke-width="2"></line>
+                <line x1="70" y1="180" x2="710" y2="180" stroke="#94a3b8" stroke-width="2"></line>
+
+                <circle cx="380" cy="180" r="4" fill="#64748b"></circle>
+                <text x="388" y="196" font-size="13" fill="#94a3b8" font-family="Noto Sans SC, sans-serif">O</text>
+
+                <text x="650" y="170" font-size="14" fill="#64748b" font-family="Noto Sans SC, sans-serif">维度1</text>
+                <text x="390" y="48" font-size="14" fill="#64748b" font-family="Noto Sans SC, sans-serif">维度2</text>
+
+                <!-- 行点 -->
+                <circle cx="175" cy="120" r="8" fill="#2563eb"></circle>
+                <text x="190" y="125" font-size="22" fill="#2563eb" font-weight="bold" font-family="Noto Sans SC, sans-serif">计算机</text>
+
+                <circle cx="315" cy="278" r="8" fill="#ec4899"></circle>
+                <text x="330" y="283" font-size="22" fill="#ec4899" font-weight="bold" font-family="Noto Sans SC, sans-serif">统计学</text>
+
+                <circle cx="535" cy="145" r="8" fill="#10b981"></circle>
+                <text x="550" y="150" font-size="22" fill="#10b981" font-weight="bold" font-family="Noto Sans SC, sans-serif">文学</text>
+
+                <circle cx="500" cy="175" r="8" fill="#f59e0b"></circle>
+                <text x="515" y="180" font-size="22" fill="#f59e0b" font-weight="bold" font-family="Noto Sans SC, sans-serif">艺术</text>
+
+                <!-- 列点 -->
+                <rect x="157" y="108" width="12" height="12" fill="#1e293b" transform="rotate(45 163 114)"></rect>
+                <text x="90" y="107" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">代码辅助</text>
+
+                <rect x="566" y="133" width="12" height="12" fill="#1e293b" transform="rotate(45 572 139)"></rect>
+                <text x="586" y="143" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">论文润色</text>
+
+                <rect x="321" y="280" width="12" height="12" fill="#1e293b" transform="rotate(45 327 286)"></rect>
+                <text x="340" y="294" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">数据绘图</text>
+
+                <rect x="578" y="151" width="12" height="12" fill="#1e293b" transform="rotate(45 584 157)"></rect>
+                <text x="603" y="160" font-size="18" fill="#1e293b" font-family="Noto Sans SC, sans-serif">日常摸鱼</text>
+
+                <!-- 虚线强调 -->
+                <line x1="175" y1="120" x2="163" y2="114" stroke="#2563eb" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                <line x1="315" y1="278" x2="327" y2="286" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                <line x1="535" y1="145" x2="572" y2="139" stroke="#10b981" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+                <line x1="500" y1="175" x2="584" y2="157" stroke="#f59e0b" stroke-width="2" stroke-dasharray="5,4" opacity="0.7"></line>
+            </svg>
+        </div>
+
+        <div class="step info-box" style="margin-top: 16px;">
+            <p style="font-size: 23px; line-height: 1.82;">
+                从图中可以看出：
+                <strong style="color:#2563eb;">计算机</strong>靠近<strong>代码辅助</strong>，
+                <strong style="color:#ec4899;">统计学</strong>靠近<strong>数据绘图</strong>，
+                <strong style="color:#10b981;">文学</strong>更接近<strong>论文润色</strong>，
+                <strong style="color:#f59e0b;">艺术</strong>更接近<strong>日常摸鱼</strong>。
+            </p>
+        </div>
+
+        <div class="step" style="margin-top: 12px; text-align:center;">
+            <p style="font-size: 25px; font-weight:bold; color:#2563eb;">
+                对应分析的本质：把“行轮廓”和“列轮廓”的相似性，翻译成空间中的远近关系。
+            </p>
+        </div>
+    </div>
+</div>
+
+
+    <!-- ==================== Part 7 拓展与局限 ==================== -->
+    <div class="slide" id="slide-28">
+        <h2 class="slide-title"><i class="fas fa-code-branch"></i> 简单对应分析 vs 多重对应分析 (MCA)</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="step tile" style="border-top-color: #3b82f6; padding: 35px;">
+                    <h3 style="font-size: 26px;">简单对应分析</h3>
+                    <p style="font-size: 22px; line-height: 1.8;">
+                        <strong>两个类别变量</strong>，一张二维列联表，这就是简单对应分析的主场。
+                    </p>
+                </div>
+                <div class="step tile" style="border-top-color: #8b5cf6; padding: 35px;">
+                    <h3 style="font-size: 26px;">多重对应分析 (MCA)</h3>
+                    <p style="font-size: 22px; line-height: 1.8;">
+                        如果问卷里有多个分类变量（如年龄、性别、收入、偏好同时交叉）。MCA 可以看作是简单对应分析在<strong>多维指示矩阵 (Indicator Matrix) 或伯特矩阵 (Burt Matrix) </strong>上的推广。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-29">
+        <h2 class="slide-title"><i class="fas fa-network-wired"></i> 对应分析适合什么场景？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 30px; font-weight: bold; text-align: center; margin-bottom: 30px; color: #1e293b;">
+                只要你面对的是“类别 × 类别”的结构关系，它就很有用！
+            </p>
+            <div class="step tile" style="padding: 40px; background: #f8fafc;">
+                <ul class="bullet-list" style="font-size: 26px; line-height: 2.2;">
+                    <li>消费者类型 × 品牌偏好</li>
+                    <li>专业背景 × 职业选择偏好</li>
+                    <li>城市地域等级 × 线上购物渠道</li>
+                    <li>患者症状表现组合 × 疾病确诊分型</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-30">
+        <h2 class="slide-title"><i class="fas fa-map-signs"></i> 建立多元统计的方法地图</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 26px; margin-bottom: 20px;">对应分析不是聚类，不是PCA，也不是判别，但和它们都有亲戚关系：</p>
+            <div class="step tile" style="padding: 30px; border-top-color: #10b981;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li><strong>与卡方检验：</strong> 一个检验是否独立，一个解释如何偏离独立。</li>
+                    <li><strong>与 PCA：</strong> 都用 SVD 降维。但 PCA 处理连续数值变量，对应分析处理列联表（类别频数）且加入了卡方加权。</li>
+                    <li><strong>与聚类分析：</strong> 聚类硬性分组，对应分析在低维空间展示软性的接近结构。</li>
+                </ul>
+            </div>
+            <p class="step" style="text-align: center; font-size: 26px; margin-top: 20px; font-weight: bold; color: #ec4899;">
+                理解了这个，整门课就不会是一堆散装的零件了。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-31">
+        <h2 class="slide-title"><i class="fas fa-bomb"></i> 避坑提醒：常见使用误区</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 28px; margin-bottom: 20px;">这些坑，极容易在看图看上头后踩进去：</p>
+            <div class="step tile" style="border-top-color: #ef4444; padding: 40px; background: #fff1f2;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2.2; color: #9d174d;">
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 只看点在平面上的远近，不看该点的“表示质量”（它可能只是个三维空间里的投影错觉）。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 把行列点的物理距离强行解读为绝对对应（跨空间强比）。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 忽略原点附近的点（原点附近说明没特征，而不是居中调和）。</li>
+                    <li><i class="fas fa-times" style="color: #ef4444;"></i> 把对应分析的关联展示当成“因果关系”去写结论报告。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课程总结 ==================== -->
+    <div class="slide" id="slide-32">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 7 章 本章小结</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 40px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.2; font-size: 24px;">
+                    <li><span class="highlight-blue">核心使命：</span> 对应分析用于研究列联表中行类别与列类别的结构关系，将沉闷的频数表变为直观的关系地图。</li>
+                    <li><span class="highlight-blue">卡方视角：</span> 它不直接看绝对频数，而是通过行/列分布轮廓，研究偏离理论独立模型的残差模式。</li>
+                    <li><span class="highlight-blue">加权距离：</span> 引入带有边际概率加权的卡方距离，彻底消除了类别规模不均带来的视觉误差。</li>
+                    <li><span class="highlight-blue">算法巧思：</span> 通过过渡矩阵 $\boldsymbol{Z}$，精妙打通了行空间与列空间的特征分解通道，实现了一步求解双向映射。</li>
+                    <li><span class="highlight-blue">解读艺术：</span> 联合图 (Biplot) 能直观展示接近关系，但图形解释必须结合总惯量贡献率和实际背景，切忌看图说话。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 课后思考与作业 ==================== -->
+    <div class="slide" id="slide-33">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 课后思考与作业</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 40px;">
+                <h3 style="font-size: 30px;"><i class="fas fa-question-circle" style="color: #f59e0b;"></i> 课堂互动讨论：</h3>
+                <p style="font-size: 26px; margin-top: 15px; margin-bottom: 20px;">如果给你一张“不同行业收入层级 × 理财产品偏好”的交叉表，你会怎么看？</p>
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li>是否需要先做一下经典的卡方独立性检验？</li>
+                    <li>在对应分析图上，如果“基金”和“债券”两个点几乎重合，这说明什么？</li>
+                    <li>如果有某个偏好点离原点极远，它代表了大众口味还是极客专属？</li>
+                    <li>图上哪些点之间的距离不能过度脑补解读？</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 50px;">
+                <a href="#" class="hw-btn" onclick="alert('即将跳转到网络作业库：Chapter 7 Assignment'); return false;" style="background: linear-gradient(135deg, #2563eb, #8b5cf6); color: white; padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); border: none; cursor: pointer;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Online Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 结束页 ==================== -->
+
+
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        const html = document.documentElement;
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+        let isSlideshowMode = false;
+
+        slides.forEach(slide => {
+            const steps = slide.querySelectorAll('.step');
+            steps.forEach(step => step.classList.remove('visible'));
+        });
+
+        function revealAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+        }
+
+        function hideAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progress.style.width = percent + '%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function showSlide(index) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            slides.forEach((slide, i) => {
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+        }
+
+        function advance() {
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function goBack() {
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+                revealAllSteps(slides[currentSlideIndex]);
+            }
+        }
+
+        function updateSlideshowScale() {
+            if (!isSlideshowMode) return;
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function scrollToCurrentSlide() {
+            const slide = slides[currentSlideIndex];
+            if (!slide) return;
+            slide.scrollIntoView({ block: 'start', behavior: 'auto' });
+            window.scrollBy(0, -12);
+        }
+
+        function enterBrowseMode() {
+            isSlideshowMode = false;
+            body.classList.add('browse-mode');
+            body.classList.remove('slideshow-mode');
+            html.classList.add('browse-mode');
+            slides.forEach(slide => {
+                slide.classList.add('active');
+                revealAllSteps(slide);
+            });
+            progress.style.width = '0%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+            requestAnimationFrame(scrollToCurrentSlide);
+        }
+
+        function enterSlideshowMode(targetIndex = currentSlideIndex) {
+            isSlideshowMode = true;
+            currentSlideIndex = Math.max(0, Math.min(targetIndex, slides.length - 1));
+            body.classList.add('slideshow-mode');
+            body.classList.remove('browse-mode');
+            html.classList.remove('browse-mode');
+            slides.forEach((slide, i) => {
+                hideAllSteps(slide);
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+            updateSlideshowScale();
+        }
+
+        function getClosestSlideIndexInBrowseMode() {
+            const viewportMid = window.scrollY + window.innerHeight * 0.35;
+            let bestIndex = 0;
+            let bestDistance = Infinity;
+            slides.forEach((slide, idx) => {
+                const top = slide.offsetTop;
+                const center = top + slide.offsetHeight / 2;
+                const dist = Math.abs(center - viewportMid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIndex = idx;
+                }
+            });
+            return bestIndex;
+        }
+
+        async function toggleFullScreenFromCurrent() {
+            if (!document.fullscreenElement) {
+                currentSlideIndex = getClosestSlideIndexInBrowseMode();
+                enterSlideshowMode(currentSlideIndex);
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.log(`全屏请求被拒绝: ${err.message}`);
+                    enterBrowseMode();
+                }
+            } else {
+                await document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                enterSlideshowMode(currentSlideIndex);
+            } else {
+                enterBrowseMode();
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (!isSlideshowMode) return;
+            if (e.target.closest('.hw-btn')) return;
+            advance();
+        });
+
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                await toggleFullScreenFromCurrent();
+                return;
+            }
+
+            if (!isSlideshowMode) return;
+
+            if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                e.preventDefault();
+                advance();
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                e.preventDefault();
+                goBack();
+            } else if (e.key === 'Escape' && document.fullscreenElement) {
+                e.preventDefault();
+                document.exitFullscreen();
+            }
+        });
+
+        window.addEventListener('resize', updateSlideshowScale);
+
+        enterBrowseMode();
+    });
+</script>
+
+</body>
+</html>
