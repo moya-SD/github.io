@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计预测与决策 - 第一章 统计预测与决策概述</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]'], ['$$', '$$']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+   <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #e5e7eb;
+        }
+
+        /* ===================== 浏览模式（默认） ===================== */
+        body.browse-mode {
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        body.browse-mode #presentation-container {
+            position: relative;
+            width: 1280px;
+            margin: 24px auto 60px auto;
+            transform: none !important;
+            height: auto;
+            background: transparent;
+            box-shadow: none;
+            border-radius: 0;
+            overflow: visible;
+        }
+
+        body.browse-mode .slide {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            margin: 0 auto 28px auto;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 60px;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+            overflow: hidden;
+        }
+
+        body.browse-mode .progress-bar,
+        body.browse-mode .slide-counter {
+            display: none;
+        }
+
+        body.browse-mode .step {
+            opacity: 1 !important;
+            transform: none !important;
+            pointer-events: auto !important;
+        }
+
+        /* ===================== 放映模式 ===================== */
+        body.presentation-mode {
+            background-color: #1e293b;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body.presentation-mode #presentation-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1280px;
+            height: 720px;
+            transform: translate(-50%, -50%);
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        body.presentation-mode #presentation-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #2563eb, #7c3aed, #db2777);
+            z-index: 100;
+        }
+
+        body.presentation-mode .slide {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .step {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .step.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 36px;
+            color: #1e293b;
+            margin: 0 0 20px 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-shrink: 0;
+            height: 60px;
+        }
+
+        .slide-title i { color: #2563eb; }
+
+        .content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            justify-content: flex-start;
+        }
+
+        p { font-size: 22px; color: #334155; line-height: 1.6; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 12px;
+            font-size: 20px;
+            color: #475569;
+            line-height: 1.5;
+        }
+        li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 4px;
+            color: #3b82f6;
+            font-size: 20px;
+        }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: flex-start; }
+
+        .tile {
+            background: #f8fafc;
+            padding: 20px 25px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            border-top: 5px solid #2563eb;
+        }
+        .tile h3 { font-size: 26px; color: #0f172a; margin-bottom: 15px; }
+
+        .math-center { text-align: center; width: 100%; margin: 15px 0; }
+        .math-box {
+            background: #f1f5f9;
+            border-left: 5px solid #7c3aed;
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: #000000 !important;
+            font-size: 22px;
+            display: inline-block;
+            width: fit-content;
+            text-align: left;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .info-box {
+            background: #e0f2fe;
+            border-left: 6px solid #3b82f6;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .info-box p {
+            margin: 0;
+            color: #0369a1;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1.6;
+        }
+
+        .question-box {
+            background: #fef3c7;
+            border-left: 6px solid #f59e0b;
+            padding: 16px 24px;
+            border-radius: 8px;
+            color: #92400e;
+            font-size: 22px;
+            line-height: 1.6;
+        }
+
+        .title-slide {
+            background: #020617;
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0;
+        }
+        .title-slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+
+        .glow-orb-1 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%);
+            top: -200px;
+            left: -200px;
+            z-index: 2;
+        }
+        .glow-orb-2 {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(219,39,119,0.15) 0%, transparent 70%);
+            bottom: -300px;
+            right: -200px;
+            z-index: 2;
+        }
+
+        .title-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 80px 100px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 56px;
+            margin: 0 0 20px 0;
+            letter-spacing: 2px;
+            color: #fff;
+        }
+        .title-content h1 span {
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .title-content p.subtitle {
+            color: #94a3b8;
+            font-size: 28px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+        .title-content .badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #60a5fa;
+            padding: 8px 24px;
+            border-radius: 50px;
+            font-size: 18px;
+            margin-bottom: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        body.browse-mode .title-slide {
+            position: relative;
+            min-height: 720px;
+            padding: 0 !important;
+            background: #020617 !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center;
+        }
+
+        body.browse-mode .title-slide .title-content {
+            margin: auto;
+        }
+
+        body.browse-mode .section-slide {
+            padding: 0 !important;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+            color: #ffffff !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            position: relative;
+        }
+
+        body.browse-mode .section-slide h2 {
+            color: #ffffff !important;
+        }
+
+        body.browse-mode .section-slide p,
+        body.browse-mode .section-slide .step {
+            color: #cbd5e1 !important;
+        }
+
+        body.browse-mode .section-slide hr {
+            width: 100px;
+            height: 6px;
+            background: #3b82f6;
+            border: none;
+            margin: 20px 0;
+        }
+
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .section-slide h2 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 48px;
+            margin: 0 0 20px 0;
+            color: #ffffff;
+        }
+        .section-slide hr {
+            width: 100px;
+            height: 6px;
+            background: #3b82f6;
+            border: none;
+            margin: 20px 0;
+        }
+
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            color: white;
+            padding: 12px 35px;
+            border-radius: 50px;
+            font-size: 22px;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+            transition: transform 0.2s;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        .hw-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4);
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 6px;
+            background: #2563eb;
+            transition: width 0.3s ease;
+            z-index: 200;
+        }
+        .slide-counter {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #94a3b8;
+            z-index: 100;
+        }
+
+        /* 表格样式 */
+        .feature-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        .feature-table th, .feature-table td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: left;
+            line-height: 1.4;
+            color: #334155;
+        }
+        .feature-table th {
+            background-color: #f1f5f9;
+            font-weight: bold;
+            color: #0f172a;
+            text-align: center;
+        }
+        .feature-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .feature-table tr:hover {
+            background-color: #e0f2fe;
+        }
+
+        /* 流程图样式 */
+        .flow-chart {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+            gap: 15px;
+        }
+        .flow-box {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #1e3a8a;
+            font-size: 18px;
+            width: 180px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .flow-arrow {
+            color: #3b82f6;
+            font-size: 24px;
+        }
+
+
+
+
+
+        /* 修复：放映模式下普通 .slide 的白色背景会覆盖封面/章节页背景 */
+        body.presentation-mode .title-slide {
+            background: #020617 !important;
+            color: #ffffff !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+        }
+
+        body.presentation-mode .title-slide .title-content {
+            margin: auto;
+        }
+
+        body.presentation-mode .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+            color: #ffffff !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+        }
+
+        body.presentation-mode .section-slide h2 {
+            color: #ffffff !important;
+        }
+
+        body.presentation-mode .section-slide p,
+        body.presentation-mode .section-slide .step {
+            color: #cbd5e1 !important;
+        }
+
+
+        /* ===================== 导入案例专用样式 ===================== */
+        .intro-hero {
+            background: linear-gradient(135deg, #eff6ff 0%, #fdf2f8 100%);
+            border: 1px solid #dbeafe;
+            border-radius: 18px;
+            padding: 26px 32px;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+        }
+        .intro-big-question {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 38px;
+            color: #0f172a;
+            line-height: 1.35;
+            margin-bottom: 16px;
+        }
+        .intro-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 14px;
+        }
+        .mini-card-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            margin-top: 18px;
+        }
+        .mini-card {
+            background: #ffffff;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            padding: 18px 20px;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+            min-height: 130px;
+        }
+        .mini-card h3 {
+            font-size: 22px;
+            color: #0f172a;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .mini-card p { font-size: 18px; line-height: 1.55; color: #475569; }
+        .decision-flow-vertical {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            width: 520px;
+            margin: 0 auto;
+        }
+        .decision-flow-vertical .flow-box {
+            width: 100%;
+            padding: 13px 18px;
+            font-size: 20px;
+        }
+        .down-arrow {
+            text-align: center;
+            color: #2563eb;
+            font-size: 22px;
+            line-height: 1;
+        }
+        .compare-table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow: hidden;
+            border-radius: 12px;
+            font-size: 19px;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+        }
+        .compare-table th, .compare-table td {
+            border: 1px solid #cbd5e1;
+            padding: 14px 16px;
+            text-align: center;
+            color: #334155;
+        }
+        .compare-table th {
+            background: #eff6ff;
+            color: #1e3a8a;
+            font-size: 20px;
+        }
+        .scenario-box {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-left: 7px solid #f97316;
+            border-radius: 14px;
+            padding: 18px 24px;
+        }
+        .scenario-box p { color: #7c2d12; font-size: 21px; line-height: 1.65; }
+
+        /* Print Media Queries */
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide {
+                width: 100vw !important; height: 100vh !important;
+                margin: 0 !important; box-shadow: none !important;
+                page-break-after: always; page-break-inside: avoid;
+                border: 1px solid transparent; 
+            }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== Slide 0: 封面页 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-book"></i> 第1章</div>
+            <h1><span>统计预测与决策概述</span></h1>
+            <p class="subtitle">从数据中预见未来，在不确定中寻找最优解</p>
+            <div class="step" style="margin-top: 30px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 12px 25px; border-radius: 12px;">
+                <p style="font-size: 18px; color: #60a5fa; margin: 0;">
+                    <i class="fas fa-keyboard"></i> <strong>操作提示：</strong>
+                    单击左键、按空格或方向键放映；按 <strong>F5</strong> 从当前页开始放映；按 <strong>Esc</strong> 退出放映。
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 导入模块：从现实问题进入课程 ==================== -->
+    <div class="slide section-slide" id="slide-intro-0">
+        <h2>导入：为什么要学统计预测与决策？</h2>
+        <hr>
+        <p class="step" style="font-size: 28px; color: #cbd5e1;">不是为了“猜未来”，而是为了在不确定中做出更像样的选择</p>
+    </div>
+
+    <div class="slide" id="slide-intro-1">
+        <h2 class="slide-title"><i class="fas fa-mug-hot"></i> 从奶茶店老板的灵魂拷问开始</h2>
+        <div class="content-area">
+            <div class="step intro-hero">
+                <div class="intro-tag"><i class="fas fa-store"></i> 现实情境</div>
+                <div class="intro-big-question">明天到底要准备多少杯奶茶原料？</div>
+                <p style="font-size: 23px; color:#334155; line-height: 1.7;">
+                    假设你在学校附近开了一家奶茶店。每天晚上，你都要决定第二天准备多少原料。
+                    准备少了，顾客买不到；准备多了，原料浪费。老板不想算命，老板只想少亏点钱，真是朴素又艰难的人类愿望。
+                </p>
+            </div>
+
+            <div class="step mini-card-grid">
+                <div class="mini-card" style="border-top:5px solid #ef4444;">
+                    <h3><i class="fas fa-arrow-down"></i> 准备少了</h3>
+                    <p>缺货、损失利润，学生排队排到怀疑人生。</p>
+                </div>
+                <div class="mini-card" style="border-top:5px solid #f59e0b;">
+                    <h3><i class="fas fa-arrow-up"></i> 准备多了</h3>
+                    <p>卖不完、增加成本，原料在冰箱里安静地控诉你。</p>
+                </div>
+                <div class="mini-card" style="border-top:5px solid #10b981;">
+                    <h3><i class="fas fa-bullseye"></i> 准备合理</h3>
+                    <p>既减少浪费，又尽量满足需求，短暂体验理性胜利。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-intro-2">
+        <h2 class="slide-title"><i class="fas fa-database"></i> 从历史数据到明天销量</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 22px;">奶茶店记录了过去 30 天的日销量，同时记录天气、是否周末、是否有校园活动。</p>
+            <div class="step" style="margin-top: 8px;">
+                <table class="feature-table" style="font-size: 20px;">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>天气</th>
+                            <th>是否周末</th>
+                            <th>是否有活动</th>
+                            <th>实际销量</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>第1天</td><td>晴</td><td>否</td><td>否</td><td>120</td></tr>
+                        <tr><td>第2天</td><td>雨</td><td>否</td><td>否</td><td>85</td></tr>
+                        <tr><td>第3天</td><td>晴</td><td>是</td><td>是</td><td>210</td></tr>
+                        <tr><td>第4天</td><td>阴</td><td>否</td><td>是</td><td>160</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step scenario-box" style="margin-top: 22px;">
+                <p><strong>问题：</strong>如果明天是周六、天气晴、学校有社团活动，大概会卖多少杯？</p>
+            </div>
+            <div class="step info-box" style="margin-top: 18px;">
+                <p><i class="fas fa-lightbulb"></i> 这就是统计预测：根据已有数据和相关信息，推断未来可能出现的数量水平或状态变化。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-intro-3">
+        <h2 class="slide-title"><i class="fas fa-comments"></i> 先让学生凭直觉预测</h2>
+        <div class="content-area">
+            <div class="step question-box" style="font-size: 26px; padding: 24px 30px;">
+                <strong>课堂提问：</strong>如果让你预测明天销量，你会怎么做？
+            </div>
+            <div class="step two-column-top" style="margin-top: 18px; gap: 24px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3><i class="fas fa-brain"></i> 学生可能的回答</h3>
+                    <ul style="line-height:1.85;">
+                        <li>看最近几天平均销量。</li>
+                        <li>看上周六卖了多少。</li>
+                        <li>看天气和校园活动。</li>
+                        <li>用历史数据建立模型。</li>
+                        <li>问老板经验。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3><i class="fas fa-chalkboard-teacher"></i> 教师引导</h3>
+                    <p style="font-size: 21px; line-height:1.7;">
+                        这些回答其实对应不同层次的预测思想：经验预测、平均预测、时间序列预测、回归预测、机器学习预测等。
+                    </p>
+                    <p style="font-size: 20px; color:#64748b; margin-top: 12px;">
+                        也就是说，大家不是不会预测，只是以前预测得比较“野生”。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-intro-4">
+        <h2 class="slide-title"><i class="fas fa-scale-balanced"></i> 预测之后，还要做决策</h2>
+        <div class="content-area">
+            <div class="step intro-hero" style="padding: 24px 30px;">
+                <div class="intro-tag"><i class="fas fa-chart-line"></i> 预测结果</div>
+                <div class="intro-big-question" style="font-size: 34px;">假设模型预测：明天会卖 180 杯</div>
+                <p style="font-size: 22px; color:#334155;">那么问题来了：你真的就只准备 180 杯原料吗？</p>
+            </div>
+            <div class="step mini-card-grid" style="grid-template-columns: repeat(4, 1fr); gap: 14px;">
+                <div class="mini-card" style="min-height:120px; border-top:5px solid #3b82f6;"><h3>误差</h3><p>实际销量可能是 150，也可能是 220。</p></div>
+                <div class="mini-card" style="min-height:120px; border-top:5px solid #ef4444;"><h3>缺货</h3><p>卖少了会损失利润和顾客满意度。</p></div>
+                <div class="mini-card" style="min-height:120px; border-top:5px solid #f59e0b;"><h3>浪费</h3><p>备多了会增加原料损耗。</p></div>
+                <div class="mini-card" style="min-height:120px; border-top:5px solid #10b981;"><h3>权衡</h3><p>合理方案要看收益、成本和风险。</p></div>
+            </div>
+            <div class="step info-box" style="margin-top: 20px; background:#ecfdf5; border-left-color:#10b981;">
+                <p style="color:#065f46;"><i class="fas fa-check-circle"></i> 统计决策关心的不是“未来一定怎样”，而是“在未来不确定时，现在怎么做更合理”。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-intro-5">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 本课程的核心逻辑</h2>
+        <div class="content-area">
+            <div class="step decision-flow-vertical" style="margin-top: 6px;">
+                <div class="flow-box">历史数据</div>
+                <div class="down-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="flow-box">统计模型</div>
+                <div class="down-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="flow-box">预测未来</div>
+                <div class="down-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="flow-box" style="background:linear-gradient(135deg,#fef3c7,#fde68a); border-color:#f59e0b; color:#92400e;">评价误差与不确定性</div>
+                <div class="down-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="flow-box" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0); border-color:#10b981; color:#064e3b;">选择行动方案</div>
+            </div>
+            <div class="step question-box" style="margin-top: 22px; text-align:center; font-size: 25px;">
+                <strong>一句话：</strong>先预测未来，再基于预测结果做决策。
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-intro-6">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 统计预测与统计决策的关系</h2>
+        <div class="content-area">
+            <div class="step" style="margin-top: 8px;">
+                <table class="compare-table">
+                    <thead>
+                        <tr>
+                            <th>环节</th>
+                            <th>关注问题</th>
+                            <th>奶茶店例子</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>统计预测</strong></td><td>未来可能是什么样？</td><td>明天大概卖 180 杯</td></tr>
+                        <tr><td><strong>预测评价</strong></td><td>预测准不准？误差多大？</td><td>误差可能在 ±30 杯</td></tr>
+                        <tr><td><strong>统计决策</strong></td><td>现在应该怎么做？</td><td>准备 190 或 200 杯原料</td></tr>
+                        <tr><td><strong>决策评价</strong></td><td>结果是否划算？</td><td>利润较高或损失较小</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box" style="margin-top: 26px; background:#eef2ff; border-left-color:#6366f1;">
+                <p style="color:#3730a3;"><i class="fas fa-star"></i> 预测是决策的基础，决策是预测的目的。</p>
+            </div>
+            <p class="step" style="font-size: 21px; color:#475569; line-height:1.7; margin-top: 8px;">
+                所以这门课不是让大家机械套公式，而是训练一种思维：面对不确定性，如何用数据减少盲目性。
+            </p>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-intro-7">
+        <h2 class="slide-title"><i class="fas fa-list-check"></i> 导入讨论：哪些是预测？哪些是决策？</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#2563eb; padding: 22px 28px;">
+                <ul style="line-height: 1.75; display:grid; grid-template-columns:1fr 1fr; gap: 2px 30px;">
+                    <li>根据过去 5 年数据预测明年毕业生人数。</li>
+                    <li>根据预测结果决定是否扩建教学楼。</li>
+                    <li>预测某产品下季度销量。</li>
+                    <li>决定是否增加该产品库存。</li>
+                    <li>预测明天是否下雨。</li>
+                    <li>决定是否举办户外运动会。</li>
+                </ul>
+            </div>
+            <div class="step" style="margin-top: 20px;">
+                <table class="compare-table" style="font-size:18px;">
+                    <thead><tr><th>问题</th><th>类型</th></tr></thead>
+                    <tbody>
+                        <tr><td>预测毕业生人数、预测产品销量、预测明天是否下雨</td><td><strong style="color:#2563eb;">统计预测</strong></td></tr>
+                        <tr><td>是否扩建教学楼、是否增加库存、是否举办户外运动会</td><td><strong style="color:#16a34a;">统计决策</strong></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step question-box" style="margin-top: 20px; text-align:center;">
+                记住：预测回答“未来可能怎样”，决策回答“现在应该怎么办”。
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第一节：概念与作用 ==================== -->
+    <div class="slide section-slide" id="slide-1">
+        <h2>第一节 统计预测的概念和作用</h2>
+        <hr>
+        <p class="step" style="font-size: 28px; color: #cbd5e1;">预测未来，指导行动</p>
+    </div>
+
+    <!-- ==================== Slide 2 ==================== -->
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title"><i class="fas fa-search"></i> 一、统计预测的概念</h2>
+        <div class="content-area">
+            <p class="step"><strong>预测</strong>就是根据过去和现在估计未来、预测未来。</p>
+            
+            <div class="step tile" style="border-top-color: #2563eb; margin-top: 15px;">
+                <h3 style="font-size: 24px;">统计预测定义</h3>
+                <p style="font-size: 20px; line-height: 1.6;">
+                    统计预测属于预测方法研究范畴，即如何用科学的统计方法对事物的未来发展进行定量推测，并计算概率置信区间。<br>
+                    <span style="color: #64748b; font-size: 18px;">（在这种推测中，不仅有数学计算，而且有直觉判断。）</span>
+                </p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #10b981; margin-top: 15px;">
+                <h3 style="font-size: 24px;">统计预测的三大要素</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>实际资料</strong>是预测的<span style="color:#059669; font-weight:bold;">依据</span>。</li>
+                    <li><strong>经济理论</strong>是预测的<span style="color:#059669; font-weight:bold;">基础</span>。</li>
+                    <li><strong>数学模型</strong>是预测的<span style="color:#059669; font-weight:bold;">手段</span>。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 3 ==================== -->
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 统计预测与经济预测的联系与区别</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 20px;">统计预测方法具有通用性。为了明确统计预测和各种实质性预测（如经济预测、社会预测等）的关系，以经济预测为例：</p>
+            
+            <div class="step two-column-top" style="margin-top: 15px;">
+                <div class="tile" style="border-top-color:#3b82f6; padding: 20px;">
+                    <h3 style="font-size: 22px; margin-bottom: 10px;">主要联系</h3>
+                    <ul style="font-size: 18px; line-height: 1.6;">
+                        <li><strong>对象相同：</strong>都以经济现象的数值为研究对象。</li>
+                        <li><strong>目的相同：</strong>都为宏观/微观决策、政策制定等提供信息。</li>
+                        <li><strong>相互依存：</strong>统计预测提供方法论；经济预测是方法的应用舞台，并反过来推动方法完善。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b; padding: 20px;">
+                    <h3 style="font-size: 22px; margin-bottom: 10px;">主要区别</h3>
+                    <ul style="font-size: 18px; line-height: 1.6;">
+                        <li><strong>研究角度不同：</strong>统计预测侧重<strong>方法论研究</strong>（方法的完善程度）；经济预测侧重<strong>实质性判断</strong>（现象未来发展的具体结论）。</li>
+                        <li><strong>研究领域不同：</strong>经济预测专指经济领域；统计预测广泛应用于人类活动的各个领域。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 4 ==================== -->
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 二、统计预测的作用</h2>
+        <div class="content-area">
+            <div class="step info-box" style="margin-top: 5px;">
+                <p><i class="fas fa-link"></i> 预测、决策与行动计划的关系：</p>
+                <p style="font-size: 20px; font-weight: normal; margin-top: 5px; color:#334155;">
+                    预测在决策之前，为决策提供依据；行动计划在决策之后，是决策实现的桥梁。<br>
+                    预测人员是信息的生产者，决策者和计划者是信息的消费者。
+                </p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #ec4899; margin-top: 10px;">
+                <h3 style="font-size: 24px; margin-bottom: 10px;">影响预测作用大小的三大主要因素</h3>
+                <ul style="line-height: 1.8;">
+                    <li><strong>(1) 预测费用的高低：</strong>包括程序设计、调查、资料使用、计算和劳务等费用。</li>
+                    <li><strong>(2) 预测方法的难易程度：</strong>简单易懂则费用低，复杂难用则费用高。</li>
+                    <li><strong>(3) 预测结果的精确程度：</strong>通常精度越高作用越大。但提高精度的好处常在于<span style="color:#e11d48; font-weight:bold;">减少风险</span>，而不是降低费用。需权衡精度提升与额外代价。</li>
+                </ul>
+            </div>
+            
+            <div class="step question-box" style="margin-top: 15px; background: #f1f5f9; border-left-color: #64748b; color: #334155;">
+                <strong>核心作用原理：</strong> 统计定量预测最基本的作用在于，把历史资料中同时并存的<strong>基本轨迹（拟合模型）</strong>和<strong>误差（残差的随机性）</strong>分开，以研究其形态的变化。
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第二节：分类与选择 ==================== -->
+    <div class="slide section-slide" id="slide-5">
+        <h2>第二节 统计预测方法的分类及其选择</h2>
+        <hr>
+        <p class="step" style="font-size: 28px; color: #cbd5e1;">定性与定量的结合，方法与场景的匹配</p>
+    </div>
+
+    <!-- ==================== Slide 6 ==================== -->
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-sitemap"></i> 一、统计预测方法的分类 (按性质划分)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 20px; margin-bottom: 10px;">按预测方法的性质，大致可归纳成<strong>定性预测法</strong>和以模型为主的<strong>定量预测法</strong>（回归与时间序列）。</p>
+            
+            <div class="step two-column" style="gap: 20px;">
+                <div class="tile" style="border-top-color:#3b82f6; padding: 20px;">
+                    <h3 style="font-size: 20px; margin-bottom: 10px;">1. 定性预测法</h3>
+                    <p style="font-size: 16px; line-height: 1.5;">以<strong>逻辑判断为主</strong>，将掌握的信息和因素结合经验做出判断并定量化。<br>
+                    <strong>适用场景：</strong>缺乏历史统计资料，或趋势面临转折。<br>
+                    <strong>具体方法：</strong>德尔菲法、主观概率法、领先指标法、情景预测法等。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981; padding: 20px;">
+                    <h3 style="font-size: 20px; margin-bottom: 10px;">2. 回归预测法</h3>
+                    <p style="font-size: 16px; line-height: 1.5;">研究<strong>变量间相互关系</strong>，用自变量去旁推因变量。<br>
+                    <strong>特点：</strong>既考虑时间因素，又考虑因果关系。<br>
+                    <strong>具体方法：</strong>一元线性、多元线性、非线性回归等。</p>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b; padding: 20px;">
+                    <h3 style="font-size: 20px; margin-bottom: 10px;">3. 时间序列预测法</h3>
+                    <p style="font-size: 16px; line-height: 1.5;">考虑变量随<strong>时间发展变化规律</strong>建立模型外推。<br>
+                    <strong>特点：</strong>只需序列本身历史数据，应用广泛。<br>
+                    <strong>具体方法：</strong>分解法、移动平均、指数平滑、ARIMA、灰色预测等。</p>
+                </div>
+                <div class="tile" style="border-top-color:#8b5cf6; padding: 20px; display: flex; align-items: center; justify-content: center; background: #f3f4f6;">
+                    <p style="font-size: 18px; text-align: center; color: #475569;">在实际应用中，各种方法往往交叉运用、相互渗透，很难做出截然划分。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 7 ==================== -->
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-clock"></i> 统计预测方法的其他分类标准</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #06b6d4; padding: 25px;">
+                <h3 style="font-size: 22px;">按预测的时间长短分类</h3>
+                <ul style="line-height: 1.8; margin-top: 10px;">
+                    <li><strong>近期预测：</strong> 1 个月以内的预测。</li>
+                    <li><strong>短期预测：</strong> 1 ~ 3 个月的预测。</li>
+                    <li><strong>中期预测：</strong> 3 个月到 2 年的预测。</li>
+                    <li><strong>长期预测：</strong> 2 年以上的预测。</li>
+                </ul>
+                <p style="font-size: 18px; color: #e11d48; margin-top: 10px; margin-left: 30px;">规律：向未来预测的时间越长，预测误差就越大。</p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #d946ef; padding: 25px; margin-top: 20px;">
+                <h3 style="font-size: 22px;">按预测是否重复分类</h3>
+                <ul style="line-height: 1.8; margin-top: 10px;">
+                    <li><strong>一次性预测：</strong> 模型可以一次计算出所需的远近任何时期的预测值。<br>
+                    <span style="font-size: 18px; color: #64748b;">(如：回归预测法、时间序列趋势外推预测法)</span></li>
+                    <li><strong>反复预测：</strong> 模型每次只能前测一期，需不断滚动更新。<br>
+                    <span style="font-size: 18px; color: #64748b;">(如：指数平滑法、自适应过滤法)</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 8 ==================== -->
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 二、统计预测方法的选择与特点</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 20px;">在选择预测方法时，应考虑三个主要问题：<strong>合适性、费用和精确性</strong>。<br>
+            需注意方法的适用条件，权衡精确性与费用的轻重。</p>
+            
+            <div class="step" style="overflow-x: auto; margin-top: 10px;">
+                <table class="feature-table">
+                    <thead>
+                        <tr>
+                            <th width="15%">方法类别</th>
+                            <th width="8%">时间范围</th>
+                            <th width="42%">适用情况 (合适性)</th>
+                            <th width="35%">准备工作与特点 (费用与难度)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>定性预测法</strong></td>
+                            <td>短、中、长期</td>
+                            <td>对缺乏历史统计资料或趋势面临转折的事件进行预测</td>
+                            <td>需做大量的调查研究工作，计算器即可</td>
+                        </tr>
+                        <tr>
+                            <td><strong>回归预测法</strong></td>
+                            <td>短、中期</td>
+                            <td>变量之间存在线性或非线性关系</td>
+                            <td>收集多变量历史数据极其费时；需建立试探模型</td>
+                        </tr>
+                        <tr>
+                            <td><strong>分解分析法</strong></td>
+                            <td>短期</td>
+                            <td>一次性短期预测，或消除季节变动因素</td>
+                            <td>只需要序列的历史资料，简单快捷</td>
+                        </tr>
+                        <tr>
+                            <td><strong>指数平滑法</strong></td>
+                            <td>短期</td>
+                            <td>具有或不具有季节变动的反复预测</td>
+                            <td>只需历史资料，是最简易的反复预测法，计算量小</td>
+                        </tr>
+                        <tr>
+                            <td><strong>平稳时序预测</strong></td>
+                            <td>短期</td>
+                            <td>适用于任何序列发展形态的高级预测</td>
+                            <td>计算过程复杂、烦琐，必须依赖计算机</td>
+                        </tr>
+                        <tr>
+                            <td><strong>状态空间与卡尔曼</strong></td>
+                            <td>短、中期</td>
+                            <td>适用于各类时序动态系统的预测</td>
+                            <td>收集历史数据，并建立状态空间模型，需计算机</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="step" style="text-align: right; font-size: 14px; color: #64748b; margin-top: 5px;">* 上表基于《表 1-1 各种预测方法的特点》节选整理</p>
+        </div>
+    </div>
+
+    <!-- ==================== 第三节：原则和步骤 ==================== -->
+    <div class="slide section-slide" id="slide-9">
+        <h2>第三节 统计预测的原则和步骤</h2>
+        <hr>
+        <p class="step" style="font-size: 28px; color: #cbd5e1;">规范流程，科学推演</p>
+    </div>
+
+    <!-- ==================== Slide 10 ==================== -->
+    <div class="slide" id="slide-10">
+        <h2 class="slide-title"><i class="fas fa-gavel"></i> 一、统计预测的原则</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 22px; margin-bottom: 10px;">统计预测中的定量预测主要使用模型外推法，必须遵循两条重要原则：</p>
+            
+            <div class="step tile" style="border-top-color: #3b82f6; padding: 25px;">
+                <h3 style="font-size: 24px; margin-bottom: 15px;">1. 连贯原则</h3>
+                <p style="font-size: 20px; line-height: 1.6;">
+                    是指事物的发展是按一定规律进行的，在其发展过程中，这种规律贯彻始终，不应受到破坏，它的未来发展与其过去和现在的发展没有什么根本的不同。
+                </p>
+            </div>
+
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 25px; margin-top: 20px;">
+                <h3 style="font-size: 24px; margin-bottom: 15px;">2. 类推原则</h3>
+                <p style="font-size: 20px; line-height: 1.6;">
+                    是指事物必须有某种结构，其升降起伏变动不是杂乱无章的，而是有章可循的。事物变动的这种结构性可用数学方法加以模拟，根据所测定的模型，类比现在，预测未来。
+                </p>
+            </div>
+
+            <div class="step info-box" style="margin-top: 20px; background: #fef2f2; border-left-color: #ef4444; color: #9f1239;">
+                <p style="color: #be123c;"><i class="fas fa-exclamation-circle"></i> 前提条件：</p>
+                <p style="font-size: 20px; font-weight: normal; margin-top: 5px;">
+                    <strong>统计资料的稳定结构</strong>是应用统计预测的必要条件。凡是没有一定结构，或虽有结构但很不稳定、经常突然变化的资料，是很难据以进行预测的。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 11 ==================== -->
+    <div class="slide" id="slide-11">
+        <h2 class="slide-title"><i class="fas fa-shoe-prints"></i> 二、统计预测的步骤</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 20px; margin-bottom: 5px;">一个完整的统计预测研究，一般要经过以下九个步骤：</p>
+            
+            <div class="step" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; margin-bottom: 10px;">
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">1. 确定预测目的</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">2. 拟定预测计划</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">3. 搜集审核资料</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">4. 选定预测方法</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">5. 建立预测模型</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">6. 实际预测</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px; background: linear-gradient(135deg, #fef3c7, #fde68a); border-color: #f59e0b; color: #92400e;">7. 分析误差与改进</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px;">8. 提出预测报告</div>
+                <div class="flow-arrow" style="font-size: 18px;"><i class="fas fa-arrow-right"></i></div>
+                <div class="flow-box" style="width: auto; padding: 8px 12px; font-size: 16px; background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-color: #10b981; color: #064e3b;">9. 追查检验与更新</div>
+            </div>
+
+            <div class="step tile" style="padding: 15px 25px;">
+                <ul style="font-size: 16px; line-height: 1.8; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px;">
+                    <li><strong>(1) 确定预测的目的：</strong>目的决定了所需资料和采用的方法方向。</li>
+                    <li><strong>(2) 拟定预测计划：</strong>制定详细的实施步骤、时间表和人员分工。</li>
+                    <li><strong>(3) 搜集和审核资料：</strong>对资料进行审核、调整、推算，并画出统计图形观察性质。</li>
+                    <li><strong>(4) 选定预测方法：</strong>根据资料特点和预测目的，选择合适的定性或定量方法。</li>
+                    <li><strong>(5) 建立预测模型：</strong>运用数学或统计工具构建具体的预测方程式。</li>
+                    <li><strong>(6) 实际预测：</strong>将数据代入模型，进行试算并得出初步的预测值。</li>
+                    <li><strong>(7) 分析误差和改进模型：</strong>若误差超出允许范围，需分析原因并修正模型。</li>
+                    <li><strong>(8) 提出预测报告：</strong>向有关部门上报或公布，供决策参考。</li>
+                    <li><strong>(9) 追查检验，更新模型：</strong>在实际运行中持续跟踪检验预测精度，并滚动更新模型。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+     <!-- ==================== Slide 8: 课程大纲核心重构 ==================== -->
+    <div class="slide" id="slide-8">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 七、 本学期授课计划与核心大纲</h2>
+        <div class="content-area">
+            <div class="step two-column-top" style="gap: 20px;">
+                <!-- 模块一 -->
+                <div class="tile" style="border-top-color: #3b82f6; padding: 20px 25px;">
+                    <h3 style="font-size: 22px; margin-bottom: 10px; color: #2563eb;"><i class="fas fa-book-open"></i> 模块一：预测基础与定性方法</h3>
+                    <ul style="font-size: 18px; line-height: 1.6;">
+                        <li><strong>第一章</strong> 统计预测概述</li>
+                        <li><strong>第二章</strong> 定性预测法</li>
+                    </ul>
+                </div>
+                <!-- 模块二 -->
+                <div class="tile" style="border-top-color: #10b981; padding: 20px 25px;">
+                    <h3 style="font-size: 22px; margin-bottom: 10px; color: #059669;"><i class="fas fa-chart-line"></i> 模块二：经典定量预测法</h3>
+                    <ul style="font-size: 18px; line-height: 1.6;">
+                        <li><strong>第三章</strong> 回归预测</li>
+                        <li><strong>第四章</strong> 时间序列分解法和趋势外推法</li>
+                        <li><strong>第五章</strong> 时间序列平滑预测法</li>
+                    </ul>
+                </div>
+                <!-- 模块三 -->
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 20px 25px;">
+                    <h3 style="font-size: 22px; margin-bottom: 10px; color: #7c3aed;"><i class="fas fa-cogs"></i> 模块三：高级动态建模</h3>
+                    <ul style="font-size: 18px; line-height: 1.6;">
+                        <li><strong>第六/七/八章</strong> 自适应过滤 / 平稳序列 / 干预分析</li>
+                        <li><strong>第十章</strong> 灰色预测法</li>
+                        <li><strong>第十一章</strong> 状态空间模型和卡尔曼滤波法</li>
+                    </ul>
+                </div>
+                <!-- 模块四 -->
+                <div class="tile" style="border-top-color: #f59e0b; padding: 20px 25px;">
+                    <h3 style="font-size: 22px; margin-bottom: 10px; color: #d97706;"><i class="fas fa-balance-scale"></i> 模块四：宏观应用与科学决策</h3>
+                    <ul style="font-size: 18px; line-height: 1.6;">
+                        <li><strong>第九章</strong> 景气预测法</li>
+                        <li><strong>第十二章</strong> 风险型决策方法</li>
+                        <li><strong>第十七章</strong> 多目标决策方法</li>
+                    </ul>
+                </div>
+            </div>
+            
+           
+        </div>
+    </div>
+
+    <!-- ==================== Slide 12: 课程总结 & 作业 ==================== -->
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 本章小结</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 30px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #2563eb;">
+                <ul class="bullet-list" style="margin-left: 10px; line-height: 2.0; font-size: 18px;">
+                    <li><strong>核心概念：</strong> 预测是根据过去和现在推测未来。统计预测三要素：实际资料（依据）、经济理论（基础）、数学模型（手段）。</li>
+                    <li><strong>作用机制：</strong> 预测在决策之前，是决策科学化的前提。预测作用大小受费用高低、方法难易和精确程度三大因素影响。最基本作用是分离基本轨迹与残差。</li>
+                    <li><strong>方法分类：</strong> 分为定性与定量（回归与时间序列）。同时可按时间长短（近期/短期/中期/长期）和是否重复（一次性/反复）划分。选择需考虑合适性、费用和精确性。</li>
+                    <li><strong>实施准则：</strong> 必须遵循“连贯原则”与“类推原则”，资料需具有稳定的结构。</li>
+                    <li><strong>标准步骤：</strong> 确定目的 \(\rightarrow\) 拟定计划 \(\rightarrow\) 搜集审核 \(\rightarrow\) 选定方法 \(\rightarrow\) 建立模型 \(\rightarrow\) 实际预测 \(\rightarrow\) 分析误差改进 \(\rightarrow\) 提出报告 \(\rightarrow\) 追查更新。</li>
+                </ul>
+            </div>
+            
+           <!-- <div class="step math-center" style="margin-top: 40px;">
+              
+                <a href="#" class="hw-btn" style="background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 12px 35px; border-radius: 50px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); border: none; cursor: pointer;" onclick="alert('即将跳转到网络作业库：第一章 课后练习'); return false;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Homework)
+                </a>
+            </div>
+            -->
+        </div>
+    </div>
+
+</div>
+
+<!-- 放映逻辑 JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('#presentation-container .slide'));
+    const progressBar = document.getElementById('progress-bar');
+    const slideCounter = document.getElementById('slide-counter');
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    body.classList.add('browse-mode');
+
+    function getSteps(slide) {
+        return Array.from(slide.querySelectorAll('.step'));
+    }
+
+    function hideAllSteps() {
+        slides.forEach(slide => {
+            getSteps(slide).forEach(step => step.classList.remove('visible'));
+        });
+    }
+
+    function showAllSteps(slide) {
+        getSteps(slide).forEach(step => step.classList.add('visible'));
+    }
+
+    function updateCounter() {
+        if (slideCounter) {
+            slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+    }
+
+    function updateProgress() {
+        if (progressBar) {
+            const percent = slides.length > 1 ? currentSlideIndex / (slides.length - 1) * 100 : 0;
+            progressBar.style.width = `${percent}%`;
+        }
+    }
+
+    function refreshMath() {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }
+
+    function showSlide(index) {
+        slides.forEach((slide, i) => {
+            slide.classList.toggle('active', i === index);
+        });
+        currentSlideIndex = index;
+        updateCounter();
+        updateProgress();
+        refreshMath();
+    }
+
+    function updateScale() {
+        if (!isPresentationMode) return;
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function getCurrentVisibleBrowseSlideIndex() {
+        let bestIndex = 0;
+        let bestDistance = Infinity;
+
+        slides.forEach((slide, index) => {
+            const rect = slide.getBoundingClientRect();
+            const distance = Math.abs(rect.top - 20);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = index;
+            }
+        });
+        return bestIndex;
+    }
+
+    function enterBrowseMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode');
+        body.classList.add('browse-mode');
+
+        slides.forEach(slide => slide.classList.remove('active'));
+        hideAllSteps();
+        slides.forEach(slide => showAllSteps(slide));
+
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode');
+        body.classList.add('presentation-mode');
+
+        hideAllSteps();
+        currentSlideIndex = Math.max(0, Math.min(startIndex, slides.length - 1));
+        showSlide(currentSlideIndex);
+        updateScale();
+    }
+
+    async function enterFullscreen() {
+        if (!document.fullscreenElement) {
+            try {
+                await document.documentElement.requestFullscreen();
+            } catch (err) {
+                console.log('全屏请求失败:', err);
+            }
+        }
+    }
+
+    async function exitFullscreen() {
+        if (document.fullscreenElement) {
+            try {
+                await document.exitFullscreen();
+            } catch (err) {
+                console.log('退出全屏失败:', err);
+            }
+        }
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            refreshMath();
+        } else if (currentSlideIndex < slides.length - 1) {
+            currentSlideIndex++;
+            showSlide(currentSlideIndex);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            refreshMath();
+        } else if (currentSlideIndex > 0) {
+            currentSlideIndex--;
+            showSlide(currentSlideIndex);
+            showAllSteps(slides[currentSlideIndex]);
+        }
+    }
+
+    window.addEventListener('resize', updateScale);
+
+    slides.forEach((slide, index) => {
+        slide.addEventListener('click', (e) => {
+            if (e.target.closest('.hw-btn')) return;
+            if (!isPresentationMode) {
+                currentSlideIndex = index;
+                return;
+            }
+            advance();
+        });
+    });
+
+    document.addEventListener('keydown', async (e) => {
+        if (e.key === 'F5') {
+            e.preventDefault();
+            const startIndex = isPresentationMode ? currentSlideIndex : getCurrentVisibleBrowseSlideIndex();
+            enterPresentationMode(startIndex);
+            await enterFullscreen();
+            return;
+        }
+
+        if (e.key === 'Escape' && isPresentationMode) {
+            e.preventDefault();
+            await exitFullscreen();
+            enterBrowseMode();
+            return;
+        }
+
+        if (!isPresentationMode) return;
+
+        if (['Space', 'ArrowRight', 'ArrowDown', 'Enter', 'PageDown', 'NumpadEnter'].includes(e.code) || e.key === ' ') {
+            e.preventDefault();
+            advance();
+        } else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.code)) {
+            e.preventDefault();
+            goBack();
+        } else if (e.key === 'Home') {
+            e.preventDefault();
+            hideAllSteps();
+            showSlide(0);
+        } else if (e.key === 'End') {
+            e.preventDefault();
+            currentSlideIndex = slides.length - 1;
+            showSlide(currentSlideIndex);
+            showAllSteps(slides[currentSlideIndex]);
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode) {
+            enterBrowseMode();
+        }
+    });
+
+    enterBrowseMode();
+});
+</script>
+
+</body>
+</html>

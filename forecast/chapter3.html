@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计预测与决策 - 第3章 回归预测法</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]'], ['$$', '$$']],
+                tags: 'ams'
+            },
+            chtml: { scale: 1.05 }
+        };
+    </script>
+   <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            margin: 0; padding: 0; font-family: 'Noto Sans SC', sans-serif; background-color: #e2e8f0;
+        }
+
+        /* ===================== 浏览模式（默认） ===================== */
+        body.browse-mode { overflow-y: auto; overflow-x: hidden; min-height: 100vh; }
+        body.browse-mode #presentation-container {
+            position: relative; width: 1280px; margin: 24px auto 60px auto;
+            transform: none !important; height: auto; background: transparent;
+            box-shadow: none; border-radius: 0; overflow: visible;
+        }
+        body.browse-mode .slide {
+            position: relative; width: 1280px; height: 720px; margin: 0 auto 28px auto;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 1 !important; pointer-events: auto !important;
+            background: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden;
+        }
+        body.browse-mode .progress-bar, body.browse-mode .slide-counter { display: none; }
+        body.browse-mode .step { opacity: 1 !important; transform: none !important; pointer-events: auto !important; }
+
+        /* ===================== 放映模式 ===================== */
+        body.presentation-mode { background-color: #0f172a; width: 100vw; height: 100vh; overflow: hidden; }
+        body.presentation-mode #presentation-container {
+            position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); background-color: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden;
+        }
+        body.presentation-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899); z-index: 100;
+        }
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff; overflow: hidden;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* ===================== 动画与布局 ===================== */
+        .step { opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        .step.visible { opacity: 1; transform: translateY(0); }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 34px; color: #1e293b;
+            margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0; height: 50px;
+        }
+        .slide-title i { color: #3b82f6; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; overflow: hidden; }
+
+        p { font-size: 19px; color: #334155; line-height: 1.6; margin: 0; }
+        ul { list-style: none; margin-left: 5px; margin: 0; }
+        li { position: relative; padding-left: 25px; margin-bottom: 8px; font-size: 18px; color: #475569; line-height: 1.5; }
+        li::before {
+            content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900;
+            position: absolute; left: 0; top: 3px; color: #3b82f6; font-size: 18px;
+        }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .grid-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; align-items: stretch; }
+
+        .tile {
+            background: #f8fafc; padding: 15px 20px; border-radius: 12px;
+            border: 1px solid #cbd5e1; border-top: 5px solid #3b82f6; position: relative;
+        }
+        .tile h3 { font-size: 22px; color: #0f172a; margin-bottom: 10px; }
+
+        /* 公式背景设置为浅色，文字纯黑 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 5px solid #8b5cf6; border-radius: 8px;
+            padding: 10px 15px; color: #000000 !important; font-size: 20px;
+            display: inline-block; width: fit-content; text-align: left; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .info-box { background: #e0f2fe; border-left: 6px solid #3b82f6; padding: 12px 20px; border-radius: 8px; margin: 10px 0; }
+        .info-box p { margin: 0; color: #0369a1; font-size: 19px; font-weight: bold; line-height: 1.6; }
+
+        .question-box { background: #fef3c7; border-left: 6px solid #f59e0b; padding: 12px 20px; border-radius: 8px; color: #92400e; font-size: 19px; line-height: 1.6; }
+
+        /* 表格样式 */
+        .data-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 15px; background-color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-radius: 8px; overflow: hidden; }
+        .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; color: #334155; }
+        .data-table th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+        .data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+        /* SVG 绘图样式 */
+        .svg-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); padding: 15px; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; position: relative; }
+        .path-anim { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: drawPath 2.5s ease-out forwards; }
+        .path-anim-solid { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: drawPath 2.5s ease-out forwards; }
+        @keyframes drawPath { to { stroke-dashoffset: 0; } }
+
+        /* 封面与过渡页 */
+        .title-slide { background: #020617; color: white; justify-content: center; align-items: center; text-align: center; padding: 0; }
+        .title-slide::after { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 40px 40px; z-index: 1; }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        .title-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 80px 100px; border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; letter-spacing: 2px; color: #fff; }
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 28px; font-weight: 300; letter-spacing: 1px; margin: 0; }
+        .title-content .badge { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa; padding: 8px 24px; border-radius: 50px; font-size: 18px; margin-bottom: 30px; display: inline-flex; align-items: center; gap: 10px; }
+        
+        .section-slide { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #ffffff; justify-content: center; align-items: center; text-align: center; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 48px; margin: 0 0 20px 0; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 6px; background: #3b82f6; border: none; margin: 20px 0; }
+        
+        body.browse-mode .title-slide { position: relative; min-height: 720px; padding: 0 !important; background: #020617 !important; justify-content: center !important; align-items: center !important; text-align: center; }
+        body.browse-mode .title-slide .title-content { margin: auto; }
+        body.browse-mode .section-slide { padding: 0 !important; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important; color: #ffffff !important; justify-content: center !important; align-items: center !important; text-align: center !important; position: relative; }
+        body.browse-mode .section-slide h2 { color: #ffffff !important; }
+        body.browse-mode .section-slide p, body.browse-mode .section-slide .step { color: #cbd5e1 !important; }
+
+        .hw-btn { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 12px 35px; border-radius: 50px; font-size: 22px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3); transition: transform 0.2s; border: none; cursor: pointer; margin-top: 20px; }
+        .hw-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 25px rgba(59, 130, 246, 0.4); }
+        
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: #3b82f6; transition: width 0.3s ease; z-index: 200; }
+        .slide-counter { position: absolute; bottom: 20px; right: 30px; font-size: 18px; font-weight: bold; color: #94a3b8; z-index: 100; }
+
+
+
+        /* ===================== 放映修复与案例增强样式 ===================== */
+        body.presentation-mode .title-slide {
+            background: #020617 !important;
+            color: #ffffff !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+        }
+        body.presentation-mode .title-slide .title-content { margin: auto; }
+        body.presentation-mode .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+            color: #ffffff !important;
+            justify-content: center !important;
+            align-items: center !important;
+            text-align: center !important;
+            padding: 0 !important;
+        }
+        body.presentation-mode .section-slide h2 { color: #ffffff !important; }
+        body.presentation-mode .section-slide p,
+        body.presentation-mode .section-slide .step { color: #cbd5e1 !important; }
+        .case-note {
+            background: linear-gradient(135deg, #eff6ff 0%, #fff7ed 100%);
+            border: 1px solid #bfdbfe;
+            border-left: 7px solid #3b82f6;
+            border-radius: 14px;
+            padding: 14px 18px;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+        }
+        .case-note p { font-size: 18px; color: #334155; line-height: 1.55; }
+        .mini-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+        .mini-stat {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 13px 12px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06);
+        }
+        .mini-stat .num { font-size: 24px; font-weight: 700; color: #1d4ed8; margin-bottom: 4px; }
+        .mini-stat .lab { font-size: 14px; color: #64748b; line-height: 1.35; }
+        .model-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: #eef2ff;
+            color: #3730a3;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .small-table { font-size: 13px !important; }
+        .small-table th, .small-table td { padding: 4px 6px !important; }
+
+        /* Print Media Queries */
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide { width: 100vw !important; height: 100vh !important; margin: 0 !important; box-shadow: none !important; page-break-after: always; page-break-inside: avoid; border: 1px solid transparent; }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+    </style>
+</head>
+<body>
+
+<div id="presentation-container">
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== Slide 0: 封面 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-book"></i> 第3章</div>
+            <h1><span>回归预测法</span></h1>
+            <p class="subtitle">寻找变量间的因果密码，构建量化预测模型</p>
+            <div class="step" style="margin-top: 30px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 12px 25px; border-radius: 12px;">
+                <p style="font-size: 18px; color: #60a5fa; margin: 0;">
+                    <i class="fas fa-keyboard"></i> <strong>操作提示：</strong>
+                    单击、空格或方向键放映下一项；按 <strong>F5</strong> 从当前页全屏放映；按 <strong>Esc</strong> 退出放映。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第一节：一元线性回归 ==================== -->
+    <div class="slide section-slide" id="slide-1">
+        <h2>第一节 一元线性回归预测法</h2>
+        <hr>
+        <p class="step" style="font-size: 24px; color: #cbd5e1;">最基础的模型：两个变量间的直线拟合</p>
+    </div>
+
+    <!-- ==================== Slide 1-intro: 一元回归导入实例 ==================== -->
+    <div class="slide" id="slide-1-intro">
+        <h2 class="slide-title"><i class="fas fa-seedling"></i> 导入实例：为什么叫“回归”？高尔顿的身高之谜</h2>
+        <div class="content-area">
+            <div class="step two-column" style="gap: 20px; align-items: stretch; height: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="tile" style="border-top-color: #3b82f6; flex-grow: 1;">
+                        <h3 style="color:#2563eb;"><i class="fas fa-search"></i> 优生学实验的意外发现</h3>
+                        <p style="font-size: 17px; line-height: 1.6;">
+                            1889年，统计学家弗朗西斯·高尔顿在研究人类身高遗传时发现：<br>
+                            高个子父母的孩子通常也较高，但<strong>往往没有父母那么高</strong>；矮个子父母的孩子也较矮，但<strong>往往比父母高</strong>。<br>
+                            人类的身高在代代相传中，具有一种“向全人类平均值<strong>回归 (Regression)</strong>”的强烈趋势。
+                        </p>
+                    </div>
+                    <div class="info-box" style="background: #eff6ff; border-left-color: #2563eb;">
+                        <p style="color: #1e40af;"><i class="fas fa-key"></i> 本节核心：</p>
+                        <p style="font-size: 17px; font-weight: normal; color: #334155; margin-top: 5px;">
+                            我们将学习如何用严格的数学方法（最小二乘法），去精确计算出这根代表客观规律的拟合直线 $y_i = b_0 + b_1x_i + u_i$。
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- 插入高尔顿身高的散点图与回归线 -->
+                <div class="svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 坐标轴 -->
+                        <line x1="40" y1="260" x2="360" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="350" y="280" font-size="12" fill="#334155">父母平均身高 (x)</text>
+                        <text x="15" y="30" font-size="12" fill="#334155" transform="rotate(-90, 15, 30)">子女身高 (y)</text>
+                        
+                        <!-- 散点 -->
+                        <g fill="#94a3b8" opacity="0.6">
+                            <circle cx="100" cy="220" r="4"/><circle cx="120" cy="200" r="4"/><circle cx="140" cy="210" r="4"/>
+                            <circle cx="160" cy="180" r="4"/><circle cx="180" cy="160" r="4"/><circle cx="200" cy="150" r="4"/>
+                            <circle cx="220" cy="130" r="4"/><circle cx="240" cy="140" r="4"/><circle cx="260" cy="110" r="4"/>
+                            <circle cx="280" cy="90" r="4"/><circle cx="300" cy="100" r="4"/><circle cx="320" cy="70" r="4"/>
+                            <circle cx="110" cy="210" r="3"/><circle cx="150" cy="190" r="3"/><circle cx="190" cy="140" r="3"/>
+                            <circle cx="230" cy="120" r="3"/><circle cx="270" cy="100" r="3"/><circle cx="310" cy="80" r="3"/>
+                        </g>
+
+                        <!-- Y=X 完美遗传线 (虚线) -->
+                        <line x1="40" y1="260" x2="280" y2="20" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5,5"/>
+                        <text x="250" y="30" font-size="12" fill="#94a3b8" transform="rotate(-45, 250, 30)">y = x (完全遗传)</text>
+
+                        <!-- 回归线 (斜率小于1) -->
+                        <line x1="60" y1="220" x2="320" y2="90" stroke="#3b82f6" stroke-width="3" class="path-anim"/>
+                        <text x="325" y="95" font-size="14" font-weight="bold" fill="#3b82f6">回归线 (向中心靠拢)</text>
+
+                        <defs>
+                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#334155" />
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 2 ==================== -->
+    <div class="slide" id="slide-2">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 一、建立一元线性回归模型</h2>
+        <div class="content-area">
+            <p class="step">当成对的两个变量数据分布大体上呈直线趋势时，我们建立一元线性回归模型：</p>
+            <div class="step math-center">
+                <div class="math-box">
+                    \[ y_i = b_0 + b_1 x_i + u_i \quad (3-1) \]
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color: #3b82f6;">
+                <ul style="font-size: 18px;">
+                    <li><strong>$b_0, b_1$：</strong> 未知参数（需估计）。</li>
+                    <li><strong>$u_i$：</strong> 剩余残差项（随机扰动项），包含对 $y_i$ 有影响的所有其他偶然因素。</li>
+                </ul>
+            </div>
+            
+            <div class="step tile" style="border-top-color: #f59e0b; margin-top: 10px;">
+                <h3 style="font-size: 20px;">使用该模型的重要假定（$u_i$ 的 5 个特性）：</h3>
+                <ul style="font-size: 17px; line-height: 1.6;">
+                    <li>（1）$u_i$ 是一个随机变量；</li>
+                    <li>（2）平均值为零，即 $E(u_i) = 0$；</li>
+                    <li>（3）方差为常量（同方差性），即 $D(u_i) = \sigma_u^2$；</li>
+                    <li>（4）各个 $u_i$ 间相互独立（无自相关）；</li>
+                    <li>（5）$u_i$ 与自变量 $x_i$ 无关。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 3 ==================== -->
+    <div class="slide" id="slide-3">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 二、估计参数 (普通最小二乘法 OLS)</h2>
+        <div class="content-area">
+            <p class="step">估计出 $b_0, b_1$ 后，建立预测式： $\hat{y}_i = b_0 + b_1 x_i$ 。好的估计量应满足<strong>一致性、无偏性、有效性</strong>。</p>
+            
+            <div class="step tile" style="border-top-color: #10b981; padding: 15px;">
+                <p><strong>最小二乘法原理：</strong> 使实际值 $y_i$ 与估计值 $\hat{y}_i$ 之间的残差平方和达到最小：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 18px;">
+                        \[ \sum_{i=1}^n u_i^2 = \sum_{i=1}^n (y_i - \hat{y}_i)^2 = \sum_{i=1}^n (y_i - b_0 - b_1 x_i)^2 \rightarrow \min \]
+                    </div>
+                </div>
+            </div>
+
+            <div class="step two-column-top" style="margin-top: 10px;">
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 15px;">
+                    <p style="font-weight: bold; margin-bottom: 5px;">求导并令为零，解得：</p>
+                    <div class="math-box" style="font-size: 18px; border: none; padding: 5px; width: 100%;">
+                        \[ b_1 = \frac{\sum(x-\bar{x})(y-\bar{y})}{\sum(x-\bar{x})^2} \]
+                        \[ b_0 = \bar{y} - b_1 \bar{x} \]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899; padding: 15px;">
+                    <p style="font-weight: bold; margin-bottom: 5px;">便于计算的 $b_1$ 等价表达式：</p>
+                    <div class="math-box" style="font-size: 16px; border: none; padding: 5px; width: 100%;">
+                        \[ b_1 = \frac{\sum x y - \frac{1}{n}(\sum x)(\sum y)}{\sum x^2 - \frac{1}{n}(\sum x)^2} \]
+                        \[ b_1 = \frac{n \sum x y - (\sum x)(\sum y)}{n \sum x^2 - (\sum x)^2} \]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 4 ==================== -->
+    <div class="slide" id="slide-4">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 【例 3-1】 饮料销售量与气温关系 (数据表)</h2>
+        <div class="content-area">
+            <p class="step">某饮料公司记录了气温($x$)与饮料销售量($y$)的数据，探究其相关关系。</p>
+            <div class="step" style="overflow-x: auto;">
+                <table class="data-table" style="font-size: 14px;">
+                    <thead>
+                        <tr>
+                            <th>时期</th><th>销售量 $y$</th><th>气温 $x$</th><th>$(x-\bar{x})(y-\bar{y})$</th><th>$(x-\bar{x})^2$</th><th>$(y-\bar{y})^2$</th><th>估计值 $\hat{y}$</th><th>$(y-\hat{y})^2$</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>430</td><td>30</td><td>150</td><td>9</td><td>2500</td><td>409</td><td>441</td></tr>
+                        <tr><td>2</td><td>335</td><td>21</td><td>270</td><td>36</td><td>2025</td><td>322</td><td>169</td></tr>
+                        <tr><td>3</td><td>520</td><td>35</td><td>1120</td><td>64</td><td>19600</td><td>458</td><td>3844</td></tr>
+                        <tr><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+                        <tr><td>10</td><td>480</td><td>25</td><td>-200</td><td>4</td><td>10000</td><td>361</td><td>14161</td></tr>
+                        <tr style="background:#e0f2fe; font-weight:bold;">
+                            <td>总和</td><td>3800</td><td>270</td><td>$\sigma_{xy}=9855$</td><td>$\sigma_x^2=1012$</td><td>$\sigma_y^2=129950$</td><td></td><td>33897</td>
+                        </tr>
+                        <tr style="background:#f1f5f9; font-weight:bold;">
+                            <td>均值</td><td>$\bar{y}=380$</td><td>$\bar{x}=27$</td><td colspan="5"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box" style="padding: 10px;">
+                <p style="font-size: 16px; font-weight: normal;">* 注：为页面整洁，表中省略了时期4-9的具体数据，底部给出了完整计算的总和项。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 5 ==================== -->
+    <div class="slide" id="slide-5">
+        <h2 class="slide-title"><i class="fas fa-edit"></i> 【例 3-1】 回归拟合与预测图解</h2>
+        <div class="content-area">
+            <div class="step two-column" style="gap: 20px; align-items: stretch; height: 100%;">
+                
+                <!-- 左侧计算 -->
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="tile" style="border-top-color: #3b82f6;">
+                        <p>根据表 3-1 的求和数据，计算回归系数：</p>
+                        <div class="math-center">
+                            <div class="math-box" style="font-size: 18px; padding: 5px;">
+                                \[ b_1 = \frac{\sum(x-\bar{x})(y-\bar{y})}{\sum(x-\bar{x})^2} = \frac{9855}{1012} = 9.74 \]
+                                \[ b_0 = \bar{y} - b_1 \bar{x} = 380 - 9.74 \times 27 = 117 \]
+                            </div>
+                        </div>
+                        <p style="margin-top: 10px; font-weight: bold; color: #1e293b;">得到回归模型： $\hat{y} = 117 + 9.74 x$</p>
+                    </div>
+
+                    <div class="question-box">
+                        <strong>进行预测：</strong><br>
+                        如果预计明天的气温是 $35^{\circ}\mathrm{C}$，预测销售量为：
+                        <div class="math-center">
+                            <div class="math-box" style="font-size: 18px; border-left-color: #f59e0b; background: #fffbeb; padding: 5px;">
+                                \[ \hat{y} = 117 + 9.74 \times 35 = 458 \text{ (箱)} \]
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧绘制散点图与回归线 -->
+                <div class="svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 坐标轴 -->
+                        <line x1="40" y1="260" x2="380" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="350" y="280" font-size="12" fill="#334155">气温 x (℃)</text>
+                        <text x="15" y="30" font-size="12" fill="#334155" transform="rotate(-90, 15, 30)">销量 y (箱)</text>
+                        
+                        <!-- 刻度与辅助线 -->
+                        <text x="40" y="275" font-size="10" text-anchor="middle">0</text>
+                        <text x="120" y="275" font-size="10" text-anchor="middle">10</text>
+                        <text x="200" y="275" font-size="10" text-anchor="middle">20</text>
+                        <text x="280" y="275" font-size="10" text-anchor="middle">30</text>
+                        <text x="360" y="275" font-size="10" text-anchor="middle">40</text>
+                        
+                        <text x="35" y="260" font-size="10" text-anchor="end">0</text>
+                        <text x="35" y="160" font-size="10" text-anchor="end">300</text>
+                        <text x="35" y="60" font-size="10" text-anchor="end">600</text>
+                        
+                        <!-- 散点数据点映射 (x: 0~45 -> 40~380, 比例约7.55; y: 0~600 -> 260~60, 比例约0.333) -->
+                        <g fill="#f59e0b">
+                            <circle cx="266" cy="116" r="4"/> <!-- 30, 430 -->
+                            <circle cx="198" cy="148" r="4"/> <!-- 21, 335 -->
+                            <circle cx="304" cy="86" r="4"/>  <!-- 35, 520 -->
+                            <circle cx="357" cy="96" r="4"/>  <!-- 42, 490 -->
+                            <circle cx="319" cy="103" r="4"/> <!-- 37, 470 -->
+                            <circle cx="191" cy="190" r="4"/> <!-- 20, 210 -->
+                            <circle cx="100" cy="195" r="4"/> <!-- 8, 195 -->
+                            <circle cx="168" cy="170" r="4"/> <!-- 17, 270 -->
+                            <circle cx="304" cy="126" r="4"/> <!-- 35, 400 -->
+                            <circle cx="228" cy="100" r="4"/> <!-- 25, 480 -->
+                        </g>
+
+                        <!-- 回归线 y = 117 + 9.74x -->
+                        <!-- x=5 -> y=165.7 -> cx=77, cy=204 -->
+                        <!-- x=45 -> y=555.3 -> cx=380, cy=75 -->
+                        <line x1="77" y1="204" x2="380" y2="75" stroke="#3b82f6" stroke-width="2" class="path-anim"/>
+                        <text x="100" y="190" font-size="12" fill="#3b82f6" transform="rotate(-23, 100, 190)">y = 117 + 9.74x</text>
+                        
+                        <!-- 预测点展示 -->
+                        <circle cx="304" cy="107" r="5" fill="#ef4444" /> <!-- x=35, y=458 -->
+                        <line x1="304" y1="260" x2="304" y2="107" stroke="#ef4444" stroke-dasharray="3,3" />
+                        <line x1="40" y1="107" x2="304" y2="107" stroke="#ef4444" stroke-dasharray="3,3" />
+                        <text x="310" y="100" font-size="10" fill="#ef4444" font-weight="bold">预测: (35, 458)</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 6 ==================== -->
+    <div class="slide" id="slide-6">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 三、进行统计检验 (1/4)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #10b981; padding: 15px;">
+                <h3 style="font-size: 20px;">（一）标准误差 (Standard Error)</h3>
+                <p style="font-size: 17px;">度量实际值与估计值间的平均平方误差：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 5px 15px;">
+                    \[ SE = \sqrt{\frac{\sum(y-\hat{y})^2}{n-2}} = \sqrt{\frac{33897}{10-2}} = 65 \text{ (箱)} \]
+                </div></div>
+            </div>
+
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 15px; margin-top: 10px;">
+                <h3 style="font-size: 20px;">（二）可决系数 $R^2$ (R-squared)</h3>
+                <p style="font-size: 17px;">总离差($\mathrm{SST}$) = 回归离差($\mathrm{SSE}$) + 剩余离差($\mathrm{SSR}$)<br>
+                衡量自变量对因变量变动解释程度的百分比：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 5px 15px;">
+                    \[ R^2 = \frac{\text{SSE}}{\text{SST}} = 1 - \frac{\text{SSR}}{\text{SST}} = 1 - \frac{\sum(y-\hat{y})^2}{\sum(y-\bar{y})^2} = 1 - \frac{33897}{129950} = 0.74 \]
+                </div></div>
+                <p style="font-size: 17px; margin-top: 5px; color: #d946ef;">结论：气温因素变化占饮料销售量变动的 74%。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 7 ==================== -->
+    <div class="slide" id="slide-7">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 三、进行统计检验 (2/4)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #f59e0b; padding: 15px;">
+                <h3 style="font-size: 20px;">（三）相关系数 $r$</h3>
+                <p style="font-size: 17px;">度量线性拟合优度。$r$ 有正负，相关系数的平方即为 $R^2$：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 5px 15px;">
+                    \[ r = \frac{\sum(x-\bar{x})(y-\bar{y})}{\sqrt{\sum(x-\bar{x})^2} \sqrt{\sum(y-\bar{y})^2}} = \frac{9855}{\sqrt{1012} \times \sqrt{129950}} = 0.86 \]
+                </div></div>
+            </div>
+
+            <div class="step tile" style="border-top-color: #ef4444; padding: 15px; margin-top: 10px;">
+                <h3 style="font-size: 20px;">（四）回归系数显著性检验 (t 检验)</h3>
+                <p style="font-size: 17px;">检验自变量 $x$ 是否对 $y$ 有显著影响 ($H_0: \beta_1=0$)：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 5px 15px;">
+                    \[ S_b = \frac{SE}{\sqrt{\sum(x-\bar{x})^2}} = \frac{65}{\sqrt{1012}} \doteq 2.05 \quad \Rightarrow \quad t_b = \frac{b_1}{S_b} = \frac{9.74}{2.05} = 4.75 \]
+                </div></div>
+                <p style="font-size: 17px; margin-top: 5px;">查表 $\alpha=0.05$，自由度 $n-2=8$，得 $t_{0.05}(8) = 2.306$。<br>
+                由于 $|t_b| = 4.75 > 2.306$，拒绝 $H_0$，说明回归系数显著。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 9 ==================== -->
+    <div class="slide" id="slide-9">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 三、进行统计检验 (3/4)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #3b82f6; padding: 15px;">
+                <h3 style="font-size: 20px;">（五）F 检验 (方差分析)</h3>
+                <p style="font-size: 17px;">检验模型总体是否显著。检验统计量 $F$ 的计算公式：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 18px; padding:10px 20px;">
+                        \[ F = \frac{\sum(\hat{y}-\bar{y})^2 / 1}{\sum(y-\hat{y})^2 / (n-2)} \]
+                    </div>
+                </div>
+                <p style="font-size: 17px; margin-top: 10px;">将例 3-1 中的数据代入：</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size: 18px; padding:10px 20px; border-left-color: #3b82f6;">
+                        \[ F = \frac{96053 / 1}{33897 / 8} = 22.67 \]
+                    </div>
+                </div>
+                <p style="font-size: 17px; margin-top: 10px;">
+                    取显著性水平 $\alpha=0.05$ ，查表得 $F_{0.05}(1,8)=5.32$ 。<br>
+                    因 $F > 5.32$，方程通过 $F$ 检验，表明回归模型整体显著，可用于预测。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 8-DW (新增) ==================== -->
+    <div class="slide" id="slide-8-dw">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 三、进行统计检验 (4/4)：德宾-沃森 (D-W) 检验详述</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #10b981; padding: 15px;">
+                <p style="font-size: 17px;">回归模型的剩余项 $u_i$ 之间应相互独立。若存在自相关，预测将失真。德宾-沃森 (D-W) 统计量公式为：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 5px 15px;">
+                    \[ D-W = \frac{\sum_{i=2}^n (u_i - u_{i-1})^2}{\sum_{i=1}^n u_i^2}, \quad \text{其中 } u_i = y_i - \hat{y}_i \]
+                </div></div>
+            </div>
+            
+            <div class="step two-column-top" style="gap: 20px; margin-top: 10px;">
+                <div class="tile" style="border-top-color: #ef4444; padding: 15px;">
+                    <h3 style="font-size: 18px;">D-W 检验法则 (取值范围 0 ~ 4)</h3>
+                    <p style="font-size: 15px;">比较计算值与查表得到的临界值 $d_L$ 和 $d_U$：</p>
+                    <ul style="font-size: 14px; margin-top: 5px;">
+                        <li><strong>当 $D-W \le 2$ 时：</strong>
+                            <ul>
+                                <li>$D-W < d_L$：存在正自相关</li>
+                                <li>$d_L < D-W < d_U$：不能确定</li>
+                                <li>$D-W > d_U$：无自相关</li>
+                            </ul>
+                        </li>
+                        <li style="margin-top: 8px;"><strong>当 $D-W > 2$ 时：</strong>
+                            <ul>
+                                <li>$4 - D-W < d_L$ (即 $D-W > 4 - d_L$)：存在负自相关</li>
+                                <li>$4 - D-W > d_U$ (即 $D-W < 4 - d_U$)：无自相关</li>
+                                <li>不能确定：其他情况</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="tile" style="border-top-color: #3b82f6; padding: 15px; text-align: center;">
+                    <h3 style="font-size: 18px; text-align: left;">【图 3-1】D-W 检验法则示意图</h3>
+                    <div class="svg-container" style="height: 150px; margin-top: 10px; padding: 0; border: none; box-shadow: none;">
+                        <svg viewBox="0 0 500 150" style="width: 100%; height: 100%;">
+                            <!-- 轴线 -->
+                            <line x1="20" y1="80" x2="480" y2="80" stroke="#334155" stroke-width="3" marker-end="url(#arrowhead)"/>
+                            
+                            <!-- 区域划分 -->
+                            <!-- 0 到 d_L -->
+                            <rect x="40" y="60" width="80" height="40" fill="#fca5a5" opacity="0.8"/>
+                            <text x="80" y="50" text-anchor="middle" font-size="12" fill="#b91c1c" font-weight="bold">正自相关</text>
+                            
+                            <!-- d_L 到 d_U -->
+                            <rect x="120" y="60" width="60" height="40" fill="#fde047" opacity="0.8"/>
+                            <text x="150" y="35" text-anchor="middle" font-size="12" fill="#b45309" font-weight="bold">不能确定</text>
+                            
+                            <!-- d_U 到 4-d_U -->
+                            <rect x="180" y="60" width="140" height="40" fill="#6ee7b7" opacity="0.8"/>
+                            <text x="250" y="50" text-anchor="middle" font-size="12" fill="#047857" font-weight="bold">无自相关</text>
+                            
+                            <!-- 4-d_U 到 4-d_L -->
+                            <rect x="320" y="60" width="60" height="40" fill="#fde047" opacity="0.8"/>
+                            <text x="350" y="35" text-anchor="middle" font-size="12" fill="#b45309" font-weight="bold">不能确定</text>
+                            
+                            <!-- 4-d_L 到 4 -->
+                            <rect x="380" y="60" width="80" height="40" fill="#fca5a5" opacity="0.8"/>
+                            <text x="420" y="50" text-anchor="middle" font-size="12" fill="#b91c1c" font-weight="bold">负自相关</text>
+
+                            <!-- 刻度线和标签 -->
+                            <line x1="40" y1="80" x2="40" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="40" y="120" text-anchor="middle" font-size="12">0</text>
+                            
+                            <line x1="120" y1="80" x2="120" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="120" y="120" text-anchor="middle" font-size="12">d<tspan dy="3" font-size="9">L</tspan></text>
+                            
+                            <line x1="180" y1="80" x2="180" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="180" y="120" text-anchor="middle" font-size="12">d<tspan dy="3" font-size="9">U</tspan></text>
+                            
+                            <line x1="250" y1="80" x2="250" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="250" y="120" text-anchor="middle" font-size="12" font-weight="bold">2</text>
+                            
+                            <line x1="320" y1="80" x2="320" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="320" y="120" text-anchor="middle" font-size="12">4-d<tspan dy="3" font-size="9">U</tspan></text>
+                            
+                            <line x1="380" y1="80" x2="380" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="380" y="120" text-anchor="middle" font-size="12">4-d<tspan dy="3" font-size="9">L</tspan></text>
+                            
+                            <line x1="460" y1="80" x2="460" y2="105" stroke="#334155" stroke-width="2"/>
+                            <text x="460" y="120" text-anchor="middle" font-size="12">4</text>
+                            
+                            <!-- 经验区间指示 -->
+                            <path d="M 215 130 L 215 135 L 285 135 L 285 130" fill="none" stroke="#2563eb" stroke-width="2"/>
+                            <text x="250" y="148" text-anchor="middle" font-size="10" fill="#2563eb">经验区间 1.5 ~ 2.5</text>
+                            <line x1="215" y1="105" x2="215" y2="135" stroke="#2563eb" stroke-dasharray="2,2" stroke-width="1"/>
+                        <line x1="285" y1="105" x2="285" y2="135" stroke="#2563eb" stroke-dasharray="2,2" stroke-width="1"/>
+                        <text x="215" y="120" text-anchor="end" font-size="10" fill="#2563eb">1.5</text>
+                        <text x="285" y="120" text-anchor="start" font-size="10" fill="#2563eb">2.5</text>
+                    </svg>
+                </div>
+                <p style="font-size: 15px; margin-top: 5px; color: #0f172a; font-weight: bold;">经验表明，$D-W = 2$ 时为最好。在 $1.5 \sim 2.5$ 之间表示无显著自相关。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== Slide 10: 点估计与区间估计图解 ==================== -->
+<div class="slide" id="slide-10">
+    <h2 class="slide-title"><i class="fas fa-bullseye"></i> 四、进行预测：点估计与区间估计图解</h2>
+    <div class="content-area">
+        <div class="two-column" style="gap: 20px; align-items: stretch; height: 100%;">
+            <!-- 左侧公式与说明 -->
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <div class="step tile" style="border-top-color: #2563eb; padding: 15px;">
+                    <h3 style="font-size: 18px;">点估计</h3>
+                    <p style="font-size: 15px;">代入 $x_0=35$，得唯一预测值： $\hat{y} = 117 + 9.74 \times 35 = 458$ (箱)</p>
+                </div>
+                <div class="step tile" style="border-top-color: #f59e0b; padding: 15px;">
+                    <h3 style="font-size: 18px;">区间估计 (喇叭口效应)</h3>
+                    <p style="font-size: 14px;">小样本下使用 $t$ 分布。随着预测点 $x_0$ 远离均值 $\bar{x}$，误差项 $\frac{(x_0-\bar{x})^2}{\sum(x_i-\bar{x})^2}$ 增大，区间呈“喇叭口”状向外发散：</p>
+                    <div class="math-center"><div class="math-box" style="font-size: 15px; padding: 5px; width: 100%; border:none;">
+                        \[ \text{置信区间} = \hat{y} \pm t_{\alpha/2} SE \sqrt{\frac{1}{n} + \frac{(x_0-\bar{x})^2}{\sum(x_i-\bar{x})^2}} \]
+                        \[ \text{预测区间} = \hat{y} \pm t_{\alpha/2} SE \sqrt{1 + \frac{1}{n} + \frac{(x_0-\bar{x})^2}{\sum(x_i-\bar{x})^2}} \]
+                    </div></div>
+                </div>
+                <div class="step info-box" style="padding: 10px;">
+                    <p style="font-size: 14px; font-weight: normal;">
+                        <strong>例题代入($\alpha=0.1$):</strong><br>
+                        <strong>90%置信区间 (估计 $\mu_y$)：</strong> $458 \pm 48$，即 $[410, 506]$ 箱。<br>
+                        <strong>90%预测区间 (估计个别值 $y$)：</strong> $458 \pm 130$，即 $[328, 588]$ 箱。
+                    </p>
+                </div>
+            </div>
+
+            <!-- 右侧 SVG 区间估计图 -->
+            <div class="step svg-container">
+                <svg viewBox="0 0 500 400" style="width: 100%; height: 100%;">
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#334155" />
+                        </marker>
+                        
+                        <!-- 使用 clipPath 来实现虚线的绘制动画，防止覆盖 dasharray -->
+                        <clipPath id="wipe-anim">
+                            <rect x="0" y="0" width="0" height="400">
+                                <!-- 触发动画 -->
+                                <animate id="wipe-animate-tag" attributeName="width" from="0" to="500" dur="2.5s" fill="freeze" begin="indefinite"/>
+                            </rect>
+                        </clipPath>
+                    </defs>
+
+                    <!-- 坐标轴 -->
+                    <line x1="50" y1="350" x2="450" y2="350" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="50" y1="350" x2="50" y2="50" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <text x="430" y="375" font-size="14" fill="#334155">自变量 x</text>
+                    <text x="20" y="60" font-size="14" fill="#334155" transform="rotate(-90, 20, 60)">因变量 y</text>
+
+                    <!-- 均值基准线 -->
+                    <line x1="200" y1="350" x2="200" y2="200" stroke="#94a3b8" stroke-dasharray="4,4"/>
+                    <line x1="50" y1="200" x2="200" y2="200" stroke="#94a3b8" stroke-dasharray="4,4"/>
+                    <text x="200" y="370" font-size="14" fill="#64748b" text-anchor="middle">均值 x̄</text>
+
+                    <!-- 回归实线 -->
+                    <line x1="50" y1="275" x2="400" y2="100" stroke="#3b82f6" stroke-width="3" class="path-anim-solid"/>
+                    <text x="410" y="95" font-size="14" font-weight="bold" fill="#3b82f6">回归线 ŷ</text>
+
+                    <!-- 置信区间 CI (喇叭口 - 绿色虚线) 使用 clip-path 动画 -->
+                    <g clip-path="url(#wipe-anim)">
+                        <path d="M 50 245 Q 200 180 400 60" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8,5" />
+                        <path d="M 50 305 Q 200 220 400 140" fill="none" stroke="#10b981" stroke-width="2.5" stroke-dasharray="8,5" />
+                        
+                        <!-- 预测区间 PI (橙色虚线) -->
+                        <path d="M 50 215 Q 200 130 400 30" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="4,4" />
+                        <path d="M 50 335 Q 200 270 400 170" fill="none" stroke="#f59e0b" stroke-width="2.5" stroke-dasharray="4,4" />
+                    </g>
+
+                    <text x="410" y="55" font-size="12" fill="#10b981" font-weight="bold">置信区间</text>
+                    <text x="410" y="25" font-size="12" fill="#f59e0b" font-weight="bold">预测区间</text>
+
+                    <!-- 预测点 x0 -->
+                    <line x1="330" y1="350" x2="330" y2="65" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,3"/>
+                    <text x="330" y="370" font-size="14" fill="#ef4444" text-anchor="middle" font-weight="bold">预测点 x₀</text>
+
+                    <circle cx="330" cy="135" r="6" fill="#3b82f6"/> <!-- 点估计 -->
+                    <text x="345" y="140" font-size="14" fill="#3b82f6" font-weight="bold">点估计 ŷ₀</text>
+
+                    <!-- 标注误差带 -->
+                    <!-- CI 带 -->
+                    <line x1="330" y1="88" x2="330" y2="182" stroke="#10b981" stroke-width="6" opacity="0.5"/>
+                    <!-- PI 带 -->
+                    <line x1="330" y1="65" x2="330" y2="205" stroke="#f59e0b" stroke-width="3" opacity="0.3"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== 第二节：多元线性回归 ==================== -->
+<div class="slide section-slide" id="slide-11">
+        <h2>第二节 多元线性回归预测法</h2>
+        <hr>
+        <p class="step" style="font-size: 24px; color: #cbd5e1;">引入多个影响因素，提高模型预测精度</p>
+    </div>
+
+    <!-- ==================== Slide 12: 多元回归导入实例 ==================== -->
+    <div class="slide" id="slide-12">
+        <h2 class="slide-title"><i class="fas fa-home"></i> 导入实例：从“二维直线”到“多维超平面”</h2>
+        <div class="content-area">
+            <div class="step two-column" style="gap: 20px; align-items: stretch; height: 100%;">
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="tile" style="border-top-color: #f59e0b; flex-grow: 1;">
+                        <h3 style="color:#d97706;"><i class="fas fa-exclamation-circle"></i> 一元回归的尴尬：房价预测</h3>
+                        <p style="font-size: 17px; line-height: 1.6;">
+                            假设你要预测二手房价格 $y$。如果只使用“房屋面积 $x_1$”，你会发现现实中同为 100平米 的房子，价格却相差数百万！单维度必然导致巨大误差。
+                        </p>
+                        <h3 style="color:#7c3aed; margin-top: 15px; font-size: 20px;"><i class="fas fa-plus-circle"></i> 升维打击：引入更多信息</h3>
+                        <p style="font-size: 17px; line-height: 1.6;">
+                            要提高精度，必须引入：<br>
+                            $x_2$：距最近地铁站距离<br>
+                            $x_3$：所属学区质量<br>
+                            回归预测从“二维平面上找一根直线”，变成了“在多维空间中寻找一个<strong>最优超平面</strong>”。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 绘制三维超平面回归的概念 SVG -->
+                <div class="svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 绘制3D坐标系 (等角投影近似) -->
+                        <line x1="200" y1="260" x2="200" y2="40" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="200" y1="260" x2="360" y2="200" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="200" y1="260" x2="60" y2="200" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <text x="210" y="50" font-size="12" fill="#334155">价格 (y)</text>
+                        <text x="365" y="215" font-size="12" fill="#334155">面积 (x₁)</text>
+                        <text x="40" y="215" font-size="12" fill="#334155">地段 (x₂)</text>
+
+                        <!-- 绘制回归“超平面” (半透明多边形) -->
+                        <polygon points="130,170 290,110 270,220 110,280" fill="rgba(59, 130, 246, 0.3)" stroke="#3b82f6" stroke-width="1.5" class="path-anim" />
+                        <text x="250" y="160" font-size="14" font-weight="bold" fill="#2563eb" transform="rotate(-20, 250, 160)">最优回归超平面</text>
+
+                        <!-- 散点与投影虚线 -->
+                        <g>
+                            <circle cx="160" cy="120" r="4" fill="#f59e0b"/>
+                            <line x1="160" y1="120" x2="160" y2="210" stroke="#f59e0b" stroke-dasharray="3,3"/>
+                            
+                            <circle cx="240" cy="90" r="4" fill="#f59e0b"/>
+                            <line x1="240" y1="90" x2="240" y2="180" stroke="#f59e0b" stroke-dasharray="3,3"/>
+
+                            <circle cx="210" cy="180" r="4" fill="#f59e0b"/>
+                            <line x1="210" y1="180" x2="210" y2="240" stroke="#f59e0b" stroke-dasharray="3,3"/>
+                        </g>
+                    </svg>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 13 ==================== -->
+    <div class="slide" id="slide-13">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 一、多元模型的建立与参数估计</h2>
+        <div class="content-area">
+            <p class="step">客观事物往往受多种因素影响。以两个自变量为例（引入“比赛比分差 $z$”）：</p>
+            <div class="step math-center">
+                <div class="math-box">\[ \hat{y} = b_0 + b_1 x + b_2 z \]</div>
+            </div>
+            
+            <div class="step tile" style="border-top-color: #8b5cf6; padding: 15px;">
+                <h3 style="font-size: 20px;">正规方程组（最小二乘法）求解：</h3>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 10px 20px; border-left-color: #8b5cf6;">
+                    \[ \begin{aligned} & \sum y = n b_0 + b_1 \sum x + b_2 \sum z \\ & \sum x y = b_0 \sum x + b_1 \sum x^2 + b_2 \sum x z \\ & \sum z y = b_0 \sum z + b_1 \sum x z + b_2 \sum z^2 \end{aligned} \]
+                </div></div>
+            </div>
+
+            <div class="step info-box">
+                <p style="font-size: 18px; font-weight: normal;">
+                    <strong>【例 3-2】代入数据解得：</strong> $b_0=39.1953, b_1=9.0641, b_2=9.6074$<br>
+                    若气温 $35^\circ\mathrm{C}$，比分差 8，预测饮料销量： $\hat{y} = 39.19 + 9.06\times35 + 9.61\times8 = 433 \text{ (箱)}$
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 14 ==================== -->
+    <div class="slide" id="slide-14">
+        <h2 class="slide-title"><i class="fas fa-vial"></i> 二、多元回归的统计检验</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 18px; margin-bottom: 5px;">多元回归的 t检验、F检验 核心逻辑与一元相同。但需特别注意以下三项核心检验：</p>
+            
+            <div class="step grid-3col">
+                <div class="tile" style="border-top-color: #3b82f6; padding: 15px;">
+                    <h3 style="font-size: 18px;">1. 修正可决系数 $R_a^2$</h3>
+                    <p style="font-size: 15px;">为消除变量增加导致 $R^2$ 虚高，使用修正公式：</p>
+                    <div class="math-box" style="font-size: 14px; border:none; padding:5px; width:100%;">
+                        \[ R_a^2 = 1 - \frac{\sum(y-\hat{y})^2 / (n-k-1)}{\sum(y-\bar{y})^2 / (n-1)} \]
+                    </div>
+                    <p style="font-size: 15px; color:#2563eb;">本例 $R_a^2 = 0.935$，比一元的 0.74 显著提高。</p>
+                </div>
+                
+                <div class="tile" style="border-top-color: #ef4444; padding: 15px;">
+                    <h3 style="font-size: 18px;">2. 多重共线性检验</h3>
+                    <p style="font-size: 15px;">自变量间若高度相关会导致模型失效。查相关矩阵：</p>
+                    <table class="data-table" style="font-size: 12px; margin-top:5px;">
+                        <tr><th></th><th>y (销量)</th><th>x (气温)</th><th>z (比分差)</th></tr>
+                        <tr><td>y</td><td>1.00</td><td>0.86</td><td>0.56</td></tr>
+                        <tr><td>x</td><td></td><td>1.00</td><td style="color:#ef4444;font-weight:bold;">0.13</td></tr>
+                        <tr><td>z</td><td></td><td></td><td>1.00</td></tr>
+                    </table>
+                    <p style="font-size: 14px; margin-top:5px;">$r_{xz}=0.13$ 较小，无严重共线性。若极高，需剔除其中一个变量。</p>
+                </div>
+
+                <div class="tile" style="border-top-color: #10b981; padding: 15px;">
+                    <h3 style="font-size: 18px;">3. 自相关检验 (D-W 检验)</h3>
+                    <p style="font-size: 15px;">检验残差 $u_i$ 序列是否独立：</p>
+                    <div class="math-box" style="font-size: 14px; border:none; padding:5px; width:100%;">
+                        \[ D-W = \frac{\sum_{i=2}^n (u_i - u_{i-1})^2}{\sum_{i=1}^n u_i^2} \]
+                    </div>
+                    <p style="font-size: 14px; margin-top:5px;">对于多元回归（例3-2），计算得 <strong>$D-W = 2.19$</strong>。<br>
+                    在 $1.5 \sim 2.5$ 范围内，表明<strong style="color:#059669;">无显著自相关</strong>。若发现自相关，通常通过对原始数据进行<strong>一阶差分</strong>来消除。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 多元回归完整案例：校园奶茶销量 ==================== -->
+    <div class="slide" id="slide-multi-case-1">
+        <h2 class="slide-title"><i class="fas fa-mug-hot"></i> 案例：校园奶茶销量预测（1/6）</h2>
+        <div class="content-area">
+            <div class="step case-note">
+                <p><strong>案例背景：</strong>奶茶店老板想预测明天销量。只看气温太粗糙，因为学生买奶茶还受校园活动和优惠力度影响。毕竟人类买奶茶，不只是因为热，也可能只是因为“第二杯半价”这四个字击穿了理性。</p>
+            </div>
+            <div class="step">
+                <table class="data-table small-table">
+                    <thead>
+                        <tr><th>日期</th><th>气温 $x_1$</th><th>活动强度 $x_2$</th><th>优惠力度 $x_3$</th><th>实际销量 $y$</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>18</td><td>0</td><td>0</td><td>120.6</td></tr>
+                        <tr><td>2</td><td>20</td><td>1</td><td>0</td><td>162.0</td></tr>
+                        <tr><td>3</td><td>22</td><td>0</td><td>1</td><td>167.4</td></tr>
+                        <tr><td>4</td><td>24</td><td>2</td><td>1</td><td>224.8</td></tr>
+                        <tr><td>5</td><td>26</td><td>1</td><td>0</td><td>182.2</td></tr>
+                        <tr><td>6</td><td>28</td><td>2</td><td>1</td><td>241.6</td></tr>
+                        <tr><td>7</td><td>30</td><td>3</td><td>2</td><td>299.0</td></tr>
+                        <tr><td>8</td><td>32</td><td>1</td><td>0</td><td>214.4</td></tr>
+                        <tr><td>9</td><td>24</td><td>3</td><td>2</td><td>263.8</td></tr>
+                        <tr><td>10</td><td>27</td><td>0</td><td>1</td><td>190.4</td></tr>
+                        <tr><td>11</td><td>29</td><td>2</td><td>0</td><td>225.8</td></tr>
+                        <tr><td>12</td><td>31</td><td>3</td><td>1</td><td>274.2</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box"><p>变量解释：$x_1$ 为气温，$x_2$ 为校园活动强度（0到3），$x_3$ 为优惠力度（0到2），$y$ 为日销量。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-multi-case-2">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 案例：建模与参数估计（2/6）</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#3b82f6;">
+                <div class="model-pill"><i class="fas fa-cubes"></i> 建立多元线性回归模型</div>
+                <div class="math-center"><div class="math-box">\[ y=b_0+b_1x_1+b_2x_2+b_3x_3+u \]</div></div>
+                <p>其中 $b_1$ 表示气温每升高 $1^\circ\mathrm{C}$ 时销量的平均变化；$b_2$ 表示活动强度每增加 1 级时销量的平均变化；$b_3$ 表示优惠力度每增加 1 级时销量的平均变化。</p>
+            </div>
+            <div class="step two-column-top" style="gap:20px;">
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>OLS 参数估计结果</h3>
+                    <table class="data-table small-table">
+                        <thead><tr><th>参数</th><th>估计值</th><th>含义</th></tr></thead>
+                        <tbody>
+                            <tr><td>$b_0$</td><td>38.536</td><td>基础销量水平</td></tr>
+                            <tr><td>$b_1$</td><td>4.784</td><td>气温每升高1度，销量约增加4.8杯</td></tr>
+                            <tr><td>$b_2$</td><td>22.968</td><td>活动强度每增加1级，销量约增加23杯</td></tr>
+                            <tr><td>$b_3$</td><td>22.518</td><td>优惠力度每增加1级，销量约增加22.5杯</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3>得到预测模型</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;">\[ \hat y=38.536+4.784x_1+22.968x_2+22.518x_3 \]</div></div>
+                    <p style="font-size:17px;">直观理解：气温像“底噪热度”，活动和优惠像“额外推力”。三个因素一起解释销量，比只盯着气温靠谱得多。是的，世界终于不是一根直线能解释的了。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-multi-case-3">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 案例：预测与解释（3/6）</h2>
+        <div class="content-area">
+            <div class="step question-box" style="font-size:20px;">
+                <strong>预测任务：</strong>明天气温 $33^\circ\mathrm{C}$，校园活动强度为 3，优惠力度为 1，预测奶茶销量是多少？
+            </div>
+            <div class="step tile" style="border-top-color:#f59e0b;">
+                <h3>代入模型计算</h3>
+                <div class="math-center"><div class="math-box" style="font-size:20px;">\[ \hat y=38.536+4.784\times33+22.968\times3+22.518\times1=287.8 \]</div></div>
+                <p style="text-align:center;"><strong>预测结果：</strong>明天预计销量约为 <span style="color:#dc2626;font-weight:bold;">288 杯</span>。</p>
+            </div>
+            <div class="step mini-grid-4">
+                <div class="mini-stat"><div class="num">33℃</div><div class="lab">高温提高基础需求</div></div>
+                <div class="mini-stat"><div class="num">3级</div><div class="lab">活动带来人流量</div></div>
+                <div class="mini-stat"><div class="num">1级</div><div class="lab">优惠刺激购买</div></div>
+                <div class="mini-stat"><div class="num">288杯</div><div class="lab">最终预测销量</div></div>
+            </div>
+            <div class="step info-box"><p>决策建议：若每杯原料浪费损失较小、缺货损失较大，可备货约 295 至 300 杯，给预测误差留一点缓冲。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-multi-case-4">
+        <h2 class="slide-title"><i class="fas fa-vial"></i> 案例：模型检验（4/6）</h2>
+        <div class="content-area">
+            <div class="step mini-grid-4">
+                <div class="mini-stat"><div class="num">0.996</div><div class="lab">$R^2$</div></div>
+                <div class="mini-stat"><div class="num">0.995</div><div class="lab">修正 $R^2$</div></div>
+                <div class="mini-stat"><div class="num">724.14</div><div class="lab">总体 $F$ 值</div></div>
+                <div class="mini-stat"><div class="num">3.68</div><div class="lab">标准误差 SE</div></div>
+            </div>
+            <div class="step two-column-top" style="gap:20px; margin-top:10px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>总体显著性检验：F 检验</h3>
+                    <p>检验模型整体是否有效：</p>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;">\[ F=724.14,\quad p\lt0.001 \]</div></div>
+                    <p style="font-size:17px;">结论：模型整体显著，说明气温、活动、优惠这组变量对销量具有显著解释力。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>单个参数显著性：t 检验</h3>
+                    <table class="data-table small-table">
+                        <thead><tr><th>变量</th><th>t值</th><th>p值</th><th>判断</th></tr></thead>
+                        <tbody>
+                            <tr><td>气温 $x_1$</td><td>16.32</td><td>$\lt0.001$</td><td>显著</td></tr>
+                            <tr><td>活动 $x_2$</td><td>17.33</td><td>$\lt0.001$</td><td>显著</td></tr>
+                            <tr><td>优惠 $x_3$</td><td>12.47</td><td>$\lt0.001$</td><td>显著</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="step question-box"><strong>课堂提醒：</strong>$R^2$ 很高不等于万事大吉，还要检查业务逻辑、共线性、残差和预测误差。不然模型会像“看起来很努力的学生”，卷面漂亮，答案离谱。</div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-multi-case-5">
+        <h2 class="slide-title"><i class="fas fa-chart-simple"></i> 案例：残差与误差评价（5/6）</h2>
+        <div class="content-area">
+            <div class="step">
+                <table class="data-table small-table">
+                    <thead><tr><th>日期</th><th>实际销量</th><th>拟合销量</th><th>残差 $e=y-\hat y$</th><th>绝对百分误差</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>120.6</td><td>124.6</td><td>-4.04</td><td>3.35%</td></tr>
+                        <tr><td>2</td><td>162.0</td><td>157.2</td><td>4.83</td><td>2.98%</td></tr>
+                        <tr><td>3</td><td>167.4</td><td>166.3</td><td>1.11</td><td>0.66%</td></tr>
+                        <tr><td>4</td><td>224.8</td><td>221.8</td><td>3.00</td><td>1.33%</td></tr>
+                        <tr><td>5</td><td>182.2</td><td>185.9</td><td>-3.68</td><td>2.02%</td></tr>
+                        <tr><td>6</td><td>241.6</td><td>240.9</td><td>0.67</td><td>0.28%</td></tr>
+                        <tr><td>7</td><td>299.0</td><td>296.0</td><td>3.02</td><td>1.01%</td></tr>
+                        <tr><td>8</td><td>214.4</td><td>214.6</td><td>-0.18</td><td>0.08%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step mini-grid-4">
+                <div class="mini-stat"><div class="num">108.29</div><div class="lab">SSE 残差平方和</div></div>
+                <div class="mini-stat"><div class="num">13.54</div><div class="lab">MSE 均方误差</div></div>
+                <div class="mini-stat"><div class="num">2.57</div><div class="lab">MAE 平均绝对误差</div></div>
+                <div class="mini-stat"><div class="num">1.31%</div><div class="lab">MAPE 平均百分误差</div></div>
+            </div>
+            <div class="step info-box"><p>误差解释：平均每一天预测大约偏离 2.6 杯，平均百分误差约 1.31%，对日常备货已经相当可用。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-multi-case-6">
+        <h2 class="slide-title"><i class="fas fa-triangle-exclamation"></i> 案例：共线性与使用边界（6/6）</h2>
+        <div class="content-area">
+            <div class="step two-column-top" style="gap:20px;">
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3>多重共线性直观解释</h3>
+                    <p>如果“气温”和“冰块用量”同时进模型，它们可能高度相关。模型会疑惑：销量增加到底是气温的功劳，还是冰块的功劳？这就像小组作业里两个人都说自己贡献最大，最后老师也不知道该给谁加分。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>本例处理</h3>
+                    <ul>
+                        <li>选择变量时尽量避免含义重复。</li>
+                        <li>检查自变量之间的相关系数。</li>
+                        <li>若两个自变量高度相关，可剔除其中一个，或用主成分等方法降维。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step question-box" style="margin-top:14px;">
+                <strong>流程总结：</strong>明确问题 $\rightarrow$ 收集数据 $\rightarrow$ 建立模型 $\rightarrow$ OLS估计 $\rightarrow$ 预测 $\rightarrow$ F检验与t检验 $\rightarrow$ 误差评价 $\rightarrow$ 检查共线性与业务逻辑 $\rightarrow$ 给出决策建议。
+            </div>
+            <div class="step case-note" style="margin-top:12px;">
+                <p><strong>理解：</strong>多元回归不是“变量越多越高级”，而是“重要变量一个别漏，重复变量一个别塞”。不然模型会变成统计版杂货铺，什么都摆上去，最后谁也卖不动。</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 第三节：非线性回归 ==================== -->
+    <div class="slide section-slide" id="slide-15">
+        <h2>第三节 非线性回归预测法</h2>
+        <hr>
+        <p class="step" style="font-size: 24px; color: #cbd5e1;">通过变量代换，化曲为直</p>
+    </div>
+
+    <!-- ==================== Slide 16-intro: 非线性回归导入实例 ==================== -->
+    <div class="slide" id="slide-16-intro">
+        <h2 class="slide-title"><i class="fas fa-rocket"></i> 导入实例：直线无法描绘的真实世界</h2>
+        <div class="content-area">
+            <div class="step two-column" style="gap: 20px; align-items: start;">
+                <div class="tile" style="border-top-color: #ef4444;">
+                    <h3 style="color:#dc2626;"><i class="fas fa-chart-area"></i> 爆款短视频的传播曲线</h3>
+                    <p style="font-size: 17px; line-height: 1.6;">
+                        一条爆款短视频发布后，前三天的播放量可能是：1千、1万、10万。呈现出爆发式的<strong>指数级增长</strong>。<br><br>
+                        但到了第十天，由于潜在用户基数见顶，播放量会逐渐停滞在 100万 左右，最终呈现出一条 <strong>S型 (Logistic) 饱和曲线</strong>。<br><br>
+                        如果你坚持用一条“直线”去拟合这组数据，无论怎么画，误差都会错得离谱！
+                    </p>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="color:#059669;"><i class="fas fa-magic"></i> 数学家的魔法：化曲为直</h3>
+                    <p style="font-size: 17px; line-height: 1.6;">
+                        面对非线性的世界，难道我们熟练掌握的线性回归工具就彻底失效了吗？<br><br>
+                        统计学家提供了一个极其巧妙的破局思路：<strong>变量代换</strong>。<br><br>
+                        只要我们给弯曲的数据戴上一副特殊的“数学眼镜”（比如取对数、求倒数），它在全新的坐标系里，就会奇迹般地变回一条完美的直线！
+                    </p>
+                </div>
+            </div>
+            <div class="step info-box" style="background: #f0fdf4; border-left-color: #10b981; margin-top: 15px;">
+                <p style="color: #047857; font-size: 19px;"><i class="fas fa-lightbulb"></i> 核心思想：</p>
+                <p style="font-size: 18px; font-weight: normal; color: #334155; margin-top: 5px;">
+                    非线性回归的本质，就是寻找合适的函数变换规则，将未知的、复杂的非线性关系，转化为我们熟悉的线性回归模型进行求解。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 17 ==================== -->
+    <div class="slide" id="slide-17">
+        <h2 class="slide-title"><i class="fas fa-bezier-curve"></i> 【例 3-3】 双曲线模型代换与曲线拟合</h2>
+        <div class="content-area">
+            <div class="step two-column" style="gap: 20px; align-items: stretch; height: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="tile" style="border-top-color: #8b5cf6; flex-grow: 1;">
+                        <h3 style="font-size: 20px;">代换过程</h3>
+                        <p style="font-size: 17px;">某市商店销售额 $x$ 与流通费率 $y$ 呈反比递减。选用双曲线方程：</p>
+                        <div class="math-center"><div class="math-box" style="font-size: 18px; border-left-color: #8b5cf6; padding: 5px;">\[ \hat{y} = a + b \frac{1}{x} \]</div></div>
+                        <p style="font-size: 17px; margin-top: 10px;"><strong>线性代换：</strong> 令 $x' = \frac{1}{x}$，则转化为线性模型 $\hat{y} = a + b x'$</p>
+                        <p style="font-size: 17px; margin-top: 10px;">
+                            代入数据计算得 $a=2.225, b=7.621$。<br>
+                            最终非线性模型为： $\hat{y} = 2.225 + 7.621 \left(\frac{1}{x}\right)$
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 绘制双曲线散点图与拟合曲线 -->
+                <div class="svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 坐标轴 -->
+                        <line x1="40" y1="260" x2="380" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="330" y="280" font-size="12" fill="#334155">销售额 x (万元)</text>
+                        <text x="15" y="50" font-size="12" fill="#334155" transform="rotate(-90, 15, 50)">流通费率 y (%)</text>
+                        
+                        <!-- 刻度 -->
+                        <text x="40" y="275" font-size="10" text-anchor="middle">0</text>
+                        <text x="160" y="275" font-size="10" text-anchor="middle">10</text>
+                        <text x="280" y="275" font-size="10" text-anchor="middle">20</text>
+                        <text x="35" y="260" font-size="10" text-anchor="end">0</text>
+                        <text x="35" y="100" font-size="10" text-anchor="end">5.0</text>
+                        
+                        <!-- 散点数据点映射 (x: 0~30 -> 40~380; y: 0~8 -> 260~20) -->
+                        <g fill="#ec4899">
+                            <!-- 1.5, 7.0 --> <circle cx="57" cy="50" r="4"/>
+                            <!-- 4.5, 4.8 --> <circle cx="91" cy="116" r="4"/>
+                            <!-- 7.5, 3.6 --> <circle cx="125" cy="152" r="4"/>
+                            <!-- 10.5, 3.1 --> <circle cx="159" cy="167" r="4"/>
+                            <!-- 13.5, 2.7 --> <circle cx="193" cy="179" r="4"/>
+                            <!-- 16.5, 2.5 --> <circle cx="227" cy="185" r="4"/>
+                            <!-- 19.5, 2.4 --> <circle cx="261" cy="188" r="4"/>
+                            <!-- 22.5, 2.3 --> <circle cx="295" cy="191" r="4"/>
+                            <!-- 25.5, 2.2 --> <circle cx="329" cy="194" r="4"/>
+                        </g>
+
+                        <!-- 双曲线拟合线 y = 2.225 + 7.621/x -->
+                        <path d="M 57 41 Q 74 117 108 155 T 210 178 T 357 185" fill="none" stroke="#8b5cf6" stroke-width="3" class="path-anim" />
+                        <text x="200" y="100" font-size="14" font-weight="bold" fill="#8b5cf6">双曲线拟合: $\hat{y} = 2.225 + 7.621/x$</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 非线性回归完整案例：新品预约指数增长 ==================== -->
+    <div class="slide" id="slide-nonlinear-case-1">
+        <h2 class="slide-title"><i class="fas fa-fire"></i> 案例：新品预约增长预测（1/5）</h2>
+        <div class="content-area">
+            <div class="step case-note">
+                <p><strong>案例背景：</strong>学校美食节推出“桂花拿铁小蛋糕”，前10天累计预约人数增长很快。刚开始像雪球越滚越大，用直线拟合会低估后期增长，就像拿尺子量海浪，仪式感很足，准确性很惨。</p>
+            </div>
+            <div class="step two-column-top" style="gap:20px;">
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3>原始数据</h3>
+                    <table class="data-table small-table">
+                        <thead><tr><th>天数 $t$</th><th>累计预约 $y$</th><th>$\ln y$</th></tr></thead>
+                        <tbody>
+                            <tr><td>1</td><td>42</td><td>3.738</td></tr>
+                            <tr><td>2</td><td>55</td><td>4.007</td></tr>
+                            <tr><td>3</td><td>75</td><td>4.317</td></tr>
+                            <tr><td>4</td><td>98</td><td>4.585</td></tr>
+                            <tr><td>5</td><td>128</td><td>4.852</td></tr>
+                            <tr><td>6</td><td>172</td><td>5.147</td></tr>
+                            <tr><td>7</td><td>225</td><td>5.416</td></tr>
+                            <tr><td>8</td><td>295</td><td>5.687</td></tr>
+                            <tr><td>9</td><td>390</td><td>5.966</td></tr>
+                            <tr><td>10</td><td>510</td><td>6.234</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>选择指数模型</h3>
+                    <p>当增长呈“越多越快”的趋势时，可以考虑指数函数：</p>
+                    <div class="math-center"><div class="math-box">\[ y=ae^{bt} \]</div></div>
+                    <p>对两边取自然对数：</p>
+                    <div class="math-center"><div class="math-box">\[ \ln y=\ln a+bt \]</div></div>
+                    <p style="font-size:17px;">令 $Y'=\ln y$，$A=\ln a$，就把弯曲的指数模型转化成线性模型 $Y'=A+bt$。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-nonlinear-case-2">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 案例：化曲为直与参数估计（2/5）</h2>
+        <div class="content-area">
+            <div class="step two-column-top" style="gap:20px;">
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3>在线性化后的模型上做 OLS</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:19px;">\[ \ln y=3.4678+0.2777t \]</div></div>
+                    <table class="data-table small-table">
+                        <thead><tr><th>参数</th><th>估计值</th><th>解释</th></tr></thead>
+                        <tbody>
+                            <tr><td>$A=\ln a$</td><td>3.4678</td><td>线性化截距</td></tr>
+                            <tr><td>$b$</td><td>0.2777</td><td>每天增长强度</td></tr>
+                            <tr><td>$a=e^A$</td><td>32.065</td><td>指数模型初始尺度</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>还原为非线性模型</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:20px;">\[ \hat y=32.065e^{0.2777t} \]</div></div>
+                    <p style="font-size:17px;">其中 $e^{0.2777}\approx1.32$，表示在该阶段预约人数大约按每天 32% 的比例增长。注意，这是样本区间内的增长规律，不能外推到地球毁灭那天，统计学不负责科幻片。</p>
+                </div>
+            </div>
+            <div class="step info-box"><p>非线性回归的关键不是“曲线很酷”，而是找到合适变换，使参数可以用线性回归方法估计。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-nonlinear-case-3">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 案例：拟合值、残差与误差（3/5）</h2>
+        <div class="content-area">
+            <div class="step">
+                <table class="data-table small-table">
+                    <thead><tr><th>天数</th><th>实际 $y$</th><th>拟合 $\hat y$</th><th>残差 $e$</th><th>绝对百分误差</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>42</td><td>42.3</td><td>-0.3</td><td>0.7%</td></tr>
+                        <tr><td>2</td><td>55</td><td>55.9</td><td>-0.9</td><td>1.6%</td></tr>
+                        <tr><td>3</td><td>75</td><td>73.8</td><td>1.2</td><td>1.6%</td></tr>
+                        <tr><td>4</td><td>98</td><td>97.4</td><td>0.6</td><td>0.6%</td></tr>
+                        <tr><td>5</td><td>128</td><td>128.5</td><td>-0.5</td><td>0.4%</td></tr>
+                        <tr><td>6</td><td>172</td><td>169.7</td><td>2.3</td><td>1.3%</td></tr>
+                        <tr><td>7</td><td>225</td><td>224.0</td><td>1.0</td><td>0.4%</td></tr>
+                        <tr><td>8</td><td>295</td><td>295.7</td><td>-0.7</td><td>0.2%</td></tr>
+                        <tr><td>9</td><td>390</td><td>390.3</td><td>-0.3</td><td>0.1%</td></tr>
+                        <tr><td>10</td><td>510</td><td>515.3</td><td>-5.3</td><td>1.0%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step mini-grid-4">
+                <div class="mini-stat"><div class="num">37.69</div><div class="lab">原尺度 SSE</div></div>
+                <div class="mini-stat"><div class="num">1.94</div><div class="lab">RMSE</div></div>
+                <div class="mini-stat"><div class="num">0.82%</div><div class="lab">MAPE</div></div>
+                <div class="mini-stat"><div class="num">0.9998</div><div class="lab">对数模型 $R^2$</div></div>
+            </div>
+            <div class="step question-box"><strong>解释：</strong>在样本范围内拟合误差很小，说明指数模型很好地抓住了“扩散式增长”的形状。</div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-nonlinear-case-4">
+        <h2 class="slide-title"><i class="fas fa-vial-circle-check"></i> 案例：模型检验（4/5）</h2>
+        <div class="content-area">
+            <div class="step two-column-top" style="gap:20px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>总体显著性：F 检验</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;">\[ F=52842.57,\quad p\lt0.001 \]</div></div>
+                    <p>在线性化模型 $\ln y=A+bt$ 中，时间变量整体解释效果极强。</p>
+                </div>
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3>参数显著性：t 检验</h3>
+                    <table class="data-table small-table">
+                        <thead><tr><th>参数</th><th>t值</th><th>p值</th><th>判断</th></tr></thead>
+                        <tbody>
+                            <tr><td>$A$</td><td>462.65</td><td>$\lt0.001$</td><td>显著</td></tr>
+                            <tr><td>$b$</td><td>229.88</td><td>$\lt0.001$</td><td>显著</td></tr>
+                        </tbody>
+                    </table>
+                    <p style="font-size:16px;">结论：增长率参数 $b$ 显著不为 0，说明预约人数确实随时间呈显著增长。</p>
+                </div>
+            </div>
+            <div class="step info-box" style="background:#f0fdf4;border-left-color:#10b981;"><p style="color:#047857;">模型通过检验后才能用于短期预测；若后期出现饱和，就应改用 Logistic 曲线，而不是让指数曲线一路冲向银河系。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-nonlinear-case-5">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 案例：预测结果与使用边界（5/5）</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#f59e0b;">
+                <h3>预测第 11 天累计预约人数</h3>
+                <div class="math-center"><div class="math-box" style="font-size:20px;">\[ \hat y_{11}=32.065e^{0.2777\times11}=680.2 \]</div></div>
+                <p style="text-align:center;"><strong>预测结果：</strong>第 11 天累计预约人数约为 <span style="color:#dc2626;font-weight:bold;">680 人</span>。</p>
+            </div>
+            <div class="step two-column-top" style="gap:20px; margin-top:10px;">
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>决策建议</h3>
+                    <ul>
+                        <li>若目标是保证供应，可准备约 690 至 700 份。</li>
+                        <li>若原料保质期短，可先按 650 份备货，临时追加。</li>
+                        <li>继续收集第 11 到 15 天数据，观察是否出现增长放缓。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3>使用边界</h3>
+                    <p>指数模型适合“早期扩散阶段”。如果学校学生总数有限，预约人数迟早会接近饱和，此时应改用 S 型曲线。模型不是水晶球，它只是比较会算账的望远镜。</p>
+                </div>
+            </div>
+            <div class="step question-box"><strong>完整流程：</strong>观察曲线形态 $\rightarrow$ 选择非线性模型 $\rightarrow$ 变量变换 $\rightarrow$ OLS估计 $\rightarrow$ 还原模型 $\rightarrow$ 模型检验 $\rightarrow$ 误差评价 $\rightarrow$ 预测与决策。</div>
+        </div>
+    </div>
+
+
+    <!-- ==================== Slide 18 ==================== -->
+    <div class="slide" id="slide-18">
+        <h2 class="slide-title"><i class="fas fa-shapes"></i> 二、常见的非线性函数图形及其代换 (1/3)</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 18px;">通过合适的变量替换 $x', y'$，可以把曲线转化为直线 $y'=a'+bx'$ 求解：</p>
+            
+            <div class="step two-column" style="gap: 30px; height: 100%;">
+                <!-- 幂函数 -->
+                <div class="tile" style="border-top-color: #3b82f6; display: flex; flex-direction: column; gap: 10px;">
+                    <h3 style="font-size: 20px;">1. 幂函数</h3>
+                    <div class="math-box" style="font-size: 16px; border:none; padding:5px;">
+                        原式: $y = a x^b$ <br>代换: $y' = \lg y, x' = \lg x$
+                    </div>
+                    <div class="svg-container" style="flex-grow: 1; padding: 10px;">
+                        <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                            <line x1="40" y1="260" x2="360" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <!-- b>1 (y=x^2) -->
+                            <path d="M 40 260 Q 200 260 340 40" fill="none" stroke="#3b82f6" stroke-width="3" class="path-anim"/>
+                            <!-- 0<b<1 (y=sqrt(x)) -->
+                            <path d="M 40 260 Q 40 100 340 60" fill="none" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,5" class="path-anim"/>
+                            <text x="300" y="120" font-size="16" fill="#3b82f6">b > 1 (递增型)</text>
+                            <text x="220" y="50" font-size="16" fill="#3b82f6">0 < b < 1 (衰减型)</text>
+                        </svg>
+                    </div>
+                </div>
+                <!-- 指数函数 -->
+                <div class="tile" style="border-top-color: #10b981; display: flex; flex-direction: column; gap: 10px;">
+                    <h3 style="font-size: 20px;">2. 指数函数</h3>
+                    <div class="math-box" style="font-size: 16px; border:none; padding:5px;">
+                        原式: $y = a e^{bx}$ <br>代换: $y' = \ln y, x' = x$
+                    </div>
+                    <div class="svg-container" style="flex-grow: 1; padding: 10px;">
+                        <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                            <line x1="40" y1="260" x2="360" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <path d="M 40 240 Q 260 240 340 40" fill="none" stroke="#10b981" stroke-width="3" class="path-anim"/>
+                            <text x="260" y="100" font-size="16" fill="#10b981">y = a e^{bx} (b>0)</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 19 ==================== -->
+    <div class="slide" id="slide-19">
+        <h2 class="slide-title"><i class="fas fa-shapes"></i> 二、常见的非线性函数图形及其代换 (2/3)</h2>
+        <div class="content-area">
+            <div class="step two-column" style="gap: 30px; height: 100%;">
+                <!-- 对数函数 -->
+                <div class="tile" style="border-top-color: #f59e0b; display: flex; flex-direction: column; gap: 10px;">
+                    <h3 style="font-size: 20px;">3. 对数函数</h3>
+                    <div class="math-box" style="font-size: 16px; border:none; padding:5px;">
+                        原式: $y = a + b \lg x$ <br>代换: $y'=y, x' = \lg x$
+                    </div>
+                    <div class="svg-container" style="flex-grow: 1; padding: 10px;">
+                        <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                            <line x1="40" y1="260" x2="360" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <path d="M 50 260 Q 100 80 340 60" fill="none" stroke="#f59e0b" stroke-width="3" class="path-anim"/>
+                            <text x="200" y="100" font-size="16" fill="#f59e0b">y = a + b lg x</text>
+                        </svg>
+                    </div>
+                </div>
+                <!-- S形函数 -->
+                <div class="tile" style="border-top-color: #ec4899; display: flex; flex-direction: column; gap: 10px;">
+                    <h3 style="font-size: 20px;">4. S形函数 (Logistic曲线等)</h3>
+                    <div class="math-box" style="font-size: 16px; border:none; padding:5px;">
+                        原式: $y = \frac{1}{a + b e^{-x}}$ <br>代换: $y' = \frac{1}{y}, x' = e^{-x}$
+                    </div>
+                    <div class="svg-container" style="flex-grow: 1; padding: 10px;">
+                        <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                            <line x1="40" y1="260" x2="360" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                            <path d="M 40 240 C 200 240, 200 60, 360 60" fill="none" stroke="#ec4899" stroke-width="3" class="path-anim"/>
+                            <line x1="40" y1="60" x2="360" y2="60" stroke="#94a3b8" stroke-dasharray="4,4"/>
+                            <text x="240" y="140" font-size="16" fill="#ec4899">S形 (Logistic) 曲线</text>
+                            <text x="260" y="50" font-size="14" fill="#94a3b8">饱和极限 (1/a)</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 20 ==================== -->
+    <div class="slide" id="slide-20">
+        <h2 class="slide-title"><i class="fas fa-shapes"></i> 二、常见的非线性函数图形及其代换 (3/3)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color: #64748b; padding: 20px; display: flex; flex-direction: column; gap: 15px; height: 100%;">
+                <h3 style="font-size: 22px;">5. 抛物线函数 (二次多项式)</h3>
+                <p style="font-size: 18px;">原式: $y = a + bx + cx^2$。抛物线无需单一代换，直接列出含 $a,b,c$ 的三元正规方程组求解即可。</p>
+                <div class="svg-container" style="flex-grow: 1;">
+                    <svg viewBox="0 0 600 300" style="width: 100%; height: 100%;">
+                        <line x1="40" y1="260" x2="560" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="300" y1="260" x2="300" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        
+                        <!-- 倒U型 c<0 -->
+                        <path d="M 80 260 Q 300 -80 520 260" fill="none" stroke="#64748b" stroke-width="3" class="path-anim"/>
+                        <text x="315" y="80" font-size="16" fill="#64748b">开口向下 (c < 0)</text>
+                        
+                        <!-- U型 c>0 -->
+                        <path d="M 80 60 Q 300 380 520 60" fill="none" stroke="#64748b" stroke-width="3" stroke-dasharray="5,5" class="path-anim"/>
+                        <text x="315" y="210" font-size="16" fill="#64748b">开口向上 (c > 0)</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第四节：应用注意事项 ==================== -->
+    <div class="slide section-slide" id="slide-21">
+        <h2>第四节 应用回归预测法应注意的问题</h2>
+        <hr>
+        <p class="step" style="font-size: 24px; color: #cbd5e1;">避免盲目套用模型，警惕伪回归</p>
+    </div>
+
+    <!-- ==================== Slide 22: 注意事项一 (伪回归) ==================== -->
+    <div class="slide" id="slide-22">
+        <h2 class="slide-title"><i class="fas fa-exclamation-triangle"></i> 一、定性分析必须先行：警惕“伪回归”</h2>
+        <div class="content-area">
+            <div class="two-column" style="gap: 30px; align-items: stretch; height: 100%;">
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="step tile" style="border-top-color: #ef4444; flex-grow: 1;">
+                        <h3 style="color: #b91c1c;"><i class="fas fa-search-location"></i> 经典谬误：冰激凌与溺水</h3>
+                        <p style="font-size: 17px; line-height: 1.6;">
+                            某统计学家收集了某城市过去10年的数据，发现：<strong>“冰激凌的月销量”</strong>与<strong>“该月溺水死亡人数”</strong>呈现极高的正相关（$R^2 = 0.85$）。<br><br>
+                            如果仅仅迷信数据和模型，盲目得出“吃冰激凌会导致溺水”的结论，并建议政府“为了拯救生命应当禁止销售冰激凌”，这显然是荒谬的。
+                        </p>
+                    </div>
+                    <div class="step info-box" style="background: #fef2f2; border-left-color: #ef4444;">
+                        <p style="color: #991b1b;"><i class="fas fa-brain"></i> 统计学本质揭秘：</p>
+                        <p style="font-size: 16px; font-weight: normal; color: #7f1d1d; margin-top: 5px;">
+                            这就是典型的<strong>“伪回归 (Spurious Regression)”</strong>。实际上，两者是由一个共同的隐蔽变量（Confounding Variable）——<strong>“夏季气温升高”</strong>驱动的。<br>
+                            <strong>结论：</strong>回归分析绝不能替代事物内部逻辑的定性分析。数学检验是第二位的，业务逻辑检验永远是第一位的！
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 绘制背景框 -->
+                        <rect x="20" y="20" width="360" height="260" rx="10" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+                        
+                        <!-- 节点：气温升高 -->
+                        <circle cx="200" cy="70" r="40" fill="#f59e0b" opacity="0.2"/>
+                        <circle cx="200" cy="70" r="30" fill="#f59e0b"/>
+                        <text x="200" y="75" text-anchor="middle" fill="white" font-weight="bold" font-size="14">气温升高</text>
+                        <text x="200" y="30" text-anchor="middle" fill="#d97706" font-size="12" font-weight="bold">隐蔽变量 (Confounder)</text>
+
+                        <!-- 节点：冰激凌销量 -->
+                        <circle cx="100" cy="220" r="35" fill="#3b82f6"/>
+                        <text x="100" y="215" text-anchor="middle" fill="white" font-weight="bold" font-size="14">冰激凌</text>
+                        <text x="100" y="235" text-anchor="middle" fill="white" font-weight="bold" font-size="14">销量飙升</text>
+
+                        <!-- 节点：溺水人数 -->
+                        <circle cx="300" cy="220" r="35" fill="#10b981"/>
+                        <text x="300" y="215" text-anchor="middle" fill="white" font-weight="bold" font-size="14">游泳致</text>
+                        <text x="300" y="235" text-anchor="middle" fill="white" font-weight="bold" font-size="14">溺水增多</text>
+
+                        <!-- 真实的因果连线 -->
+                        <line x1="180" y1="95" x2="120" y2="190" stroke="#f59e0b" stroke-width="4" marker-end="url(#arrow-orange)" class="path-anim"/>
+                        <line x1="220" y1="95" x2="280" y2="190" stroke="#f59e0b" stroke-width="4" marker-end="url(#arrow-orange)" class="path-anim"/>
+                        <text x="110" y="130" fill="#d97706" font-size="12" font-weight="bold" transform="rotate(30, 140, 130)">真实因果</text>
+                        <text x="250" y="125" fill="#d97706" font-size="12" font-weight="bold" transform="rotate(-30, 260, 130)">真实因果</text>
+
+                        <!-- 虚假的回归连线 -->
+                        <line x1="140" y1="220" x2="260" y2="220" stroke="#ef4444" stroke-width="3" stroke-dasharray="6,4" class="path-anim"/>
+                        <text x="200" y="245" text-anchor="middle" fill="#ef4444" font-weight="bold" font-size="14">表象：高度正相关</text>
+                        
+                        <!-- 叉号 -->
+                        <path d="M 190 210 L 210 230 M 190 230 L 210 210" stroke="#ef4444" stroke-width="4"/>
+                        <text x="200" y="200" text-anchor="middle" fill="#ef4444" font-weight="bold" font-size="12">无直接因果</text>
+
+                        <defs>
+                            <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b" />
+                            </marker>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 23: 注意事项二 (任意外推) ==================== -->
+    <div class="slide" id="slide-23">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 二、不能任意外推：真理向前一步就是谬误</h2>
+        <div class="content-area">
+            <div class="two-column" style="gap: 30px; align-items: stretch; height: 100%;">
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="step tile" style="border-top-color: #f59e0b; flex-grow: 1;">
+                        <h3 style="color: #d97706;"><i class="fas fa-seedling"></i> 案例：化肥与产量的“边界”</h3>
+                        <p style="font-size: 17px; line-height: 1.6;">
+                            某农业科研小组通过实验得出了“施肥量(x)”与“农作物产量(y)”的正相关线性回归方程：$\hat{y} = a + bx$。<br><br>
+                            在低浓度施肥区域 $[x_{\min}, x_{\max}]$，这个预测极其精准。但如果盲目认为只要无限增加施肥量就能获得无限产量（<strong>任意外推</strong>），预测值将脱离实际。<br>
+                            实际上，一旦超过合理阈值，过量施肥会导致“烧苗”，产量锐减，真实规律变为“倒U型”。
+                        </p>
+                    </div>
+                    <div class="step info-box" style="background: #fffbeb; border-left-color: #f59e0b;">
+                        <p style="color: #b45309;"><i class="fas fa-exclamation-triangle"></i> 统计学法则：</p>
+                        <p style="font-size: 16px; font-weight: normal; color: #92400e; margin-top: 5px;">
+                            回归模型只在原有数据的**插值范围**内可靠。对于远离样本均值的**外推预测 (Extrapolation)**，一方面置信区间呈喇叭口发散，误差极大；另一方面，业务逻辑的潜在结构可能早已发生扭曲。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 坐标轴 -->
+                        <line x1="40" y1="260" x2="380" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="360" y="280" font-size="12" fill="#334155">施肥量 (x)</text>
+                        <text x="15" y="40" font-size="12" fill="#334155" transform="rotate(-90, 15, 40)">农作物产量 (y)</text>
+
+                        <!-- 区域划分背板 -->
+                        <rect x="40" y="20" width="160" height="240" fill="#f0fdf4" opacity="0.5"/>
+                        <text x="120" y="250" text-anchor="middle" font-size="12" fill="#10b981" font-weight="bold">已知样本区间 (合理插值)</text>
+                        
+                        <rect x="200" y="20" width="180" height="240" fill="#fef2f2" opacity="0.5"/>
+                        <text x="290" y="250" text-anchor="middle" font-size="12" fill="#ef4444" font-weight="bold">危险外推区间 (未知领域)</text>
+                        
+                        <line x1="200" y1="260" x2="200" y2="20" stroke="#94a3b8" stroke-dasharray="4,4"/>
+
+                        <!-- 历史样本散点 -->
+                        <g fill="#10b981">
+                            <circle cx="60" cy="220" r="4"/><circle cx="80" cy="200" r="4"/>
+                            <circle cx="100" cy="180" r="4"/><circle cx="120" cy="150" r="4"/>
+                            <circle cx="140" cy="130" r="4"/><circle cx="160" cy="120" r="4"/>
+                            <circle cx="180" cy="100" r="4"/>
+                        </g>
+
+                        <!-- 回归线 (实线部分) -->
+                        <line x1="40" y1="240" x2="200" y2="90" stroke="#3b82f6" stroke-width="3" class="path-anim"/>
+                        
+                        <!-- 外推谬误回归线 (红色虚线) -->
+                        <line x1="200" y1="90" x2="350" y2="-50" stroke="#ef4444" stroke-width="3" stroke-dasharray="6,4" class="path-anim"/>
+                        <text x="250" y="70" font-size="12" fill="#ef4444" font-weight="bold" transform="rotate(-40, 250, 70)">线性外推的荒谬预测</text>
+
+                        <!-- 真实业务规律 (绿色抛物线) -->
+                        <path d="M 40 240 Q 220 -10 380 260" fill="none" stroke="#10b981" stroke-width="3" stroke-dasharray="4,2" class="path-anim"/>
+                        <text x="280" y="160" font-size="12" fill="#10b981" font-weight="bold" transform="rotate(50, 280, 160)">真实产量规律 (倒U型)</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 24: 注意事项三 (环境突变) ==================== -->
+    <div class="slide" id="slide-24">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 三、数据资料的要求：警惕环境与结构的突变</h2>
+        <div class="content-area">
+            <div class="two-column" style="gap: 30px; align-items: stretch; height: 100%;">
+                
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div class="step tile" style="border-top-color: #10b981; flex-grow: 1;">
+                        <h3 style="color: #047857;"><i class="fas fa-industry"></i> 案例：教培行业的“双减”断层</h3>
+                        <p style="font-size: 17px; line-height: 1.6;">
+                            某教培企业打算预测 2022 年及之后的业务营收。如果分析师将 2018-2020 年的强劲增长数据，与 2021 年国家出台“双减”政策后的数据**简单混合在一起做一条回归直线**，得到的预测将毫无价值。<br><br>
+                            这是因为底层的“宏观政策变量”发生了**结构性断裂 (Structural Break)**，预测所依赖的“社会经济现象基本稳定”的假定被打破。
+                        </p>
+                    </div>
+                    <div class="step info-box" style="background: #ecfdf5; border-left-color: #10b981;">
+                        <p style="color: #065f46;"><i class="fas fa-check-circle"></i> 数据处理对策：</p>
+                        <p style="font-size: 16px; font-weight: normal; color: #064e3b; margin-top: 5px;">
+                            对于发生过重大技术革命、政策突变前后的数据，**不可将错就错直接合并**。必须应用分段回归（Piecewise Regression），或引入虚拟变量（Dummy Variable），或直接废弃突变前的失效历史数据。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step svg-container">
+                    <svg viewBox="0 0 400 300" style="width: 100%; height: 100%;">
+                        <!-- 坐标轴 -->
+                        <line x1="40" y1="260" x2="380" y2="260" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <line x1="40" y1="260" x2="40" y2="20" stroke="#334155" stroke-width="2" marker-end="url(#arrowhead)"/>
+                        <text x="360" y="280" font-size="12" fill="#334155">年份 (t)</text>
+                        <text x="15" y="40" font-size="12" fill="#334155" transform="rotate(-90, 15, 40)">业务营收 (y)</text>
+
+                        <!-- 时间节点轴标注 -->
+                        <text x="80" y="275" font-size="10" text-anchor="middle">2018</text>
+                        <text x="140" y="275" font-size="10" text-anchor="middle">2019</text>
+                        <text x="200" y="275" font-size="10" text-anchor="middle">2020</text>
+                        <text x="260" y="275" font-size="10" text-anchor="middle">2021</text>
+                        <text x="320" y="275" font-size="10" text-anchor="middle">2022</text>
+
+                        <!-- 政策断裂线 -->
+                        <line x1="260" y1="260" x2="260" y2="30" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
+                        <rect x="230" y="30" width="60" height="20" rx="4" fill="#ef4444"/>
+                        <text x="260" y="44" font-size="10" fill="white" font-weight="bold" text-anchor="middle">政策突变</text>
+
+                        <!-- 断裂前的繁荣数据 -->
+                        <g fill="#3b82f6">
+                            <circle cx="80" cy="180" r="4"/><circle cx="140" cy="120" r="4"/><circle cx="200" cy="60" r="4"/>
+                        </g>
+                        <line x1="50" y1="210" x2="230" y2="30" stroke="#3b82f6" stroke-width="3" class="path-anim"/>
+                        <text x="100" y="110" font-size="12" fill="#3b82f6" font-weight="bold" transform="rotate(-45, 100, 110)">旧轨迹 (作废)</text>
+
+                        <!-- 断裂后的低谷数据 -->
+                        <g fill="#10b981">
+                            <circle cx="280" cy="220" r="4"/><circle cx="320" cy="210" r="4"/><circle cx="360" cy="200" r="4"/>
+                        </g>
+                        <line x1="260" y1="225" x2="380" y2="195" stroke="#10b981" stroke-width="3" class="path-anim"/>
+                        <text x="300" y="235" font-size="12" fill="#10b981" font-weight="bold">新规律 (重构)</text>
+
+                        <!-- 强行拟合的错误回归线 (跨越断层) -->
+                        <line x1="50" y1="160" x2="380" y2="160" stroke="#f59e0b" stroke-width="4" stroke-dasharray="6,4" opacity="0.6" class="path-anim"/>
+                        <text x="210" y="150" font-size="14" fill="#d97706" font-weight="bold">强行合一的错误回归线 (毫无意义)</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 25: 总结与作业 ==================== -->
+    <div class="slide" id="slide-25">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 本章小结</h2>
+        <div class="content-area">
+            <div class="step tile" style="background: #f8fafc; padding: 25px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <ul style="line-height: 1.9; font-size: 18px;">
+                    <li><strong>一元线性回归：</strong> 最基础的模型。掌握最小二乘法估计参数 $b_0, b_1$，掌握标准误差、可决系数 $R^2$、t检验、F检验以及 D-W自相关检验。</li>
+                    <li><strong>多元线性回归：</strong> 引入更多自变量。需注意多重共线性的检查（相关矩阵），并使用修正的可决系数 $R_a^2$ 评估模型优劣。</li>
+                    <li><strong>非线性回归：</strong> 通过恰当的变量代换（取对数、倒数等），将曲线转化为直线，从而利用线性模型的方法求解参数。</li>
+                    <li><strong>应用准则：</strong> 必须在定性分析确认因果关系的指导下进行（防伪回归）；警惕数据外推带来的误差（避免任意外推）；确保宏观环境的稳定性（防结构突变）。</li>
+                </ul>
+            </div>
+            
+            <div class="step math-center" style="margin-top: 30px;">
+                <a href="#" class="hw-btn" onclick="alert('即将跳转到网络作业库：第三章 回归预测法 课后练习'); return false;">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 放映逻辑 JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('#presentation-container .slide'));
+    const progressBar = document.getElementById('progress-bar');
+    const slideCounter = document.getElementById('slide-counter');
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    // 默认进入浏览模式
+    body.classList.add('browse-mode');
+
+    function getSteps(slide) {
+        return Array.from(slide.querySelectorAll('.step'));
+    }
+
+    function hideAllSteps() {
+        slides.forEach(slide => {
+            getSteps(slide).forEach(step => step.classList.remove('visible'));
+        });
+    }
+
+    function showAllSteps(slide) {
+        getSteps(slide).forEach(step => step.classList.add('visible'));
+    }
+
+    function updateCounter() {
+        if (slideCounter) slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+    }
+
+    function updateProgress() {
+        if (progressBar) {
+            const percent = slides.length > 1 ? currentSlideIndex / (slides.length - 1) * 100 : 0;
+            progressBar.style.width = `${percent}%`;
+        }
+    }
+
+    function refreshMath() {
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise();
+        }
+    }
+
+    function showSlide(index) {
+        slides.forEach((slide, i) => { slide.classList.toggle('active', i === index); });
+        currentSlideIndex = index;
+        updateCounter(); updateProgress(); refreshMath();
+        
+        // 重新触发 SVG 动画
+        const activeSlide = slides[index];
+        const animPaths = activeSlide.querySelectorAll('.path-anim, .path-anim-solid');
+        animPaths.forEach(path => {
+            path.style.animation = 'none';
+            path.offsetHeight; /* trigger reflow */
+            path.style.animation = null; 
+        });
+    }
+
+    function updateScale() {
+        if (!isPresentationMode) return;
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function getCurrentVisibleBrowseSlideIndex() {
+        let bestIndex = 0;
+        let bestDistance = Infinity;
+        slides.forEach((slide, index) => {
+            const rect = slide.getBoundingClientRect();
+            const distance = Math.abs(rect.top - 20);
+            if (distance < bestDistance) { bestDistance = distance; bestIndex = index; }
+        });
+        return bestIndex;
+    }
+
+    function enterBrowseMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode'); body.classList.add('browse-mode');
+        slides.forEach(slide => slide.classList.remove('active'));
+        hideAllSteps();
+        slides.forEach(slide => showAllSteps(slide));
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode'); body.classList.add('presentation-mode');
+        hideAllSteps();
+        currentSlideIndex = Math.max(0, Math.min(startIndex, slides.length - 1));
+        showSlide(currentSlideIndex);
+        updateScale();
+    }
+
+    async function enterFullscreen() {
+        if (!document.fullscreenElement) {
+            try { await document.documentElement.requestFullscreen(); } catch (err) {}
+        }
+    }
+
+    async function exitFullscreen() {
+        if (document.fullscreenElement) {
+            try { await document.exitFullscreen(); } catch (err) {}
+        }
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible'); refreshMath();
+            
+            // 触发当前 step 里的 SVG 绘制动画
+            const animPaths = hiddenSteps[0].querySelectorAll('.path-anim, .path-anim-solid');
+            animPaths.forEach(path => {
+                path.style.animation = 'none';
+                path.offsetHeight; 
+                path.style.animation = null; 
+            });
+
+            // 触发虚线的遮罩动画
+            const wipeAnim = hiddenSteps[0].querySelector('#wipe-animate-tag');
+            if (wipeAnim) {
+                wipeAnim.beginElement();
+            }
+
+        } else if (currentSlideIndex < slides.length - 1) {
+            currentSlideIndex++; showSlide(currentSlideIndex);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible'); refreshMath();
+        } else if (currentSlideIndex > 0) {
+            currentSlideIndex--; showSlide(currentSlideIndex); showAllSteps(slides[currentSlideIndex]);
+        }
+    }
+
+    window.addEventListener('resize', updateScale);
+
+    // 鼠标点击步进 (防误触按钮)
+    slides.forEach((slide, index) => {
+        slide.addEventListener('click', (e) => {
+            if (e.target.closest('.hw-btn')) return;
+            if (!isPresentationMode) { currentSlideIndex = index; return; }
+            advance();
+        });
+    });
+
+    // 快捷键控制
+    document.addEventListener('keydown', async (e) => {
+        if (e.key === 'F5') {
+            e.preventDefault();
+            const startIndex = isPresentationMode ? currentSlideIndex : getCurrentVisibleBrowseSlideIndex();
+            enterPresentationMode(startIndex); await enterFullscreen(); return;
+        }
+        if (e.key === 'Escape' && isPresentationMode) {
+            e.preventDefault(); await exitFullscreen(); enterBrowseMode(); return;
+        }
+        if (!isPresentationMode) return;
+
+        if (['Space', 'ArrowRight', 'ArrowDown', 'Enter', 'NumpadEnter', 'PageDown'].includes(e.code) || e.key === ' ') {
+            e.preventDefault(); advance();
+        } else if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.code)) {
+            e.preventDefault(); goBack();
+        } else if (e.key === 'Home') {
+            e.preventDefault(); hideAllSteps(); showSlide(0);
+        } else if (e.key === 'End') {
+            e.preventDefault(); currentSlideIndex = slides.length - 1; showSlide(currentSlideIndex); showAllSteps(slides[currentSlideIndex]);
+        }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode) enterBrowseMode();
+    });
+
+    enterBrowseMode(); // 初始化
+});
+</script>
+
+</body>
+</html>
