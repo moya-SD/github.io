@@ -1,0 +1,2963 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用随机过程 - 第6章 鞅（课堂递进版）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+   
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$', '$']],
+                displayMath: [['\\[', '\\]'], ['$$', '$$']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+     <script id="MathJax-script" defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide-container {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .slide-container::after {
+            content: '点击显示下一部分';
+            position: absolute;
+            right: 18px;
+            bottom: 14px;
+            font-size: 14px;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.92);
+            padding: 6px 11px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            z-index: 20;
+        }
+
+        .slide-container.all-shown::after {
+            content: '本页内容已全部显示';
+        }
+
+        .title-slide {
+            background: #020617;
+            color: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-container:first-child::before { display: none; }
+        .slide-container.title-slide::after { display: none; }
+
+        .title-slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+
+        .glow-orb-1 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+            top: -200px;
+            left: -200px;
+            z-index: 2;
+        }
+
+        .glow-orb-2 {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%);
+            bottom: -300px;
+            right: -200px;
+            z-index: 2;
+        }
+
+        .title-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 80px 100px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .title-content h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 72px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .title-content h1 span {
+            background: linear-gradient(to right, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-content p.subtitle {
+            color: #94a3b8;
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .title-content .badge {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            color: #60a5fa;
+            padding: 10px 30px;
+            border-radius: 50px;
+            font-size: 22px;
+            margin-bottom: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .title-content .course-info {
+            margin-top: 50px;
+            display: flex;
+            gap: 40px;
+            color: #64748b;
+            font-size: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 30px;
+        }
+
+        .title-content .course-info div {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 42px;
+            color: #1e293b;
+            margin: 50px 80px 20px 80px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+
+        .slide-title i { color: #3b82f6; }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 0 80px 50px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        p {
+            font-size: 24px;
+            color: #334155;
+            line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        .bullet-list {
+            list-style: none;
+            margin-left: 10px;
+        }
+
+        .bullet-list li {
+            font-size: 22px;
+            color: #475569;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 35px;
+            line-height: 1.6;
+        }
+
+        .bullet-list li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            top: 5px;
+            color: #3b82f6;
+            font-size: 22px;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .two-column-top {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            align-items: flex-start;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tiled-content {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            width: 100%;
+        }
+
+        .tiled-content-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            width: 100%;
+        }
+
+        .tile {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            border-top: 5px solid #3b82f6;
+        }
+
+        .tile h3 {
+            font-size: 26px;
+            color: #1e293b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .tile p {
+            font-size: 20px;
+            margin-bottom: 0;
+            color: #475569;
+        }
+
+        .math-box {
+            background: #f8fafc;
+            color: #1e293b;
+            border-radius: 12px;
+            font-family: monospace;
+            box-shadow: inset 0 1px 2px rgba(15,23,42,0.06);
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            width: 100%;
+            max-width: 100%;
+            font-size: 24px;
+            padding: 14px 22px;
+            margin: 16px 0;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 76px;
+            box-sizing: border-box;
+        }
+
+        .math-box mjx-container {
+            font-size: 112% !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+
+        .math-box mjx-container[display="true"] {
+            display: block !important;
+            max-width: 100% !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 2px 0;
+        }
+
+        .math-box mjx-container,
+        .math-box mjx-container * {
+            color: #1e293b !important;
+        }
+
+        .transparent-math {
+            background: transparent !important;
+            box-shadow: none !important;
+            color: #1e293b !important;
+            border-radius: 12px;
+        }
+
+        .transparent-math mjx-container,
+        .transparent-math mjx-container * {
+            color: #1e293b !important;
+        }
+
+        .math-box-short {
+            overflow: hidden !important;
+            min-height: 64px;
+            padding: 12px 20px;
+        }
+
+        .math-box-short mjx-container[display="true"] {
+            overflow-x: visible;
+        }
+
+        .formula-plain {
+            font-size: 26px;
+            color: #1e293b;
+            text-align: center;
+            line-height: 1.8;
+            margin: 14px 0;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .formula-plain mjx-container {
+            max-width: 100% !important;
+        }
+
+        .formula-plain mjx-container[display="true"] {
+            display: block !important;
+            max-width: 100% !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 2px 0;
+        }
+
+        .formula-plain mjx-container,
+        .formula-plain mjx-container * {
+            color: #1e293b !important;
+        }
+
+        .math-box-short {
+            overflow-x: hidden !important;
+            white-space: normal !important;
+        }
+
+        .math-box-short mjx-container {
+            overflow-x: visible !important;
+        }
+
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+
+        .info-box {
+            background: #e0f2fe;
+            border-left: 6px solid #3b82f6;
+            padding: 20px 25px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .info-box p {
+            margin: 0 0 8px 0;
+            color: #0369a1;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1.6;
+        }
+
+        .fragment {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.42s ease, transform 0.42s ease;
+            pointer-events: none;
+        }
+
+        .fragment.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        body.presentation-mode {
+            padding: 0;
+            gap: 0;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            display: block;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slide-container {
+            width: 1280px;
+            height: 720px;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slide-container.active-slide {
+            display: flex;
+        }
+        @page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+@media print {
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        display: block !important;
+        overflow: visible !important;
+    }
+
+    .slide-container {
+        width: 297mm !important;
+        height: 210mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        overflow: hidden !important;
+    }
+
+    .slide-container:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    .slide-container::after {
+        display: none !important;
+    }
+
+    .fragment {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+    
+body:not(.presentation-mode) .fragment {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+
+body.presentation-mode .slide-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform-origin: center center;
+}
+
+
+/* ===== Chapter 6 enhanced explanation diagrams ===== */
+body:not(.presentation-mode) .slide-container::after { content: "浏览模式：全部内容已显示"; }
+body.presentation-mode .slide-container::after { content: "空格/回车显示下一部分；翻页笔/方向键翻页"; }
+body.presentation-mode .slide-container.all-shown::after { content: "本页内容已全部显示"; }
+
+.explain-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:stretch;width:100%;}
+.explain-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch;width:100%;}
+.diagram-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:22px;box-shadow:0 6px 18px rgba(15,23,42,.06);}
+.diagram-card h3{font-size:24px;color:#1e293b;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.diagram-card p{font-size:19px;line-height:1.65;margin-bottom:10px;color:#475569;}
+.diagram-note{background:#eff6ff;border-left:6px solid #3b82f6;border-radius:12px;padding:16px 18px;font-size:20px;line-height:1.7;color:#1e3a8a;font-weight:700;}
+.flow-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:16px 0;}
+.flow-node{min-width:120px;text-align:center;background:#fff;border:2px solid #cbd5e1;border-radius:18px;padding:14px 16px;font-size:20px;font-weight:800;color:#334155;box-shadow:0 4px 12px rgba(15,23,42,.06);}
+.flow-node.blue{border-color:#93c5fd;background:#eff6ff;color:#1d4ed8}.flow-node.pink{border-color:#f9a8d4;background:#fdf2f8;color:#be185d}.flow-node.green{border-color:#86efac;background:#f0fdf4;color:#15803d}.flow-node.orange{border-color:#fcd34d;background:#fffbeb;color:#92400e}.flow-node.gray{border-color:#cbd5e1;background:#f8fafc;color:#475569}
+.flow-arrow{font-size:28px;color:#94a3b8;font-weight:900;}
+.timeline{position:relative;height:110px;margin:20px 0 8px;}
+.timeline-line{position:absolute;left:40px;right:40px;top:54px;height:6px;background:linear-gradient(90deg,#93c5fd,#c4b5fd,#f9a8d4);border-radius:999px;}
+.time-dot{position:absolute;top:35px;transform:translateX(-50%);width:42px;height:42px;border-radius:50%;background:#fff;border:4px solid #3b82f6;display:flex;align-items:center;justify-content:center;font-weight:900;color:#1d4ed8;box-shadow:0 6px 15px rgba(59,130,246,.2)}
+.time-label{position:absolute;top:84px;transform:translateX(-50%);font-size:17px;font-weight:800;color:#475569;white-space:nowrap;}
+.state-path{height:210px;background:#fff;border:1px dashed #cbd5e1;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.state-path svg{width:100%;height:100%;}
+.mini-table{width:100%;border-collapse:separate;border-spacing:0 8px;font-size:18px;}
+.mini-table td{background:#fff;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:9px 12px;color:#334155;}
+.mini-table td:first-child{border-left:1px solid #e2e8f0;border-radius:10px 0 0 10px;font-weight:800;color:#1d4ed8;}
+.mini-table td:last-child{border-right:1px solid #e2e8f0;border-radius:0 10px 10px 0;}
+.tail-bar{height:34px;border-radius:999px;background:linear-gradient(90deg,#dbeafe 0%,#dbeafe 70%,#fecaca 70%,#fecaca 100%);position:relative;box-shadow:inset 0 1px 3px rgba(0,0,0,.08);}
+.tail-cut{position:absolute;left:70%;top:-8px;width:4px;height:50px;background:#ef4444;border-radius:999px;}
+.tail-cut::after{content:"K";position:absolute;top:-28px;left:-7px;color:#ef4444;font-weight:900;font-size:20px;}
+.tail-label{display:flex;justify-content:space-between;font-size:17px;color:#475569;font-weight:800;margin-top:10px;}
+
+</style>
+</head>
+<body>
+
+    <!-- Slide 1 -->
+    <div class="slide-container title-slide" id="slide1">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-coins"></i> 第6章</div>
+            <h1><span>鞅 (Martingales)</span></h1>
+            <p class="subtitle">随机过程中的“公平博弈”与动态信息演化</p>
+            <div style="margin-top: 40px; text-align: left; background: rgba(0,0,0,0.3); padding: 20px 40px; border-radius: 12px; border-left: 4px solid #3b82f6;">
+                <ul class="bullet-list" style="margin:0;">
+                    <li style="color:#fff;"><strong>从公平赌博出发理解鞅</strong></li>
+                    <li style="color:#fff;"><strong>核心思想：已知现在信息，未来条件均值等于现在</strong></li>
+                </ul>
+            </div>
+            <div class="course-info">
+                <div><i class="fas fa-book"></i> 应用随机过程</div>
+                <div><i class="fas fa-university"></i> 计算机科学与技术</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 2 -->
+    <div class="slide-container" id="slide2">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> 导入：什么是“公平过程”？</h2>
+        <div class="content-area">
+            <div class="tile fragment" data-step="1" style="border-top-color: #3b82f6; padding: 40px;">
+                <ul class="bullet-list" style="font-size: 24px; line-height: 2;">
+                    <li>赌博者总希望通过策略提高收益。</li>
+                    <li>但在<strong>公平博弈</strong>中，任何依赖过去结果的策略都<strong>不能</strong>提高期望收益。</li>
+                    <li>这类“平均上不占便宜”的过程，就是<strong>鞅</strong>研究的对象。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3 -->
+    <div class="slide-container" id="slide3">
+        <h2 class="slide-title"><i class="fas fa-dice"></i> 公平赌博模型</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设 \(\{Y_n, n \ge 1\}\) 为独立同分布随机变量，表示每次赌博结果：</p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                P(Y_n=1)=P(Y_n=-1)=\frac12
+                \]
+            </div>
+            <div class="two-column-top fragment" data-step="3" style="margin-top: 20px;">
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 22px;">其中</h3>
+                    <ul class="bullet-list">
+                        <li>\(Y_n=1\)：第 \(n\) 次赢</li>
+                        <li>\(Y_n=-1\)：第 \(n\) 次输</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 22px;">说明</h3>
+                    <ul class="bullet-list">
+                        <li>输赢概率相同</li>
+                        <li>各次结果独立</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4 -->
+    <div class="slide-container" id="slide4">
+        <h2 class="slide-title"><i class="fas fa-money-bill-wave"></i> 赌博策略与赌资过程</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">若第 \(n\) 次赌注依赖前面的结果，则可表示为：</p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                b_n=b_n(Y_1,\dots,Y_{n-1}),\quad n\ge2
+                \]
+            </div>
+            <p class="fragment" data-step="3">设初始赌资为 \(X_0\)，则第 \(n\) 次赌博后的总赌资为：</p>
+            <div class="math-box math-box-short fragment" data-step="4">
+                \[
+                X_n=X_0+\sum_{i=1}^n b_iY_i
+                \]
+            </div>
+            <div class="math-box math-box-short fragment" data-step="5" style="border-left: 6px solid #3b82f6;">
+                \[
+                X_{n+1}=X_n+b_{n+1}Y_{n+1}
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5 -->
+    <div class="slide-container" id="slide5">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 公平性的数学表达</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">在已知前 \(n\) 次赌博结果后，考察未来一期条件期望：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="text-align: left;">
+               \[\begin{aligned}
+               E\left(X_{n+1} \mid Y_1,\cdots,Y_n\right)
+               &=E\left(X_n+b_{n+1}Y_{n+1}\mid Y_1,\cdots,Y_n\right)\\
+               &=E\left(X_n\mid Y_1,\cdots,Y_n\right)+E\left(b_{n+1}Y_{n+1}\mid Y_1,\cdots,Y_n\right)\\
+               &=X_n+b_{n+1}E\left(Y_{n+1}\mid Y_1,\cdots,Y_n\right)\\
+               &=X_n+b_{n+1}E(Y_{n+1})\\
+               &=X_n
+               \end{aligned}
+               \]
+            </div>
+            <div class="tile fragment" data-step="3" style="border-top-color: #8b5cf6;">
+                <h3 >关键原因</h3>
+                <ul class="bullet-list">
+                    <li style="font-size: 20px;">\(X_n\) 与 \(b_{n+1}\) 已由过去决定</li>
+                    <li style="font-size: 20px;">\(Y_{n+1}\) 与过去独立，\(E(Y_{n+1})=0\)</li>
+                 
+                </ul>
+            </div>
+           
+        </div>
+    </div>
+
+
+        <!-- Slide 5 -->
+    <div class="slide-container" id="slide5-2">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 公平性的数学表达</h2>
+        <div class="content-area">
+            <div class="math-box math-box-short fragment" data-step="4" style="border-left: 6px solid #10b981;">
+                \[
+                E(X_{n+1}\mid Y_1,\dots,Y_n)=X_n
+                \]
+            </div>
+            <div class="info-box fragment" data-step="5" style="background: #d1fae5; border-left-color: #10b981;">
+                <p style="color: #065f46;"><i class="fas fa-check-circle"></i> 结论</p>
+                <span style="font-size: 22px; color: #064e3b; font-weight: bold;">
+                    “虽然你可能很想靠玄学下注暴富，但如果游戏本身公平，那么不管你怎么根据过去输赢调整策略，平均来看都占不到便宜。”
+                </span>
+                
+            </div>
+              <div class="info-box fragment" data-step="5" style="background: #d1fae5; border-left-color: #10b981;">
+                 <span style="font-size: 22px; color: #064e3b; font-weight: bold;">已知现在所有信息后，下一步的平均财富仍然等于现在的财富。即，在公平赌博中，任何依赖历史的下注策略都不能改变期望收益。</span>
+            </div>
+           <div class="info-box fragment" data-step="5" style="background: #fce7f3; border-left-color: #10b981;">
+                <p style="color: #065f46;"><i class="fas fa-check-circle"></i> 这就是鞅最经典的直观来源：鞅刻画的是一种“条件均值下公平”的过程。</p>
+            </div>
+            
+        </div>
+    </div>
+
+
+<!-- Enhanced Slide B1: 公平赌博例题图解 -->
+<div class="slide-container" id="slide-betting-example-diagram">
+    <h2 class="slide-title"><i class="fas fa-dice-six"></i> 公平赌博例题：为什么策略不能改变期望？</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #3b82f6;">
+                <h3><i class="fas fa-route"></i> 一步展开</h3>
+                <div class="flow-row">
+                    <div class="flow-node blue">当前财富 \(X_n\)</div>
+                    <div class="flow-arrow">+</div>
+                    <div class="flow-node orange">赌注 \(b_{n+1}\)</div>
+                    <div class="flow-arrow">×</div>
+                    <div class="flow-node pink">输赢 \(Y_{n+1}\)</div>
+                </div>
+                <div class="math-box math-box-short" style="font-size:26px;">
+                    \[X_{n+1}=X_n+b_{n+1}Y_{n+1}\]
+                </div>
+                <p>赌注可以看过去决定，但下一次输赢还没有发生，不能被历史操控。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-tree"></i> 条件期望树</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <circle cx="95" cy="105" r="32" fill="#eff6ff" stroke="#3b82f6" stroke-width="4"/><text x="95" y="112" text-anchor="middle" font-size="20" font-weight="900" fill="#1d4ed8">X_n</text>
+                        <line x1="130" y1="95" x2="315" y2="45" stroke="#10b981" stroke-width="4"/><line x1="130" y1="115" x2="315" y2="165" stroke="#ef4444" stroke-width="4"/>
+                        <circle cx="350" cy="42" r="30" fill="#f0fdf4" stroke="#10b981" stroke-width="4"/><text x="350" y="49" text-anchor="middle" font-size="17" font-weight="900" fill="#15803d">赢</text>
+                        <circle cx="350" cy="168" r="30" fill="#fff1f2" stroke="#ef4444" stroke-width="4"/><text x="350" y="175" text-anchor="middle" font-size="17" font-weight="900" fill="#b91c1c">输</text>
+                        <text x="205" y="58" font-size="18" font-weight="800" fill="#15803d">+b_{n+1}, 概率 \(1/2\)</text>
+                        <text x="205" y="158" font-size="18" font-weight="800" fill="#b91c1c">-b_{n+1}, 概率 \(1/2\)</text>
+                    </svg>
+                </div>
+                <p>平均增量：\(\frac12 b_{n+1}+\frac12(-b_{n+1})=0\)，所以条件平均仍是 \(X_n\)。</p>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="3" style="margin-top:18px;">
+            这里的关键不是“赌注不能变”，而是“赌注在下注前已经由过去决定”。真正随机的 \(Y_{n+1}\) 仍然零均值，所以策略没有魔法。
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 6 -->
+    <div class="slide-container" id="slide6">
+        <h2 class="slide-title"><i class="fas fa-eye"></i> 鞅的直观定义</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">公平赌博启发我们定义鞅：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="font-size: 32px; border-left: 8px solid #8b5cf6;">
+                \[
+                E(\text{未来}\mid \text{当前信息})=\text{现在}
+                \]
+            </div>
+            <div class="two-column-top fragment" data-step="3" style="margin-top: 30px;">
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 22px;">也就是说</h3>
+                    <ul class="bullet-list">
+                        <li>已知当前全部信息</li>
+                        <li>未来条件均值恰好等于当前值</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899; background: #fce7f3;">
+                    <h3 style="font-size: 22px; color: #9d174d;"><i class="fas fa-bolt"></i> 一句话理解</h3>
+                    <p style="font-size: 24px; color: #831843; font-weight: bold; text-align: center; margin-top: 20px;">
+                        鞅描述“平均上公平”的随机过程。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+<!-- Enhanced Slide A1: 鞅核心示意图 -->
+<div class="slide-container" id="slide-martingale-core-diagram">
+    <h2 class="slide-title"><i class="fas fa-compass"></i> 鞅的核心图像：知道现在以后，未来平均不偏</h2>
+    <div class="content-area">
+        <div class="timeline fragment" data-step="1">
+            <div class="timeline-line"></div>
+            <div class="time-dot" style="left:15%;">0</div><div class="time-label" style="left:15%;">初始信息 \(\mathcal F_0\)</div>
+            <div class="time-dot" style="left:50%;">s</div><div class="time-label" style="left:50%;">当前信息 \(\mathcal F_s\)</div>
+            <div class="time-dot" style="left:85%;border-color:#ec4899;color:#be185d;">t</div><div class="time-label" style="left:85%;">未来变量 \(X_t\)</div>
+        </div>
+        <div class="explain-grid-2" style="margin-top:20px;">
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #3b82f6;">
+                <h3><i class="fas fa-eye"></i> \(\mathcal F_s\)：到现在为止知道的一切</h3>
+                <p>它不是一个普通数字，而是一整包信息：过去路径、历史观测、已经发生的事件。</p>
+                <div class="flow-row">
+                    <div class="flow-node blue">过去路径</div><div class="flow-arrow">+</div><div class="flow-node blue">当前值</div><div class="flow-arrow">=</div><div class="flow-node pink">\(\mathcal F_s\)</div>
+                </div>
+            </div>
+            <div class="diagram-card fragment" data-step="3" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-balance-scale"></i> 鞅条件</h3>
+                <div class="math-box math-box-short" style="font-size:28px;border-left:6px solid #10b981;">
+                    \[E(X_t\mid \mathcal F_s)=X_s,\qquad s\lt t\]
+                </div>
+                <p>未来会涨会跌，但在当前信息条件下，未来的平均预测值正好等于现在。</p>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="4" style="margin-top:18px;">
+            讲课抓一句话：鞅不是“不变”，而是“在已知过去之后，未来的条件平均不变”。随机性可以乱跳，均值不能偏心。
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Slide A2: 条件期望投影图 -->
+<div class="slide-container" id="slide-conditional-expectation-picture">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 条件期望怎么理解：把未来压回当前信息层</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #8b5cf6;">
+                <h3><i class="fas fa-layer-group"></i> 信息层越来越细</h3>
+                <div class="flow-row" style="justify-content:flex-start;">
+                    <div class="flow-node gray">\(\mathcal F_0\)</div><div class="flow-arrow">⊂</div>
+                    <div class="flow-node blue">\(\mathcal F_s\)</div><div class="flow-arrow">⊂</div>
+                    <div class="flow-node pink">\(\mathcal F_t\)</div>
+                </div>
+                <p>时间越往后，知道的信息越多。条件期望 \(E(X_t\mid\mathcal F_s)\) 就是：只允许使用 \(s\) 时刻已有信息，对未来 \(X_t\) 做平均预测。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #ec4899;">
+                <h3><i class="fas fa-compress-alt"></i> “压缩未来”示意</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <path d="M40 150 C100 40,150 170,220 80 S340 120,420 50 S485 130,500 90" fill="none" stroke="#ec4899" stroke-width="5" stroke-linecap="round"/>
+                        <circle cx="220" cy="80" r="9" fill="#3b82f6"/><text x="198" y="110" font-size="18" font-weight="800" fill="#1d4ed8">现在 \(X_s\)</text>
+                        <line x1="220" y1="80" x2="420" y2="80" stroke="#10b981" stroke-width="4" stroke-dasharray="8 8"/>
+                        <text x="292" y="68" font-size="18" font-weight="800" fill="#047857">未来平均</text>
+                        <circle cx="420" cy="50" r="9" fill="#ec4899"/><text x="405" y="32" font-size="18" font-weight="800" fill="#be185d">未来 \(X_t\)</text>
+                    </svg>
+                </div>
+                <p>路径可以波动，但如果是鞅，未来在当前信息下的平均落点就是当前值。</p>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="3" style="margin-top:20px;">
+            容易误解：鞅不等于每一步都不变，也不等于一定回到原点。它只要求“条件均值”公平，现实已经够乱了，数学至少给个平均秩序。
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 7 -->
+    <div class="slide-container" id="slide7">
+        <h2 class="slide-title"><i class="fas fa-stream"></i> 定义 6-1：连续时间鞅</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设随机过程 \(X=\{X_t,t\ge0\}\)，并记</p>
+            <div class="math-box math-box-short fragment" data-step="1">
+                \[
+                \mathcal{F}_t=\sigma(X_s,0\le s\le t)
+                \]
+            </div>
+            <p class="fragment" data-step="2">若过程 \(X\) 满足下列三个条件，则称 \(X\) 为<strong>连续时间鞅</strong>：</p>
+            <div class="tile fragment" data-step="3" style="border-top-color: #3b82f6; padding: 32px;">
+                <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                    <li>对任意 \(t\ge0\)，有 \(E|X_t|<\infty\)</li>
+                    <li>对任意 \(0 \le s \lt t\)，有 \(E(X_t\mid \mathcal{F}_s)=X_s,\quad a.s.\)</li>
+                    <li>对任意 \(t\ge0\)，随机变量 \(X_t\) 关于 \(\mathcal{F}_t\) 可测</li>
+                </ul>
+            </div>
+           
+        </div>
+    </div>
+
+
+
+    <!-- Slide：连续时间鞅的补充说明 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-stream"></i> 连续时间鞅的进一步说明</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:32px;">
+            <p style="font-size:21px; line-height:1.8;">
+                特别地，当
+                \[
+                \mathscr{F}_t=\sigma\left(X_u,\,0\le u\le t\right)
+                \]
+                时，\(\mathscr{F}_t\) 表示由过程
+                \[
+                \{X_u,\ 0\le u\le t\}
+                \]
+                生成的 \(\sigma\)-代数，即包含一切形如
+                \[
+                \{X_s\le x\},\qquad (s\le t,\ x\in\mathbb R)
+                \]
+                的事件所构成的最小 \(\sigma\)-代数。
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="2" style="border-left:6px solid #8b5cf6; text-align:center;">
+            \[
+            E\left(X_t\mid X_u,\ 0\le u\le s\right)=X_s,\qquad \text{a.s.}
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:30px;">
+            <p style="font-size:21px; line-height:1.8; color:#831843;">
+                这表示：在时刻 \(s\) 已知过程过去全部取值后，
+                对未来时刻 \(t\) 的条件期望恰好等于当前值 \(X_s\)。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="4" style="border-top-color:#10b981; padding:28px;">
+            <p style="font-size:21px; line-height:1.8;">
+                此时，通常简称过程 \(\{X_t\}\) 为鞅。
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="5" style="border-left:6px solid #10b981; text-align:left;">
+            \[
+            E(X_t)=E\bigl[E(X_t\mid X_0)\bigr]=E(X_0),\qquad t>0
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="6" style="border-top-color:#f59e0b; background:#fffaf0; padding:28px;">
+            <p style="font-size:21px; line-height:1.8; color:#78350f;">
+                因而，若 \(\{X_t\}\) 是鞅，则它的期望保持不变：
+                \[
+                E(X_t)=E(X_0).
+                \]
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 6.5.1 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 6-1：由独立增量过程构造连续时间鞅</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:21px; line-height:1.8;">
+                设 \(\{Y_t,t\ge0\}\) 是零初值、具有平稳独立增量的随机过程，
+                定义
+                \[
+                X_t=X_0\,\mathrm e^{Y_t},
+                \]
+                其中 \(X_0\) 为常数。  若
+                \[
+                E\bigl(\mathrm e^{Y_1}\bigr)=1,
+                \]
+                则 \(\{X_t,t\ge0\}\) 是一个鞅。
+            </p>
+        </div>
+
+       
+
+
+    </div>
+</div>
+
+
+
+
+<!-- Slide：例 6.5.1 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 6-1：由独立增量过程构造连续时间鞅</h2>
+    <div class="content-area">
+
+
+       
+
+        <div class="math-box fragment" data-step="2" style="text-align:left;">
+            \[
+            E\left(|X_t|\right)
+            =
+            |X_0|\,E\left(\mathrm e^{Y_t}\right)
+            =
+            |X_0|\left[E\left(\mathrm e^{Y_1}\right)\right]^t
+            =
+            |X_0|
+            \lt \infty
+            \]
+        </div>
+
+       
+
+        <div class="math-box fragment" data-step="4" style="text-align:left;">
+            \[
+            \begin{aligned}
+            E\left(X_t\mid X_r,\ 0\le r\le s\right)
+            &=E\left(X_s\mathrm e^{Y_t-Y_s}\mid X_r,\ 0\le r\le s\right)\\
+            &=X_s\,E\left(\mathrm e^{Y_t-Y_s}\right)\\
+            &=X_s\,E\left(\mathrm e^{Y_{t-s}}\right)\\
+            &=X_s,\qquad \text{a.s.}
+            \end{aligned}
+            \]
+        </div>
+
+       
+
+        <div class="tile fragment" data-step="6" style="border-top-color:#f59e0b; background:#fffaf0; padding:26px;">
+            <p style="font-size:21px; line-height:1.8; color:#78350f;">
+                因此
+                \[
+                E\left(X_t\mid X_r,\ 0\le r\le s\right)=X_s,
+                \]
+                所以 \(\{X_t,t\ge0\}\) 是一个鞅。
+            </p>
+        </div>
+
+    </div>
+</div>
+    <!-- Slide 8 -->
+    <div class="slide-container" id="slide8">
+        <h2 class="slide-title"><i class="fas fa-step-forward"></i> 定义 6-2：离散时间鞅</h2>
+        <div class="content-area">
+            <div class="tile fragment" data-step="1" style="border-top-color: #10b981; padding: 40px;">
+                <p>设 \(X=\{X_n,n\ge0\}\)。若对任意 \(n\ge0\)：</p>
+                <div class="math-box math-box-short" style="margin-bottom: 14px;">
+                    \[
+                    E|X_n|<\infty
+                    \]
+                </div>
+                <div class="math-box math-box-short">
+                    \[
+                    E(X_{n+1}\mid X_0,\dots,X_n)=X_n
+                    \]
+                </div>
+                <p style="text-align:center; font-weight:bold; color:#1e293b;">则称 \(\{X_n\}\) 为离散时间鞅。</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Slide：例 6.1.1 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-plus-circle"></i> 例 6-2：独立随机变量部分和构成的鞅</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:21px; line-height:1.8;">
+                设 \(X_1,X_2,\cdots\) 是一列独立随机变量，且
+                \[
+                E(X_k)=0,\qquad E(|X_k|)<\infty,\qquad k=1,2,\cdots
+                \]
+                定义
+                \[
+                S_0=0,\qquad S_n=\sum_{k=1}^n X_k.
+                \]
+                则 \(\{S_n\}\) 是关于
+                \[
+                \mathscr F_n=\sigma(X_1,X_2,\cdots,X_n)
+                \]
+                的鞅。
+            </p>
+        </div>
+
+      
+
+    </div>
+</div>
+
+
+
+<!-- Slide：例 6.1.1 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-plus-circle"></i> 例 6-2：独立随机变量部分和构成的鞅</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:5px; margin-top:16px;">
+            <h3 style="font-size:22px;">验证 1：可测性与可积性</h3>
+            <p style="font-size:20px; line-height:1.8;">
+                由于 \(S_n\) 由 \(X_1,\dots,X_n\) 决定，所以 \(S_n\) 是 \(\mathscr F_n\)-可测的；
+                又因为
+            </p>
+            <div class="math-box math-box-short" style="margin-top:8px;">
+                \[
+                E(|S_n|)\le \sum_{i=1}^n E(|X_i|)\lt \infty
+                \]
+            </div>
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; padding:5px; margin-top:16px;">
+            <h3 style="font-size:22px;">验证 2：鞅条件</h3>
+            <div class="math-box" style="text-align:left;">
+                \[
+                \begin{aligned}
+                E(S_{n+1}\mid \mathscr F_n)
+                &=E(X_1+X_2+\cdots+X_n+X_{n+1}\mid \mathscr F_n)\\
+                &=E(X_1+\cdots+X_n\mid \mathscr F_n)+E(X_{n+1}\mid \mathscr F_n)\\
+                &=S_n+E(X_{n+1})
+                =S_n
+                \end{aligned}
+                \]
+            </div>
+        </div>
+
+        <div class="tile fragment" data-step="4" style="border-top-color:#10b981; background:#f0fdf4; padding:5px; margin-top:16px;">
+            <p style="font-size:21px; line-height:1.3; color:#166534;">
+                这里用到：\(X_{n+1}\) 与 \(\mathscr F_n\) 独立，且 \(E(X_{n+1})=0\)。
+                因此
+                \(
+                E(S_{n+1}\mid \mathscr F_n)=S_n,
+                \),
+                所以 \(\{S_n\}\) 是鞅。
+            </p>
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+<!-- Slide：例 6.1.1 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-plus-circle"></i> 例 6-2：独立随机变量部分和构成的鞅</h2>
+    <div class="content-area">
+
+        
+          
+
+        <div class="tile fragment" data-step="5" style="border-top-color:#f59e0b; padding:5px; margin-top:16px;">
+            <h3 style="font-size:22px;">进一步地</h3>
+            <p style="font-size:20px; line-height:1.3;">
+                若
+                \[
+                E(X_k)=\mu\ne 0,\qquad k=1,2,\cdots
+                \]
+                定义
+                \[
+                M_n=S_n-n\mu,
+                \]
+                则 \(\{M_n\}\) 也是关于 \(\{\mathscr F_n\}\) 的鞅。
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="6" style="text-align:left; border-left:6px solid #f59e0b;">
+            \[
+            \begin{aligned}
+            E(M_{n+1}\mid \mathscr F_n)
+            &=E(S_{n+1}-(n+1)\mu\mid \mathscr F_n)\\
+            &=E(S_{n+1}\mid \mathscr F_n)-(n+1)\mu\\
+            &=S_n+\mu-(n+1)\mu\\
+            &=S_n-n\mu=M_n
+            \end{aligned}
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Enhanced Slide C1: 部分和鞅例题图解 -->
+<div class="slide-container" id="slide-partial-sum-martingale-visual">
+    <h2 class="slide-title"><i class="fas fa-shoe-prints"></i> 例 6-2 图解：零均值增量累加为什么是鞅？</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #3b82f6;">
+                <h3><i class="fas fa-random"></i> 随机游走视角</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <polyline points="35,120 95,80 155,130 215,90 275,145 335,105 395,135 470,95" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="35" y1="120" x2="485" y2="120" stroke="#cbd5e1" stroke-width="3" stroke-dasharray="8 8"/>
+                        <text x="38" y="152" font-size="18" fill="#64748b" font-weight="800">0</text>
+                        <text x="85" y="68" font-size="16" fill="#1d4ed8" font-weight="800">\(+X_1\)</text>
+                        <text x="145" y="152" font-size="16" fill="#be185d" font-weight="800">\(+X_2\)</text>
+                    </svg>
+                </div>
+                <p>部分和 \(S_n=X_1+\cdots+X_n\) 会随机上下走，但每个新增量在过去信息下的平均为 0。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-check"></i> 验证结构</h3>
+                <table class="mini-table">
+                    <tr><td>已知</td><td>\(\mathcal F_n=\sigma(X_1,\ldots,X_n)\)</td></tr>
+                    <tr><td>旧部分</td><td>\(S_n\) 已由过去决定，可测</td></tr>
+                    <tr><td>新部分</td><td>\(X_{n+1}\) 与过去独立，且 \(E(X_{n+1})=0\)</td></tr>
+                    <tr><td>结论</td><td>\(E(S_{n+1}\mid\mathcal F_n)=S_n\)</td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="3" style="margin-top:18px;">
+            教学重点：证明鞅通常分三步，看“可积性、可测性、条件期望”。别一上来就对公式开炮，学生会以为自己被数学埋伏了。
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Slide C2: 鞅差序列示意图 -->
+<div class="slide-container" id="slide-martingale-difference-visual">
+    <h2 class="slide-title"><i class="fas fa-minus-circle"></i> 鞅差序列图解：公平过程的每一步新增量</h2>
+    <div class="content-area">
+        <div class="flow-row fragment" data-step="1" style="margin-bottom:20px;">
+            <div class="flow-node blue">\(X_{n-1}\)</div>
+            <div class="flow-arrow">+</div>
+            <div class="flow-node pink">\(Y_n=X_n-X_{n-1}\)</div>
+            <div class="flow-arrow">=</div>
+            <div class="flow-node green">\(X_n\)</div>
+        </div>
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #ec4899;">
+                <h3><i class="fas fa-info-circle"></i> 鞅差看的是“变化量”</h3>
+                <p>如果 \(X_n\) 是财富总额，那么 \(Y_n\) 就是第 \(n\) 步赚了多少或亏了多少。</p>
+                <div class="math-box math-box-short" style="font-size:27px;">
+                    \[E(Y_n\mid\mathcal F_{n-1})=0\]
+                </div>
+            </div>
+            <div class="diagram-card fragment" data-step="3" style="border-top:5px solid #f59e0b;">
+                <h3><i class="fas fa-lightbulb"></i> 与独立零均值的区别</h3>
+                <p>鞅差不要求彼此独立，只要求在已知过去后，下一步平均增量为 0。</p>
+                <table class="mini-table">
+                    <tr><td>独立零均值</td><td>更强：新变量与过去无关</td></tr>
+                    <tr><td>鞅差</td><td>更灵活：可依赖过去，但条件均值为 0</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 9 -->
+   <!-- Slide：鞅差序列说明 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-minus-circle"></i> 鞅差序列：鞅的“增量”视角</h2>
+    <div class="content-area">
+
+        <p class="fragment" data-step="1">
+            设 \(\{X_n,n\ge 0\}\) 是关于 \(\{\mathcal F_n\}\) 的鞅，定义它的增量为
+        </p>
+
+        <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #3b82f6;">
+            \[
+            Y_n=X_n-X_{n-1},\qquad n\ge 1
+            \]
+        </div>
+
+        <p class="fragment" data-step="3">
+            则由鞅的定义
+            \[
+            E(X_n\mid \mathcal F_{n-1})=X_{n-1}
+            \]
+            可得
+        </p>
+
+        <div class="math-box math-box-short fragment" data-step="4" style="border-left: 6px solid #10b981;">
+            \[
+            E(Y_n\mid \mathcal F_{n-1})=0,\qquad n\ge 1
+            \]
+        </div>
+
+       
+
+    </div>
+</div>
+
+  
+
+<!-- Slide：鞅差序列说明 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-minus-circle"></i> 鞅差序列：鞅的“增量”视角</h2>
+    <div class="content-area">
+
+       
+
+        <div class="two-column-top fragment" data-step="5" style="margin-top: 20px;">
+            <div class="tile" style="border-top-color: #8b5cf6;">
+                <h3 style="font-size: 22px;">这说明什么？</h3>
+                <ul class="bullet-list" style="font-size: 20px; line-height: 1.8;">
+                    <li>已知过去信息后，下一步“平均增量”为 0</li>
+                    <li>每一步没有系统性向上或向下偏移</li>
+                    <li>鞅的公平性体现在增量的条件均值为 0</li>
+                </ul>
+            </div>
+
+            <div class="tile" style="border-top-color: #ec4899; background: #fff7fb;">
+                <h3 style="font-size: 22px; color: #9d174d;"><i class="fas fa-lightbulb"></i> 直观理解</h3>
+                <p style="font-size: 22px; color: #831843; line-height: 1.8;">
+                    鞅差序列就是“每一步新增的随机变化”。<br>
+                    虽然它会波动，但在过去信息条件下，<strong>平均不会偏向任何一边</strong>。
+                </p>
+            </div>
+        </div>
+
+        <div class="tile fragment" data-step="6" style="border-top-color: #f59e0b; margin-top: 22px;">
+            <h3 style="font-size: 22px;">反过来</h3>
+            <p style="font-size: 21px; line-height: 1.8;">
+                如果一列随机变量 \(\{Y_n\}\) 满足
+                \(
+                E(Y_n\mid \mathcal F_{n-1})=0,\qquad n\ge 1,
+                \)
+                那么它称为<strong>鞅差序列</strong>。  
+                这时由部分和
+                \(\qquad
+                X_n=\sum_{k=1}^n Y_k
+                \)
+                构成的过程 \(\{X_n\}\) 就是一个鞅。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-check-circle"></i> 鞅差序列的证明</h2>
+    <div class="content-area">
+
+       
+        <p class="fragment" data-step="3">
+            由鞅的定义，
+        </p>
+
+        <div class="math-box math-box-short fragment" data-step="4">
+            \[
+            E(X_n\mid \mathcal F_{n-1})=X_{n-1}
+            \]
+        </div>
+
+        <p class="fragment" data-step="5">
+            对 \(Y_n\) 取条件期望：
+        </p>
+
+        <div class="math-box fragment" data-step="6" style="text-align:left;">
+            \[
+            \begin{aligned}
+            E(Y_n\mid \mathcal F_{n-1})
+            &=E(X_n-X_{n-1}\mid \mathcal F_{n-1})\\
+            &=E(X_n\mid \mathcal F_{n-1})-E(X_{n-1}\mid \mathcal F_{n-1})\\
+            &=X_{n-1}-X_{n-1}\\
+            &=0
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="7" style="border-top-color:#10b981;">
+            <p style="font-size:22px; line-height:1.8;">
+                因为 \(X_{n-1}\) 是 \(\mathcal F_{n-1}\)-可测的，
+                所以
+                \(
+                E(X_{n-1}\mid \mathcal F_{n-1})=X_{n-1}.
+                \),
+                因此 \(\{Y_n\}\) 是鞅差序列。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+    <!-- Slide 10 -->
+    <div class="slide-container" id="slide10">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 定义 6-3：关于另一个过程的鞅</h2>
+        <div class="content-area">
+            <div class="tile fragment" data-step="1" style="border-top-color: #3b82f6; padding: 40px;">
+                <p>设 \(X=\{X_n\}\)、\(Y=\{Y_n\}\) 为两个离散随机过程。</p>
+                <p>若对任意 \(n\ge0\)：</p>
+                <div class="math-box math-box-short" style="margin-bottom: 14px;">
+                    \[
+                    E|X_n|<\infty
+                    \]
+                </div>
+                <div class="math-box math-box-short">
+                    \[
+                    E(X_{n+1}\mid Y_0,\dots,Y_n)=X_n
+                    \]
+                </div>
+                <p style="text-align:center; font-weight:bold; color:#1e293b;">
+                    则称 \(X\) 关于 \(Y\) 是鞅。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 11 -->
+    <div class="slide-container" id="slide11">
+        <h2 class="slide-title"><i class="fas fa-horizontal-rule"></i> 性质 6-1：鞅的期望是常数</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1" style="font-size: 24px;">
+                由鞅的定义可知，对于任意 \(0\le s\lt t\)，有：
+            </p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                E(X_t\mid \mathcal{F}_s)=X_s
+                \]
+            </div>
+            <p class="fragment" data-step="3" style="font-size: 24px;">
+                两边再取无条件期望，并利用塔式法则：
+            </p>
+            <div class="math-box math-box-short fragment" data-step="4">
+                \[
+                E(X_s)=E\bigl(E(X_t\mid \mathcal{F}_s)\bigr)=E(X_t)
+                \]
+            </div>
+            <p class="formula-plain fragment" data-step="5" style="border: 2px dashed #ec4899; border-radius: 12px; padding: 12px 18px;">
+                \[
+                E(X_t)\equiv \text{常数}
+                \]
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 12 -->
+    <div class="slide-container" id="slide12">
+        <h2 class="slide-title"><i class="fas fa-plus-circle"></i> 例 6-3：独立零均值变量的部分和</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设 \(\{Z_n,n\ge0\}\) 独立，且满足：</p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                Z_0=0,\quad E|Z_n|<\infty,\quad E(Z_n)=0
+                \]
+            </div>
+            <p class="fragment" data-step="3">定义部分和过程：</p>
+            <div class="math-box math-box-short fragment" data-step="4" style="border-left: 6px solid #3b82f6;">
+                \[
+                R_n=Z_0+\cdots+Z_n
+                \]
+            </div>
+            <div class="math-box math-box-short fragment" data-step="5">
+                \[
+                \mathcal F_n=\sigma(R_0,\dots,R_n)=\sigma(Z_0,\dots,Z_n)
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13 -->
+    <div class="slide-container" id="slide13">
+        <h2 class="slide-title"><i class="fas fa-question"></i> 例 6-3：为什么 \(\{R_n\}\) 是鞅？</h2>
+        <div class="content-area">
+            <div class="math-box math-box-short fragment" data-step="1" style="text-align:left;">
+                \[
+                \begin{aligned}
+                E(R_{n+1}\mid \mathcal{F}_n)
+                &=E(R_n+Z_{n+1}\mid \mathcal{F}_n)\\
+                &=E(R_n\mid \mathcal{F}_n)+E(Z_{n+1}\mid \mathcal{F}_n)
+                \end{aligned}
+                \]
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color: #8b5cf6;">
+                <h3 style="font-size: 22px;">又因为</h3>
+                <ul class="bullet-list">
+                    <li>\(R_n\) 关于 \(\mathcal{F}_n\) 可测</li>
+                    <li>\(Z_{n+1}\) 与过去独立</li>
+                    <li>\(E(Z_{n+1})=0\)</li>
+                </ul>
+            </div>
+            <p class="formula-plain fragment" data-step="3" style="border: 2px dashed #ec4899; border-radius: 12px; padding: 5px 18px;">
+                \[
+                E(R_{n+1}\mid \mathcal{F}_n)=R_n
+                \]
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 14 -->
+ 
+
+    <div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-search-plus"></i> 例6-4 Doob 鞅过程（连续时间）的理解</h2>
+    <div class="content-area">
+
+        <p class="fragment" data-step="1">
+            设 \(Z\) 是一个最终结果，满足 \(E|Z|\lt\infty\)，
+            \(\{\mathcal F_t,t\ge 0\}\) 表示随时间增加的信息流。
+        </p>
+
+        <div class="math-box math-box-short fragment" data-step="2" style="border-left:6px solid #ec4899;">
+            \[
+            X_t=E(Z\mid \mathcal F_t),\qquad t\ge0
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#3b82f6;">
+            <h3 style="font-size:22px;">含义：\(X_t\) 表示在时刻 \(t\) 已知全部信息后，
+                对最终结果 \(Z\) 的最好平均预测。</h3>
+        </div>
+
+        <div class="math-box fragment" data-step="4" style="text-align:left;">
+            \[
+            \begin{aligned}
+            E(X_t\mid \mathcal F_s)
+            &=E\big(E(Z\mid \mathcal F_t)\mid \mathcal F_s\big)\\
+            &=E(Z\mid \mathcal F_s)
+            =X_s,\qquad 0\le s\lt t
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="5" style="border-top-color:#10b981;">
+            <p style="font-size:20px; line-height:1.3;">
+                因此，\(\{X_t\}\) 是一个鞅。
+                它说明：随着信息增加，我们会不断更新预测，
+                但未来预测在当前条件下的平均值，仍等于当前预测。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+
+<!-- Enhanced Slide D1: Doob 鞅预测图解 -->
+<div class="slide-container" id="slide-doob-martingale-prediction-visual">
+    <h2 class="slide-title"><i class="fas fa-crystal-ball"></i> Doob 鞅图解：信息越多，预测越精细，但平均不偏</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #3b82f6;">
+                <h3><i class="fas fa-user-graduate"></i> 期末成绩预测过程</h3>
+                <div class="flow-row">
+                    <div class="flow-node gray">开学<br>\(X_0=80\)</div><div class="flow-arrow">→</div>
+                    <div class="flow-node blue">测验好<br>\(X_1=86\)</div><div class="flow-arrow">或</div>
+                    <div class="flow-node pink">测验一般<br>\(X_1=74\)</div>
+                </div>
+                <p>测验结果出来后，预测会更新；但更新前看，两个可能预测的平均仍是原预测。</p>
+                <div class="math-box math-box-short" style="font-size:25px;">\[0.5\times86+0.5\times74=80\]</div>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-filter"></i> Doob 鞅的本质</h3>
+                <div class="math-box math-box-short" style="font-size:28px;border-left:6px solid #10b981;">
+                    \[X_n=E(Z\mid\mathcal F_n)\]
+                </div>
+                <p>它表示“随着信息流 \(\mathcal F_n\) 增加，对最终变量 \(Z\) 的最好平均预测”。</p>
+                <p>塔式性质保证：\(E(X_{n+1}\mid\mathcal F_n)=X_n\)。</p>
+                 <div class="diagram-note fragment" data-step="3" style="margin-top:18px;">
+            Doob 鞅不是在预测一定正确，而是在说“未来新信息导致的预测修正，目前看平均为 0”。预测会变，但不系统性偏向高估或低估。
+        </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+    <!-- Slide 15 -->
+    <div class="slide-container" id="slide15">
+        <h2 class="slide-title"><i class="fas fa-step-forward"></i> 例 6-4：离散时间 Doob 过程</h2>
+        <div class="content-area">
+            <div class="tile fragment" data-step="1" style="border-top-color: #3b82f6; padding: 40px;">
+                <p>设 \(Z\) 是随机变量，\(E|Z|<\infty\)，\(\{Y_n\}\) 是观察序列，定义：</p>
+                <div class="math-box math-box-short">
+                    \[
+                    X_n=E(Z\mid Y_0,\dots,Y_n)
+                    \]
+                </div>
+                <p>则 \(\{X_n\}\) 关于 \(\{Y_n\}\) 是鞅。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-user-graduate"></i> 例6-5：期末成绩预测的 Doob 鞅过程</h2>
+    <div class="content-area">
+
+        <p class="fragment" data-step="1">
+            设某学生的期末总成绩为随机变量 \(Z\)，并且
+        </p>
+
+        <div class="math-box math-box-short fragment" data-step="2">
+            \[
+            Z=
+            \begin{cases}
+            90, & \text{后期发挥较好}\\
+            70, & \text{后期发挥一般}
+            \end{cases}
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#3b82f6;">
+            <h3 style="font-size:22px;">时刻 0：刚开学</h3>
+            <p style="font-size:21px; line-height:1.8;">
+                设
+                \(
+                P(Z=90)=0.5, P(Z=70)=0.5
+                \),
+                则初始预测为
+                \[
+                X_0=E(Z\mid \mathcal F_0)=0.5\times 90+0.5\times 70=80
+                \]
+            </p>
+        </div>
+
+       
+    </div>
+</div>
+
+
+
+    <div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-user-graduate"></i> 例6-5：期末成绩预测的 Doob 鞅过程</h2>
+    <div class="content-area">
+
+        
+
+        <div class="tile fragment" data-step="4" style="border-top-color:#8b5cf6;">
+            <h3 style="font-size:22px;">时刻 1：知道第一次测验结果</h3>
+            <p style="font-size:21px; line-height:1.8;">
+                若测验表现好（事件 A），则
+                \(
+                P(Z=90\mid A)=0.8,\quad P(Z=70\mid A)=0.2
+                \),
+                此时,
+                \(\quad 
+                X_1=86
+                \)
+            </p>
+            <p style="font-size:21px; line-height:1.8; margin-top:10px;">
+                若测验表现一般（事件 B），则
+                \(
+                P(Z=90\mid B)=0.2,\quad P(Z=70\mid B)=0.8
+                \),
+                此时,
+                \(\quad 
+                X_1=74
+                \)
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="5" style="text-align:left; border-left:6px solid #10b981;">
+            \[
+            E(X_1\mid \mathcal F_0)=0.5\times 86+0.5\times 74=80=X_0
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="6" style="border-top-color:#10b981;">
+            <p style="font-size:21px; line-height:1.8;">
+                因此，这个“预测过程”满足
+                \(
+                E(X_1\mid \mathcal F_0)=X_0
+                \),
+                它正是一个 Doob 鞅过程的具体例子。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+ <div class="slide-container" id="slide16">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 例 6-6：由马尔可夫链导出的鞅</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:34px;">
+            <p style="font-size:22px; line-height:1.8;">
+                设 \(\{Y_n\}\) 是马尔可夫链，转移概率为
+                \[
+                p_{ij}=P(Y_{n+1}=j\mid Y_n=i).
+                \]
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="2" style="border-top-color:#ec4899; padding:34px; margin-top:18px;">
+            <p style="font-size:22px; line-height:1.8;">
+                若有界函数 \(f\) 满足
+                \[
+                f(i)=\sum_{j\in E}p_{ij}f(j),
+                \]
+                则这表示：当当前状态为 \(i\) 时，
+                下一步函数值 \(f(Y_{n+1})\) 的条件期望正好等于当前值 \(f(i)\)。
+            </p>
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+<div class="slide-container" id="slide16">
+    <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 例 6-6：由马尔可夫链导出的鞅</h2>
+    <div class="content-area">
+
+     
+
+        <div class="math-box math-box-short fragment" data-step="3" style="border-left:6px solid #8b5cf6;">
+            \[
+            X_n=f(Y_n)
+            \]
+        </div>
+
+        <div class="math-box fragment" data-step="4" style="text-align:left;">
+            \[
+            \begin{aligned}
+            E(X_{n+1}\mid Y_0,\dots,Y_n)
+            &=E(f(Y_{n+1})\mid Y_0,\dots,Y_n)\\
+            &=E(f(Y_{n+1})\mid Y_n)\\
+            &=\sum_{j\in E}p_{Y_n j}f(j)\\
+            &=f(Y_n)=X_n
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="5" style="border-top-color:#10b981;">
+            <p style="font-size:22px; line-height:1.8;">
+                因此，\(\{X_n\}\) 是一个鞅。<br>
+                也就是说：若 \(f\) 满足“当前值 = 下一步条件平均值”，
+                则 \(f(Y_n)\) 沿着马尔可夫链演化时就是鞅。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+
+<!-- Enhanced Slide E1: 马尔可夫链导出鞅图解 -->
+<div class="slide-container" id="slide-markov-chain-martingale-visual">
+    <h2 class="slide-title"><i class="fas fa-network-wired"></i> 从 Markov 链到鞅：调和函数让平均值不变</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #8b5cf6;">
+                <h3><i class="fas fa-map-signs"></i> 当前状态 \(i\) 的下一步分叉</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <circle cx="95" cy="105" r="32" fill="#faf5ff" stroke="#8b5cf6" stroke-width="4"/><text x="95" y="112" text-anchor="middle" font-size="22" font-weight="900" fill="#6d28d9">i</text>
+                        <line x1="130" y1="105" x2="300" y2="45" stroke="#94a3b8" stroke-width="4"/><line x1="130" y1="105" x2="300" y2="105" stroke="#94a3b8" stroke-width="4"/><line x1="130" y1="105" x2="300" y2="165" stroke="#94a3b8" stroke-width="4"/>
+                        <circle cx="340" cy="45" r="28" fill="#eff6ff" stroke="#3b82f6" stroke-width="4"/><text x="340" y="52" text-anchor="middle" font-size="20" font-weight="900">j₁</text>
+                        <circle cx="340" cy="105" r="28" fill="#eff6ff" stroke="#3b82f6" stroke-width="4"/><text x="340" y="112" text-anchor="middle" font-size="20" font-weight="900">j₂</text>
+                        <circle cx="340" cy="165" r="28" fill="#eff6ff" stroke="#3b82f6" stroke-width="4"/><text x="340" y="172" text-anchor="middle" font-size="20" font-weight="900">j₃</text>
+                        <text x="185" y="52" font-size="17" fill="#64748b" font-weight="800">概率 p_{i,j1}</text>
+                        <text x="190" y="96" font-size="17" fill="#64748b" font-weight="800">概率 p_{i,j2}</text>
+                        <text x="185" y="162" font-size="17" fill="#64748b" font-weight="800">概率 p_{i,j3}</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-equals"></i> 调和函数条件</h3>
+                <div class="math-box math-box-short" style="font-size:25px;">
+                    \[f(i)=\sum_j p_{ij}f(j)\]
+                </div>
+                <p>当前分数 \(f(i)\) 等于下一步所有可能分数的加权平均。</p>
+                <p>于是沿着链看 \(X_n=f(Y_n)\)，它就是鞅。</p>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="3" style="margin-top:18px;">
+            这页可类比“地图海拔”：如果当前位置的海拔等于下一步邻居海拔的平均值，那么随机走路时，未来平均海拔就等于当前海拔。
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 17 -->
+    <div class="slide-container" id="slide17">
+    <h2 class="slide-title"><i class="fas fa-bolt"></i> 例 6-7：由特征向量导出的鞅</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:34px;">
+            <p style="font-size:22px; line-height:1.8;">
+                设 \(\{Y_n\}\) 是马尔可夫链，转移矩阵为 \(\boldsymbol P=(p_{ij})\)。
+                若函数 \(f\) 满足
+                \[
+                \lambda f(i)=\sum_{j\in E}p_{ij}f(j),
+                \]
+                则 \(f\) 是 \(\boldsymbol P\) 对应特征值 \(\lambda\) 的右特征向量。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="2" style="border-top-color:#ec4899; padding:5px; margin-top:18px;">
+            <p style="font-size:22px; line-height:1.8;">
+                上式表示：若当前状态为 \(i\)，则下一步函数值的条件期望为
+                \[
+                E(f(Y_{n+1})\mid Y_n=i)=\lambda f(i).
+                \]
+                也就是说，\(f(Y_n)\) 每走一步，平均会乘上一个 \(\lambda\)。
+            </p>
+        </div>
+
+        
+
+       
+
+    </div>
+</div>
+
+
+
+<div class="slide-container" id="slide17">
+    <h2 class="slide-title"><i class="fas fa-bolt"></i> 例 6-7：由特征向量导出的鞅</h2>
+    <div class="content-area">
+
+       
+
+        <div class="math-box math-box-short fragment" data-step="3" style="border-left:6px solid #ec4899;">
+            \[
+            X_n=\lambda^{-n}f(Y_n)
+            \]
+        </div>
+
+        <div class="math-box fragment" data-step="4" style="text-align:left;">
+            \[
+            \begin{aligned}
+            E(X_{n+1}\mid Y_0,\dots,Y_n)
+            &=\lambda^{-(n+1)}E(f(Y_{n+1})\mid Y_0,\dots,Y_n)\\
+            &=\lambda^{-(n+1)}E(f(Y_{n+1})\mid Y_n)\\
+            &=\lambda^{-(n+1)}\lambda f(Y_n)\\
+            &=\lambda^{-n}f(Y_n)=X_n
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="5" style="border-top-color:#10b981;">
+            <p style="font-size:22px; line-height:1.8;">
+                因此，\(\{X_n\}\) 是一个鞅。<br>
+                这说明：虽然 \(f(Y_n)\) 本身可能按比例增长或衰减，
+                但经过 \(\lambda^{-n}\) 修正后，就变成了条件均值不变的过程。
+            </p>
+        </div>
+
+    </div>
+</div>
+    <!-- 
+    <div class="slide-container" id="slide18">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 6-7：Brown 运动相关的经典鞅</h2>
+        <div class="content-area">
+            <div class="tile fragment" data-step="1" style="border-top-color: #3b82f6;">
+                <h3 style="font-size: 22px;">设 \(B=\{B_t,t\ge0\}\) 是标准 Brown 运动，即\(B_t\sim N(0,t)\).</h3>
+                <ul class="bullet-list" style="font-size: 20px; margin-top: 12px;">
+                    <li>\(\{B_t,t\ge0\}\)</li>
+                    <li>\(\{B_t^2-t,t\ge0\}\)</li>
+                    <li>\(\left\{\exp\left(\sigma B_t-\frac{\sigma^2}{2}t\right),t\ge0\right\}\)</li>
+                </ul>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color: #10b981;">
+                <h3 style="font-size: 22px;">指数鞅的关键验证</h3>
+                <div class="math-box math-box-short" style="font-size: 18px;">
+                    \[
+                    E\left[e^{\sigma B_t-\frac{\sigma^2}{2}t}\mid \mathcal F_s\right]
+                    =e^{\sigma B_s-\frac{\sigma^2}{2}s}
+                    \]
+                </div>
+                <p style="font-size: 18px; margin-top: 10px;">利用独立增量性与正态分布矩母函数即可完成证明。</p>
+            </div>
+        </div>
+    </div>
+    -->
+
+    <!-- Slide 19 -->
+    <div class="slide-container" id="slide19">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 例 6-8：鞅变换</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设 \(\{Y_n\}\) 是关于 \(\{\mathcal F_n\}\) 的鞅差序列。</p>
+            <p class="fragment" data-step="2">若 \(\{C_n\}\) 满足</p>
+            <div class="math-box math-box-short fragment" data-step="3">
+                \[
+                \sigma(C_n)\subset \mathcal F_{n-1}
+                \]
+            </div>
+            <p class="fragment" data-step="4">则称 \(\{C_n\}\) 是<strong>可预见的</strong>。</p>
+            <p class="fragment" data-step="5">定义新过程：</p>
+            <div class="math-box math-box-short fragment" data-step="6" style="border-left: 6px solid #3b82f6;">
+                \[
+                X_0=0,\qquad X_n=\sum_{i=1}^n C_iY_i
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 20 -->
+    <div class="slide-container" id="slide20">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 例 6-8：鞅变换为什么仍是鞅？</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">若二阶矩有限：</p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                E(C_n^2)<\infty,\qquad E(Y_n^2)<\infty
+                \]
+            </div>
+            <p class="fragment" data-step="3">则有</p>
+            <div class="math-box math-box-short fragment" data-step="4" style="text-align:left;">
+                \[
+                \begin{aligned}
+                E(X_n-X_{n-1}\mid \mathcal F_{n-1})
+                &=E(C_nY_n\mid \mathcal F_{n-1})\\
+                &=C_nE(Y_n\mid \mathcal F_{n-1})\\
+                &=0
+                \end{aligned}
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21 
+    <div class="slide-container" id="slide21">
+        <h2 class="slide-title"><i class="fas fa-wave-square"></i> 例 6-9：Brown 运动的鞅变换</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">
+    设 \(B=\{B_t,t\ge0\}\) 为标准 Brown 运动，取划分 \(0=t_0\lt t_1\lt \cdots \lt t_n=t\)。
+</p>       
+            <div class="two-column-top fragment" data-step="2" style="margin-top: 18px;">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 22px;">鞅差</h3>
+                    <div class="math-box math-box-short">
+                        \[
+                        \Delta_iB=B_{t_i}-B_{t_{i-1}}
+                        \]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 22px;">可预见序列</h3>
+                    <div class="math-box math-box-short">
+                        \[
+                        \widetilde{B}_i=B_{t_{i-1}}
+                        \]
+                    </div>
+                </div>
+            </div>
+            <div class="math-box math-box-short fragment" data-step="3" style="border-left: 4px solid #ec4899;">
+                \[
+                (\widetilde{B}\cdot \Delta B)_k
+                =
+                \sum_{i=1}^k B_{t_{i-1}}\bigl(B_{t_i}-B_{t_{i-1}}\bigr)
+                \]
+            </div>
+        </div>
+    </div>
+    -->
+    <!-- Slide 22 -->
+    <div class="slide-container" id="slide22">
+        <h2 class="slide-title"><i class="fas fa-flag"></i> 6.1 小结</h2>
+        <div class="content-area">
+            <div style="background:#f8fafc; padding:40px; border-radius:16px; border:1px solid #e2e8f0; border-left:8px solid #3b82f6;" class="fragment" data-step="1">
+                <ul class="bullet-list" style="line-height: 2;">
+                    <li><strong>鞅刻画“公平过程”</strong></li>
+                    <li><strong>核心条件：</strong>\(E(X_{n+1}\mid \text{过去信息})=X_n\)</li>
+                    <li><strong>鞅差序列：</strong>条件均值为 0 的增量</li>
+                    <li><strong>典型构造：</strong>部分和、Doob 过程、马尔可夫链调和函数、特征向量构造、鞅变换</li>
+                   
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 23 -->
+    <div class="slide-container" id="slide23">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 6.2 上鞅与下鞅</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">鞅表示“平均持平”。进一步放宽条件：</p>
+            <div class="two-column fragment" data-step="2" style="margin-top: 20px;">
+                <div class="tile" style="border-top-color: #ef4444; padding: 40px;">
+                    <h3 style="font-size: 26px; color: #ef4444;"><i class="fas fa-arrow-trend-down"></i> 上鞅</h3>
+                    <div class="math-box math-box-short">
+                        \[
+                        E(X_{n+1}\mid \mathcal F_n)\le X_n
+                        \]
+                    </div>
+                    <p style="text-align:center; margin-top:18px;"><strong>平均趋势向下</strong></p>
+                </div>
+                <div class="tile" style="border-top-color: #10b981; padding: 40px;">
+                    <h3 style="font-size: 26px; color: #10b981;"><i class="fas fa-arrow-trend-up"></i> 下鞅</h3>
+                    <div class="math-box math-box-short">
+                        \[
+                        E(X_{n+1}\mid \mathcal F_n)\ge X_n
+                        \]
+                    </div>
+                    <p style="text-align:center; margin-top:18px;"><strong>平均趋势向上</strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 24 -->
+    <div class="slide-container" id="slide24">
+        <h2 class="slide-title"><i class="fas fa-stream"></i> 上鞅与下鞅</h2>
+        <div class="content-area">
+            <div class="two-column-top fragment" data-step="1">
+                <div class="tile" style="border-top-color: #ef4444;">
+                    <h3 style="font-size: 24px;">定义 6-4：连续参数上鞅</h3>
+                    <p class="formula-plain" style="border: 2px dashed #ef4444; border-radius: 12px; padding: 12px 18px; background: #fff5f5;">
+                        \[
+                        E(X_t^-)\gt -\infty
+                        \]
+                        \[
+                        E(X_t\mid \mathcal F_s)\le X_s
+                        \]
+                    </p>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 24px;">定义 6-5：连续参数下鞅</h3>
+                    <p class="formula-plain" style="border: 2px dashed #10b981; border-radius: 12px; padding: 12px 18px; background: #f0fdf4;">
+                        \[
+                        E(X_t^+)\lt \infty
+                        \]
+                        \[
+                        E(X_t\mid \mathcal F_s)\ge X_s
+                        \]
+                    </p>
+                </div>
+            </div>
+              <div class="two-column-top fragment" data-step="1" style="height: auto; align-items: stretch;">
+            <div class="tile" style="border-top-color: #ef4444; padding: 40px;">
+                <h3 style="font-size: 24px; color: #ef4444; justify-content: center;">定义 6-6：离散参数上鞅</h3>
+                <div class="math-box math-box-short">
+                    \[
+                    E(X_{n+1}\mid \mathcal F_n)\le X_n
+                    \]
+                </div>
+            </div>
+            <div class="tile" style="border-top-color: #10b981; padding: 40px;">
+                <h3 style="font-size: 24px; color: #10b981; justify-content: center;">定义 6-7：离散参数下鞅</h3>
+                <div class="math-box math-box-short">
+                    \[
+                    E(X_{n+1}\mid \mathcal F_n)\ge X_n
+                    \]
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+  
+
+    <!-- Slide 26 -->
+    <div class="slide-container" id="slide26">
+        <h2 class="slide-title"><i class="fas fa-sync-alt"></i> 上鞅与下鞅的关系及基本性质</h2>
+        <div class="content-area">
+            <p class="formula-plain fragment" data-step="1" style="border: 2px dashed #8b5cf6; border-radius: 12px; padding: 12px 18px; background: #faf5ff;">
+                \[
+                X\text{ 是上鞅}\iff -X\text{ 是下鞅}
+                \]
+            </p>
+            <div class="tile fragment" data-step="2" style="border-top-color:#3b82f6; margin-top:28px; padding:36px;">
+                <h3 style="font-size:24px;">基本性质</h3>
+                <ul class="bullet-list" style="font-size:22px; line-height:2;">
+                    <li>多步不等式：\(E(X_{n+j}\mid \mathcal F_n)\le(\ge)X_n\)</li>
+                    <li>期望单调：\(E(X_n)\le(\ge)E(X_0)\)</li>
+                    <li>两个上（下）鞅的和仍是上（下）鞅</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 27 -->
+    <div class="slide-container" id="slide27">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 定理 6-1：上鞅分解定理</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">任意上鞅 \(\{X_n\}\) 都可以唯一分解为：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #ef4444;">
+                \[
+                X_n=M_n-A_n
+                \]
+            </div>
+              <div class="two-column-top fragment" data-step="3">
+                   <div class="tile fragment" style="border-top-color:#ef4444;">
+                     <h3 style="font-size:22px;">其中</h3>
+                      <ul class="bullet-list" style="font-size:20px;">
+                        <li style="font-size:20px;">\(\{M_n\}\) 是鞅</li>
+                        <li style="font-size:20px;">\(A_0=0\)</li>
+                        <li style="font-size:20px;">\(A_n\le A_{n+1}\), 单调不减</li>
+                        <li style="font-size:20px;">\(\sigma(A_n)\subset \mathcal F_{n-1}\)，即 \(A_n\) 可预见</li>
+                      </ul>
+                  </div>
+                   <div class="tile fragment" style="border-top-color:#ef4444;">
+                     <p class="fragment" data-step="4">这里：<br> \(M_n\)表示“公平波动部分”, <br> \(A_n\)表示“累计下降趋势部分”。
+                         <br> 因为是减去 \(A_n\)，而 \(A_n\)又越来越大，所以\(X_n\) 整体就呈现“平均往下”的性质。</p> 
+                  </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Slide 28 -->
+    <div class="slide-container" id="slide28">
+        <h2 class="slide-title"><i class="fas fa-plus-circle"></i> 推论 6-1：下鞅分解</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">若 \(\{X_n\}\) 是下鞅，则存在唯一分解：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #10b981;">
+                \[
+                X_n=M_n+A_n
+                \]
+            </div>
+            <div class="tile fragment" data-step="3" style="border-top-color:#10b981;">
+                <h3 style="font-size:22px;">其中</h3>
+                <ul class="bullet-list" style="font-size:20px;">
+                    <li>\(\{M_n\}\) 是鞅</li>
+                    <li>\(\{A_n\}\) 单调不减</li>
+                    <li>\(\{A_n\}\) 可预见</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 29 -->
+    <div class="slide-container" id="slide29">
+        <h2 class="slide-title"><i class="fas fa-flag"></i> 6.2 小结</h2>
+        <div class="content-area">
+            <div style="background:#f8fafc; padding:40px; border-radius:16px; border:1px solid #e2e8f0; border-left:8px solid #8b5cf6;" class="fragment" data-step="1">
+                <ul class="bullet-list" style="font-size:24px; line-height:2;">
+                    <li><span class="highlight" style="color:#ef4444;">上鞅：</span>平均趋势向下，期望不增</li>
+                    <li><span class="highlight" style="color:#10b981;">下鞅：</span>平均趋势向上，期望不减</li>
+                    <li><span class="highlight-blue">分解定理：</span>可唯一分解为“鞅部分 + 单调趋势部分”</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 30 -->
+    <div class="slide-container" id="slide30">
+        <h2 class="slide-title"><i class="fas fa-stopwatch"></i> 6.3 停时：随机停止时刻</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1"><strong>停时 (Stopping Time)</strong> 是一个不依赖未来信息的随机时间。</p>
+            <div class="tile fragment" data-step="2" style="border-top-color:#f59e0b; margin-top:24px; padding:40px;">
+                <h3 style="font-size:24px;">例子</h3>
+                <ul class="bullet-list" style="font-size:22px; line-height:2;">
+                    <li>美式期权何时执行</li>
+                    <li>赌博中盈利或亏损达到阈值何时停手</li>
+                    <li>工业监测达到警戒线何时停止实验</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+
+<!-- Enhanced Slide F1: 停时示意图 -->
+<div class="slide-container" id="slide-stopping-time-visual">
+    <h2 class="slide-title"><i class="fas fa-traffic-light"></i> 停时图解：能不能停，只能看已经发生的事</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-check-circle"></i> 是停时：第一次达到阈值</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <line x1="35" y1="65" x2="485" y2="65" stroke="#ef4444" stroke-width="4" stroke-dasharray="8 8"/><text x="410" y="54" font-size="18" fill="#b91c1c" font-weight="900">阈值 100</text>
+                        <polyline points="35,155 95,140 155,128 215,95 275,70 335,50 395,40 470,36" fill="none" stroke="#10b981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="275" cy="70" r="9" fill="#ef4444"/><text x="250" y="105" font-size="18" fill="#047857" font-weight="900">首次越线，立即知道</text>
+                    </svg>
+                </div>
+                <p>到第 \(n\) 步时，只看过去和现在，就能判断是否已经达到阈值。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #ef4444;">
+                <h3><i class="fas fa-times-circle"></i> 不是停时：最后一次达到阈值</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <line x1="35" y1="80" x2="485" y2="80" stroke="#ef4444" stroke-width="4" stroke-dasharray="8 8"/><text x="410" y="68" font-size="18" fill="#b91c1c" font-weight="900">阈值 100</text>
+                        <polyline points="35,145 95,92 155,125 215,75 275,115 335,78 395,130 470,150" fill="none" stroke="#8b5cf6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="335" cy="78" r="9" fill="#ef4444"/><text x="260" y="45" font-size="18" fill="#6d28d9" font-weight="900">是不是最后一次？得偷看未来</text>
+                    </svg>
+                </div>
+                <p>判断“最后一次”必须知道之后还会不会再发生，所以它依赖未来，不是停时。</p>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="3" style="margin-top:18px;">
+            停时的灵魂：停止规则必须“当场可判定”。靠未来剧透做决定，那不叫停时，叫作弊，数学老师和裁判都不买账。
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Slide F2: 停止过程与停时定理图解 -->
+<div class="slide-container" id="slide-optional-stopping-visual">
+    <h2 class="slide-title"><i class="fas fa-hand-paper"></i> 停止过程图解：停下以后，路径被“冻结”</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #3b82f6;">
+                <h3><i class="fas fa-snowflake"></i> \(X_n^\tau=X_{\tau\wedge n}\)</h3>
+                <div class="state-path">
+                    <svg viewBox="0 0 520 210">
+                        <polyline points="35,140 95,100 155,125 215,75 275,110" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <line x1="275" y1="110" x2="485" y2="110" stroke="#3b82f6" stroke-width="5" stroke-linecap="round" stroke-dasharray="9 8"/>
+                        <circle cx="275" cy="110" r="10" fill="#ef4444"/><text x="255" y="145" font-size="18" fill="#b91c1c" font-weight="900">停时 \(\tau\)</text>
+                        <text x="340" y="95" font-size="18" fill="#1d4ed8" font-weight="900">停后保持不动</text>
+                    </svg>
+                </div>
+                <p>停时前跟原过程一样，停时后固定为 \(X_\tau\)。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-gavel"></i> 停时定理想表达什么？</h3>
+                <div class="math-box math-box-short" style="font-size:27px;border-left:6px solid #10b981;">
+                    \[E(X_\tau)=E(X_0)\]
+                </div>
+                <p>在适当条件下，一个公平过程按合法规则停止，平均收益仍然不变。</p>
+                <p>所以“赢了就走、输了加倍”这种人类小聪明，不会自动把公平游戏变成提款机。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 31 -->
+    <div class="slide-container" id="slide31">
+        <h2 class="slide-title"><i class="fas fa-pause-circle"></i> 定义 6-8 与 6-9：离散时间停时</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">若随机变量 \(\tau\in\{0,1,2,\dots,+\infty\}\)，且对任意 \(n\ge0\)：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #8b5cf6;">
+                \[
+                \{\tau=n\}\in \mathcal F_n
+                \]
+            </div>
+            <p class="fragment" data-step="3">等价地也可写成：</p>
+            <div class="math-box math-box-short fragment" data-step="4" style="border-left: 6px solid #ec4899;">
+                \[
+                \{\tau\le n\}\in \mathcal F_n
+                \]
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="slide-container" id="slide31">
+    <h2 class="slide-title"><i class="fas fa-pause-circle"></i> 定义 6-8 与 6-9：什么是停时？</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:22px; line-height:1.8;">
+                停时（Stopping Time）表示一个随机停止时刻，
+                但这个“停下来的决定”只能依赖当前和过去的信息，
+                不能偷看未来。
+            </p>
+        </div>
+
+        <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #8b5cf6;">
+            \[
+            \{\tau=n\}\in \mathcal F_n
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6; padding:24px;">
+            <p style="font-size:21px; line-height:1.8;">
+                这表示：到时刻 \(n\) 为止，我们能够判断
+                “是否恰好在第 \(n\) 时刻停下”。
+            </p>
+        </div>
+
+        <div class="math-box math-box-short fragment" data-step="4" style="border-left: 6px solid #ec4899;">
+            \[
+            \{\tau\le n\}\in \mathcal F_n
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="5" style="border-top-color:#ec4899; background:#fff7fb; padding:24px;">
+            <p style="font-size:21px; line-height:1.8; color:#831843;">
+                等价地说：到时刻 \(n\) 为止，我们能够判断
+                “是否已经停下来了”。
+            </p>
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+  <div class="slide-container" id="slide31">
+    <h2 class="slide-title"><i class="fas fa-pause-circle"></i> 定义 6-8 与 6-9：什么是停时？</h2>
+    <div class="content-area">
+
+       
+      
+        <div class="tile fragment" data-step="6" style="border-top-color:#10b981; padding:26px;">
+            <h3 style="font-size:22px;">例子</h3>
+            <p style="font-size:20px; line-height:1.8;">
+                \[
+                \tau=\min\{n\ge0:X_n\ge100\}
+                \]
+                表示第一次达到 100 的时刻。  
+                这是停时，因为是否已经达到 100，只看当前和过去即可判断。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="7" style="border-top-color:#ef4444; background:#fff5f5; padding:26px;">
+            <h3 style="font-size:22px; color:#b91c1c;">反例</h3>
+            <p style="font-size:20px; line-height:1.8; color:#7f1d1d;">
+                “最后一次达到 100 的时刻”不是停时，
+                因为你必须知道未来还会不会再达到 100。
+            </p>
+        </div>
+
+    </div>
+</div>
+    <!-- Slide 32 -->
+    <div class="slide-container" id="slide32">
+        <h2 class="slide-title"><i class="fas fa-database"></i> \(\tau\) 前的 \(\sigma\)-代数 \(\mathcal F_\tau\)</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">定义：</p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                \mathcal F_\tau
+                =
+                \{A\in \mathcal F: A\cap\{\tau=n\}\in \mathcal F_n,\ n\ge0\}
+                \]
+            </div>
+            <div class="two-column-top fragment" data-step="3" style="margin-top:22px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:22px;">物理含义</h3>
+                    <p style="font-size:18px;">表示在随机停机时刻 \(\tau\) 之前所掌握的全部信息。</p>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3 style="font-size:22px;">基本性质</h3>
+                    <ul class="bullet-list" style="font-size:18px;">
+                        <li>\(\tau\) 是 \(\mathcal F_\tau\) 可测</li>
+                        <li>\(X_\tau\) 也是 \(\mathcal F_\tau\) 可测</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 33 -->
+    <div class="slide-container" id="slide33">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 停时的基本性质</h2>
+        <div class="content-area">
+            <p class="formula-plain fragment" data-step="1" style="border: 2px dashed #8b5cf6; border-radius: 12px; padding: 12px 18px; background: #faf5ff;">
+                \[
+                \tau_1+\tau_2,\quad \tau_1\wedge \tau_2,\quad \tau_1\vee \tau_2
+                \quad\text{都是停时}
+                \]
+            </p>
+            <div class="math-box math-box-short fragment" data-step="2">
+                \[
+                \tau_1\le \tau_2 \Rightarrow \mathcal F_{\tau_1}\subset \mathcal F_{\tau_2}
+                \]
+            </div>
+            <div class="math-box math-box-short fragment" data-step="3">
+                \[
+                \sup_k \tau_k,\quad \inf_k \tau_k
+                \quad\text{也是停时}
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 34 -->
+    <div class="slide-container" id="slide34">
+        <h2 class="slide-title"><i class="fas fa-hand-paper"></i> 定理 6-2：停止过程的性质继承</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设 \(\tau\) 为停时，定义停止过程：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #3b82f6;">
+                \[
+                X_n^\tau=X_{\tau\wedge n}
+                \]
+            </div>
+            <p class="fragment" data-step="3">则 \(\{X_n^\tau\}\) 仍适应于 \(\{\mathcal F_n\}\)。</p>
+            <div class="tiled-content-3 fragment" data-step="4" style="margin-top:20px;">
+                <div class="tile" style="border-top-color:#8b5cf6; text-align:center;">
+                    <p style="font-size:18px;">若 \(\{X_n\}\) 是鞅</p>
+                    <p style="font-weight:bold;">则 \(\{X_n^\tau\}\) 也是鞅</p>
+                </div>
+                <div class="tile" style="border-top-color:#ef4444; text-align:center;">
+                    <p style="font-size:18px;">若 \(\{X_n\}\) 是上鞅</p>
+                    <p style="font-weight:bold;">则 \(\{X_n^\tau\}\) 也是上鞅</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981; text-align:center;">
+                    <p style="font-size:18px;">若 \(\{X_n\}\) 是下鞅</p>
+                    <p style="font-weight:bold;">则 \(\{X_n^\tau\}\) 也是下鞅</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 35 -->
+    <div class="slide-container" id="slide35">
+        <h2 class="slide-title"><i class="fas fa-stream"></i> 连续时间停时</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设 \(\{X_t,t\ge0\}\) 为连续时间随机过程。若对任意 \(t\ge0\)：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #8b5cf6;">
+                \[
+                \{\tau\le t\}\in \mathcal F_t
+                \]
+            </div>
+            <p class="fragment" data-step="3" style="text-align:center;">则称 \(\tau\) 是连续时间停时。</p>
+            <div class="tile fragment" data-step="4" style="border-top-color:#ec4899; margin-top:22px;">
+                <h3 style="font-size:22px;">同样成立的运算</h3>
+                <ul class="bullet-list" style="font-size:20px;">
+                    <li>\(\tau_1+\tau_2\)、\(\tau_1\wedge \tau_2\)、\(\tau_1\vee \tau_2\) 仍是停时</li>
+                    <li>若 \(t\) 为确定时刻，则 \(\tau\wedge t\) 也是停时</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 36 -->
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title"><i class="fas fa-gavel"></i> 定理 6-3：停时定理</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">设 \(\{X_t,t\ge0\}\) 是连续鞅。若停时 \(\tau\) 满足任一条件：</p>
+            <div class="two-column-top fragment" data-step="2" style="margin-top:14px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:22px;">条件 1</h3>
+                    <p style="text-align:center; font-weight:bold;">\(\tau\) 是有界停时</p>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3 style="font-size:22px;">条件 2</h3>
+                    <p class="formula-plain" style="border: 2px dashed #ec4899; border-radius: 12px; padding: 12px 18px; background: #fff7fb;">
+                        \[
+                        E|X_\tau|<\infty
+                        \]
+                        \[
+                        \lim_{t\to\infty}E(|X_\tau|I_{\{\tau>t\}})=0
+                        \]
+                    </p>
+                </div>
+            </div>
+            <div class="math-box math-box-short fragment" data-step="3" style="border-left: 6px solid #10b981;">
+                \[
+                E(X_\tau)=E(X_0)
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 37 -->
+    <div class="slide-container" id="slide37">
+        <h2 class="slide-title"><i class="fas fa-compress-arrows-alt"></i> 定理 6-4：Doob 不等式</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">若 \(\{X_t,0\le t\le T\}\) 是连续鞅，则：</p>
+            <div class="math-box math-box-short fragment" data-step="2" style="border-left: 6px solid #f59e0b;">
+                \[
+                E\left(\sup_{0\le t\le T}|X_t|^2\right)\le 4E(|X_T|^2)
+                \]
+            </div>
+             <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:22px;">只要终点的平方均值有限，整条鞅路径的最大振幅也不会太离谱。</h3>
+                 
+        </div>
+        </div>
+       
+        
+    </div>
+
+
+    <!-- Slide：为什么需要一致可积性 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-question-circle"></i> 6.4 为什么需要一致可积性？</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:32px;">
+            <p style="font-size:22px; line-height:1.85;">
+                在研究鞅的极限时，一个自然问题是：
+                若 \(\{X_n\}\) 收敛到某个随机变量 \(X\)，是否一定有
+                \[
+                E(X_n)\to E(X)\,?
+                \]
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:30px; margin-top:18px;">
+            <p style="font-size:21px; line-height:1.85;">
+                仅有逐点收敛或依概率收敛，通常还不够。<br>
+                要想把“极限”和“期望”交换，往往需要更强的整体控制条件。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:30px; margin-top:18px;">
+            <h3 style="font-size:22px; color:#9d174d;"><i class="fas fa-lightbulb"></i> 核心思想</h3>
+            <p style="font-size:21px; line-height:1.85; color:#831843;">
+                不仅要控制随机变量“平均不太大”，还要防止它们把质量偷偷堆到尾部去。
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="4" style="border-left:6px solid #10b981;">
+            \[
+            \text{一致可积性} \quad \Longrightarrow \quad \text{尾部贡献可以统一控制}
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+
+
+  <!-- Slide：一致可积性的定义 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 定义：一致可积性（Uniform Integrability）</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:32px;">
+            <p style="font-size:22px; line-height:1.85;">
+                设 \(\mathcal{C}\) 是一族可积随机变量。
+                若
+                \[
+                \lim_{K\to\infty}\sup_{X\in\mathcal{C}} E\bigl(|X|\,I_{\{|X|\gt K\}}\bigr)=0,
+                \]
+                则称 \(\mathcal{C}\) 是<strong>一致可积的</strong>。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:28px; margin-top:18px;">
+            <h3 style="font-size:22px;">对序列 \(\{X_n\}\) 的写法</h3>
+            <div class="math-box math-box-short">
+                \[
+                \lim_{K\to\infty}\sup_n E\bigl(|X_n|\,I_{\{|X_n|\gt K\}}\bigr)=0
+                \]
+            </div>
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+
+  <!-- Slide：一致可积性的定义 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 定义：一致可积性（Uniform Integrability）</h2>
+    <div class="content-area">
+
+      
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:5px; margin-top:18px;">
+            <h3 style="font-size:22px; color:#9d174d;">直观理解</h3>
+            <p style="font-size:21px; line-height:1.85; color:#831843;">
+                不论 \(n\) 取多大，只要阈值 \(K\) 取得足够大，
+                所有 \(X_n\) 在“很大尾部区域”上的平均贡献都可以同时压得很小。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="4" style="border-top-color:#10b981; background:#f0fdf4; padding:5px; margin-top:18px;">
+            <p style="font-size:21px; line-height:1.85; color:#166534;">
+                一致可积性不是只控制 \(E|X_n|\)，而是进一步控制
+                “大值部分”的贡献不会失控。
+            </p>
+        </div>
+      <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:5px;">
+            <h3 style="font-size:22px;">判别 1：有界随机变量族一定一致可积</h3>
+            <p style="font-size:21px; line-height:1.85;">
+                若存在常数 \(M\)，使得对所有 \(X\in\mathcal C\)，有
+                \[
+                |X|\le M \quad \text{a.s.},
+                \]
+                则 \(\mathcal C\) 一致可积。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Slide：一致可积性的简单判别 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-check-double"></i> 一致可积性的常用判别</h2>
+    <div class="content-area">
+
+       
+        <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:5px; margin-top:18px;">
+            <h3 style="font-size:22px;">判别 2：若某个高阶矩一致有界，也可推出一致可积</h3>
+            <p style="font-size:21px; line-height:1.85;">
+                若存在 \(p\gt 1\) 及常数 \(C\)，使得
+                \[
+                \sup_n E(|X_n|^p)\le C,
+                \]
+                则 \(\{X_n\}\) 一致可积。
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="3" style="text-align:left;">
+            \[
+            E\bigl(|X_n|I_{\{|X_n|\gt K\}}\bigr)
+            \le
+            \frac{E(|X_n|^p)}{K^{p-1}}
+            \le
+            \frac{C}{K^{p-1}}
+            \to 0
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="4" style="border-top-color:#f59e0b; background:#fffaf0; padding:28px; margin-top:18px;">
+            <p style="font-size:21px; line-height:1.85; color:#78350f;">
+                所以最常用的判断方法就是：
+                <strong>\(L^p\) 有界（\(p\gt 1\)） \(\Rightarrow\) 一致可积。</strong>
+            </p>
+        </div>
+
+    </div>
+</div>
+  
+
+
+<!-- Slide：鞅收敛定理 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 定理：鞅收敛定理</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:21px; line-height:1.85;">
+                设 \(\{X_n,\mathcal F_n\}\) 是一个鞅。
+                若 \(\{X_n\}\) 一致可积，则存在可积随机变量 \(X_\infty\)，使得
+                \[
+                X_n \to X_\infty \quad \text{a.s.}
+                \qquad \text{且} \qquad
+                X_n \to X_\infty \quad \text{在 }L^1\text{ 中}.
+                \]
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="2" style="border-left:6px solid #8b5cf6;">
+            \[
+            E(X_\infty\mid \mathcal F_n)=X_n,\qquad n\ge 0
+            \]
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:28px; margin-top:18px;">
+            <h3 style="font-size:22px; color:#9d174d;">这说明什么？</h3>
+            <p style="font-size:21px; line-height:1.85; color:#831843;">
+                一致可积鞅不会“把质量逃到无穷远处”，
+                因而不仅路径上能收敛，而且期望意义下也能稳定收敛。
+            </p>
+        </div>
+
+       
+    </div>
+</div>
+
+
+<!-- Slide：鞅收敛定理 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 定理：鞅收敛定理</h2>
+    <div class="content-area">
+
+       
+        <div class="tile fragment" data-step="4" style="border-top-color:#10b981; padding:28px; margin-top:18px;">
+            <h3 style="font-size:22px;">常用推论</h3>
+            <p style="font-size:21px; line-height:1.85;">
+                若 \(\{X_n\}\) 是鞅，且存在 \(p\gt 1\) 使得
+                \[
+                \sup_n E(|X_n|^p)\lt \infty,
+                \]
+                则 \(\{X_n\}\) 一致可积，从而存在 \(X_\infty\)，使得
+                \[
+                X_n\to X_\infty \quad \text{a.s. 和 } L^1.
+                \]
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+    <!-- Slide：如何理解鞅收敛定理 -->
+<div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 如何理解鞅收敛定理？</h2>
+    <div class="content-area">
+
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:21px; line-height:1.9;">
+                鞅本身表示“条件均值下公平”，
+                但公平并不自动保证极限存在。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:30px; margin-top:18px;">
+            <p style="font-size:21px; line-height:1.9;">
+                一致可积性进一步保证：
+                过程虽然波动，但不会把概率质量大量堆到极端大值上。
+            </p>
+        </div>
+
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:30px; margin-top:18px;">
+            <p style="font-size:21px; line-height:1.9; color:#831843;">
+                因此，一致可积鞅最终会稳定到某个随机极限 \(X_\infty\)，
+                而且这个极限还能在 \(L^1\) 意义下保留。
+            </p>
+        </div>
+
+        <div class="math-box fragment" data-step="4" style="border-left:6px solid #10b981;">
+            \[
+            \text{一致可积} + \text{鞅} \quad \Longrightarrow \quad \text{几乎处处收敛} + L^1\text{收敛}
+            \]
+        </div>
+
+    </div>
+</div>     
+
+
+
+
+
+
+<!-- Enhanced Slide G1: 一致可积性图解 -->
+<div class="slide-container" id="slide-uniform-integrability-visual">
+    <h2 class="slide-title"><i class="fas fa-weight-hanging"></i> 一致可积性图解：防止期望偷偷藏到尾巴里</h2>
+    <div class="content-area">
+        <div class="explain-grid-2">
+            <div class="diagram-card fragment" data-step="1" style="border-top:5px solid #ec4899;">
+                <h3><i class="fas fa-ruler-horizontal"></i> 看尾部贡献</h3>
+                <div class="tail-bar"><div class="tail-cut"></div></div>
+                <div class="tail-label"><span>主体部分：\(|X|\le K\)</span><span style="color:#dc2626;">尾部：\(|X|\gt K\)</span></div>
+                <div class="math-box math-box-short" style="font-size:23px;margin-top:22px;">
+                    \[E(|X_n|I_{\{|X_n|\gt K\}})\]
+                </div>
+                <p>这个量不是问“尾部概率大不大”，而是问“尾部对期望贡献大不大”。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-users"></i> “一致”的意思</h3>
+                <p>不是只对某一个 \(X_n\) 控制尾部，而是对所有 \(n\) 同时控制。</p>
+                <div class="math-box math-box-short" style="font-size:22px;border-left:6px solid #10b981;">
+                    \[\lim_{K\to\infty}\sup_n E(|X_n|I_{\{|X_n|\gt K\}})=0\]
+                </div>
+                <p>阈值 \(K\) 足够大时，所有随机变量的尾部平均贡献都能一起压小。</p>
+            </div>
+        </div>
+        <div class="diagram-note fragment" data-step="3" style="margin-top:18px;">
+           普通可积是“每个人的尾巴能剪短”，一致可积是“全班所有人的尾巴能用同一把剪刀统一剪短”。
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Slide G2: 鞅收敛定理逻辑图 -->
+<div class="slide-container" id="slide-martingale-convergence-logic">
+    <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 鞅收敛定理逻辑图：公平 + 尾部受控 = 稳定极限</h2>
+    <div class="content-area">
+        <div class="flow-row fragment" data-step="1" style="margin-bottom:24px;">
+            <div class="flow-node blue">鞅<br>条件均值公平</div>
+            <div class="flow-arrow">+</div>
+            <div class="flow-node orange">一致可积<br>尾部不失控</div>
+            <div class="flow-arrow">⇒</div>
+            <div class="flow-node green">收敛到<br>\(X_\infty\)</div>
+        </div>
+        <div class="explain-grid-3">
+            <div class="diagram-card fragment" data-step="2" style="border-top:5px solid #3b82f6;">
+                <h3><i class="fas fa-balance-scale"></i> 鞅</h3>
+                <p>只保证平均公平，不保证路径一定稳定。公平硬币也可以连续乱跳，世界并不会因为公平就安静。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="3" style="border-top:5px solid #f59e0b;">
+                <h3><i class="fas fa-shield-alt"></i> 一致可积</h3>
+                <p>排除“极小概率极大值”把期望带跑的情况，让极限和期望能和平相处。</p>
+            </div>
+            <div class="diagram-card fragment" data-step="4" style="border-top:5px solid #10b981;">
+                <h3><i class="fas fa-check-double"></i> 结论</h3>
+                <p>存在可积极限 \(X_\infty\)，并且 \(X_n\to X_\infty\) 几乎处处且在 \(L^1\) 中收敛。</p>
+            </div>
+        </div>
+        <div class="math-box fragment" data-step="5" style="font-size:25px;border-left:6px solid #8b5cf6;margin-top:20px;">
+            \[E(X_\infty\mid\mathcal F_n)=X_n\]
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 38 -->
+    <div class="slide-container" id="slide38">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第6章总结</h2>
+        <div class="content-area">
+            <div style="background:#f8fafc; padding:40px; border-radius:16px; border:1px solid #e2e8f0; border-left:8px solid #3b82f6;" class="fragment" data-step="1">
+                <ul class="bullet-list" style="line-height:2.1; font-size:22px;">
+                    <li><span class="highlight-blue">鞅：</span>未来条件均值等于现在</li>
+                    <li><span class="highlight-blue">鞅差序列：</span>条件均值为 0 的增量</li>
+                    <li><span class="highlight-blue">上鞅、下鞅：</span>平均趋势向下 / 向上</li>
+                    <li><span class="highlight-blue">Doob 分解：</span>鞅部分 + 单调趋势部分</li>
+                    <li><span class="highlight-blue">停时：</span>不依赖未来信息的随机停止时刻</li>
+                    <li><span class="highlight-blue">停时定理：</span>合理停止不会改变鞅期望</li>
+                    <li><span class="highlight-blue">Doob 不等式：</span>控制鞅路径最大波动</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+ <!-- Slide 39 -->
+<div class="slide-container" id="slide39">
+    <h2 class="slide-title"><i class="fas fa-chalkboard-teacher"></i> 课堂思考题</h2>
+    <div class="content-area" style="justify-content: center;">
+        <div class="tile fragment" data-step="1" style="border-top-color: #8b5cf6; padding: 50px;">
+            <ul class="bullet-list" style="font-size: 24px; line-height: 2.3;">
+                <li>为什么公平赌博中的财富过程是鞅，而不是下鞅？</li>
+                <li>鞅差序列与普通独立零均值序列有什么区别与联系？</li>
+                <li>为什么 Doob 过程天然构成鞅？</li>
+                <li>上鞅分解中的 \(A_n\) 为什么要求单调不减且可预见？</li>
+                <li>为什么停时不能依赖未来信息？</li>
+            </ul>
+
+            <div class="fragment" data-step="2" style="margin-top: 28px; text-align: center;">
+                <a href="https://glutaikic.mh.chaoxing.com"
+                   target="_blank"
+                   style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 12px;
+                        padding: 14px 28px;
+                        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+                        color: #ffffff;
+                        font-size: 22px;
+                        font-weight: 700;
+                        text-decoration: none;
+                        border-radius: 999px;
+                        box-shadow: 0 10px 24px rgba(59,130,246,0.25);
+                        transition: transform 0.2s ease, box-shadow 0.2s ease;
+                   "
+                   onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 14px 28px rgba(59,130,246,0.32)'"
+                   onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 10px 24px rgba(59,130,246,0.25)'">
+                    <i class="fas fa-book-open"></i>
+                    本章作业
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const slides = Array.from(document.querySelectorAll('.slide-container'));
+    let current = Number(localStorage.getItem('currentSlide')) || 0;
+    current = Math.min(Math.max(current, 0), slides.length - 1);
+    let step = 0;
+
+    const interactiveSelector = 'button, a, input, select, textarea, label, video, audio, canvas, [contenteditable="true"], .no-slide-click';
+
+    function getFragments(slide) {
+        return Array.from(slide.querySelectorAll('.fragment'));
+    }
+
+    function resetFragments(slide) {
+        getFragments(slide).forEach(f => f.classList.remove('show'));
+        slide.classList.remove('all-shown');
+    }
+
+    function showAllFragments(slide) {
+        getFragments(slide).forEach(f => f.classList.add('show'));
+        slide.classList.add('all-shown');
+    }
+
+    function showNextFragment() {
+        const slide = slides[current];
+        const fragments = getFragments(slide);
+        if (step < fragments.length) {
+            fragments[step].classList.add('show');
+            step++;
+            if (step >= fragments.length) slide.classList.add('all-shown');
+            return true;
+        }
+        slide.classList.add('all-shown');
+        return false;
+    }
+
+    function resetStep() {
+        step = 0;
+        resetFragments(slides[current]);
+        if (!document.body.classList.contains('presentation-mode')) {
+            showAllFragments(slides[current]);
+        }
+    }
+
+    function scaleSlide() {
+        const slide = slides[current];
+        if (!slide) return;
+        const baseWidth = 1280;
+        const baseHeight = 720;
+        const scale = Math.min(window.innerWidth / baseWidth, window.innerHeight / baseHeight);
+        slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function scrollToCurrent() {
+        slides[current]?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
+
+    function updateSlide() {
+        slides.forEach((s, i) => {
+            s.classList.toggle('active-slide', i === current);
+            s.style.transform = '';
+            if (!document.body.classList.contains('presentation-mode')) {
+                showAllFragments(s);
+            }
+        });
+        localStorage.setItem('currentSlide', current);
+        if (document.body.classList.contains('presentation-mode')) {
+            resetStep();
+            scaleSlide();
+        }
+    }
+
+    function nextSlide() {
+        current = Math.min(current + 1, slides.length - 1);
+        updateSlide();
+    }
+
+    function prevSlide() {
+        current = Math.max(current - 1, 0);
+        updateSlide();
+    }
+
+    function revealOrStay() {
+        showNextFragment();
+    }
+
+    async function requestRealFullscreen() {
+        const elem = document.documentElement;
+        if (!document.fullscreenElement && elem.requestFullscreen) {
+            try { await elem.requestFullscreen({ navigationUI: 'hide' }); }
+            catch (err) {
+                try { await elem.requestFullscreen(); }
+                catch (err2) { console.warn('进入全屏失败：', err2); }
+            }
+        }
+    }
+
+    async function leaveRealFullscreen() {
+        if (document.fullscreenElement && document.exitFullscreen) {
+            try { await document.exitFullscreen(); }
+            catch (err) { console.warn('退出全屏失败：', err); }
+        }
+    }
+
+    async function enterPresentation() {
+        document.body.classList.add('presentation-mode');
+        updateSlide();
+        await requestRealFullscreen();
+        scaleSlide();
+    }
+
+    async function exitPresentation() {
+        document.body.classList.remove('presentation-mode');
+        slides.forEach(s => {
+            s.classList.remove('active-slide');
+            s.style.transform = '';
+            showAllFragments(s);
+        });
+        await leaveRealFullscreen();
+        scrollToCurrent();
+    }
+
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement && document.body.classList.contains('presentation-mode')) {
+            document.body.classList.remove('presentation-mode');
+            slides.forEach(s => {
+                s.classList.remove('active-slide');
+                s.style.transform = '';
+                showAllFragments(s);
+            });
+            scrollToCurrent();
+            return;
+        }
+        if (document.body.classList.contains('presentation-mode')) scaleSlide();
+    });
+
+    window.addEventListener('resize', function () {
+        if (document.body.classList.contains('presentation-mode')) scaleSlide();
+    });
+
+    // 浏览模式：直接显示所有内容，便于下拉检查和打印
+    slides.forEach(showAllFragments);
+    scrollToCurrent();
+
+    document.addEventListener('click', function (e) {
+        if (!document.body.classList.contains('presentation-mode')) return;
+        if (e.target.closest(interactiveSelector)) return;
+        // 放映时鼠标点击只负责显示下一段，避免动画按钮/滑块误触翻页
+        revealOrStay();
+    });
+
+    document.addEventListener('keydown', async function (e) {
+        const key = e.key;
+
+        if (key === 'F5') {
+            e.preventDefault();
+            await enterPresentation();
+            return;
+        }
+
+        if (key === 'Escape') {
+            e.preventDefault();
+            await exitPresentation();
+            return;
+        }
+
+        if (!document.body.classList.contains('presentation-mode')) return;
+
+        const nextPageKeys = ['ArrowRight', 'PageDown', 'N', 'n'];
+        const prevPageKeys = ['ArrowLeft', 'PageUp', 'P', 'p', 'Backspace'];
+        const revealKeys = [' ', 'Enter'];
+
+        if (nextPageKeys.includes(key)) {
+            e.preventDefault();
+            nextSlide();
+            return;
+        }
+
+        if (prevPageKeys.includes(key)) {
+            e.preventDefault();
+            prevSlide();
+            return;
+        }
+
+        if (revealKeys.includes(key)) {
+            e.preventDefault();
+            revealOrStay();
+        }
+    });
+
+});
+</script>
+
+</body>
+</html>
