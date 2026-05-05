@@ -1,0 +1,4762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用随机过程 - 第7章 Brown运动（课堂递进版）</title>
+    <!-- 引入字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <!-- 引入图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05 /* 略微放大公式整体比例 */
+            }
+        };
+    </script>
+       <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* 全局重置 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body, html {
+            background-color: #f1f5f9; /* 浅灰蓝外层背景 */
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        /* 幻灯片垂直滚动容器 */
+        .slide-container {
+            position: relative;
+            width: 1280px; height: 720px; /* 固定标准 16:9 比例 */
+            background-color: #ffffff; /* 纯白容器 */
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); /* 优雅的阴影 */
+            border-radius: 12px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        /* 顶部彩色渐变装饰条 */
+        .slide-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .slide-container::after {
+            content: '点击显示下一部分';
+            position: absolute;
+            right: 20px;
+            bottom: 16px;
+            font-size: 14px;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.88);
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            z-index: 20;
+        }
+        .slide-container.all-shown::after { content: '本页内容已全部显示'; }
+
+        /* 高级封面页样式 (优化版) */
+        .title-slide { 
+            background: #020617;
+            color: white; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 60px;
+            position: relative; overflow: hidden;
+        }
+        .slide-container:first-child::before { display: none; }
+        .slide-container.title-slide::after { display: none; }
+        
+        /* 封面网格背景 */
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        /* 封面发光装饰球 */
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        /* 封面毛玻璃内容卡片 */
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.6); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin-bottom: 20px; letter-spacing: 2px; }
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 32px; font-weight: 300; letter-spacing: 1px; }
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa;
+            padding: 10px 30px; border-radius: 50px; font-size: 22px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        .title-content .course-info { margin-top: 50px; display: flex; gap: 40px; color: #64748b; font-size: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 30px; }
+        .title-content .course-info div { display: flex; align-items: center; gap: 10px; }
+
+        /* 内容页统一标题样式 */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #1e293b;
+            margin: 50px 80px 20px 80px; padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0; text-align: left;
+            display: flex; align-items: center; gap: 20px; z-index: 2;
+        }
+        .slide-title i { color: #3b82f6; }
+
+        .content-area { flex-grow: 1; padding: 0 80px 50px 80px; display: flex; flex-direction: column; justify-content: center; z-index: 1; }
+
+        /* 文本与列表 */
+        p { font-size: 24px; color: #334155; line-height: 1.7; margin-bottom: 20px; }
+        .bullet-list { list-style: none; margin-left: 10px; }
+        .bullet-list li { font-size: 22px; color: #475569; margin-bottom: 15px; position: relative; padding-left: 35px; line-height: 1.5; }
+        .bullet-list li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 5px; color: #3b82f6; font-size: 22px; }
+
+        /* 布局组件 */
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; width: 100%; height: 100%; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: flex-start; width: 100%; height: 100%; }
+        
+        /* 灰底卡片式 (tile) */
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; width: 100%; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; }
+        .tile { 
+            background: #f8fafc; padding: 30px; border-radius: 16px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+            border: 1px solid #e2e8f0; border-top: 5px solid #3b82f6;
+        }
+        .tile h3 { font-size: 26px; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; }
+        .tile p { font-size: 20px; margin-bottom: 0; color: #475569; }
+
+        /* 专用的极客风深色公式代码框 (math-box) - 全局样式应用 */
+        .math-box {
+            --math-text-color: #111827;
+            background: #f8fafc;
+            color: var(--math-text-color);
+            border-radius: 12px;
+            font-family: monospace;
+            box-shadow: inset 0 1px 2px rgba(15,23,42,0.06);
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            overflow: visible;
+            font-size: 28px;
+            padding: 16px 22px;
+            margin: 18px 0;
+            line-height: 1.6;
+            min-height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .math-box mjx-container {
+            font-size: 112% !important;
+            color: var(--math-text-color) !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            white-space: normal !important;
+        }
+        .math-box mjx-container *,
+        .math-box mjx-container mjx-math,
+        .math-box mjx-container mjx-mrow,
+        .math-box mjx-container mjx-mi,
+        .math-box mjx-container mjx-mo,
+        .math-box mjx-container mjx-mn,
+        .math-box mjx-container mjx-mtext {
+            color: var(--math-text-color) !important;
+        }
+        .math-box mjx-container[display="true"] {
+            margin: 0.2em 0 !important;
+            width: 100% !important;
+        }
+        .transparent-math,
+        .formula-plain,
+        .light-formula {
+            --math-text-color: #111827;
+            background: transparent !important;
+            box-shadow: none !important;
+            color: var(--math-text-color) !important;
+            border-color: #cbd5e1 !important;
+        }
+        .light-formula {
+            border: 2px dashed #cbd5e1;
+        }
+        .math-box-short {
+            white-space: normal !important;
+        }
+        .formula-plain {
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        /* 强调词 */
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+
+        .fragment {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+            pointer-events: none;
+        }
+        .fragment.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        body.presentation-mode {
+            padding: 0;
+            gap: 0;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            display: block;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slide-container {
+            width: 1280px;
+            height: 720px;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slide-container.active-slide {
+            display: flex;
+        }
+
+        body:not(.presentation-mode) .fragment {
+            opacity: 1 !important;
+            transform: none !important;
+            pointer-events: auto !important;
+        }
+        @page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+@media print {
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        display: block !important;
+        overflow: visible !important;
+        width: auto !important;
+        gap: 0 !important;
+    }
+
+    .slide-container {
+        width: 297mm !important;
+        height: 210mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
+    }
+
+    .slide-container:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    .slide-container::after {
+        display: none !important;
+    }
+
+    .fragment {
+        opacity: 1 !important;
+        transform: none !important;
+        pointer-events: auto !important;
+    }
+}
+
+
+        /* Brown运动仿真页 */
+        .bm-live-wrap {
+            display: grid;
+            grid-template-columns: 1.02fr 1.18fr;
+            gap: 22px;
+            align-items: stretch;
+            width: 100%;
+            height: 100%;
+        }
+        .bm-panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .bm-panel h3 {
+            font-size: 22px;
+            color: #1f2937;
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .bm-badge {
+            background: #ccfbf1;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            animation: bmPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes bmPulse {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .bm-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin: 10px 0 14px 0;
+            flex-wrap: wrap;
+        }
+        .bm-slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 12px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(13,148,136,0.08);
+            color: #115e59;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .bm-slider-wrap input[type="range"] {
+            accent-color: #0d9488;
+            width: 110px;
+        }
+        .bm-reset-btn {
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #0d9488, #0f766e);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 10px 16px;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(13,148,136,0.22);
+        }
+        .bm-reset-btn:hover { filter: brightness(1.04); }
+        .bm-quote {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #334155;
+            background: #f0fdfa;
+            border: 1px solid #ccfbf1;
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+        }
+        .bm-microscope {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 320px;
+            margin: 0 auto;
+            background: #e2e8f0;
+            border-radius: 50%;
+            border: 8px solid #cbd5e1;
+            overflow: hidden;
+            box-shadow: inset 0 0 45px rgba(0,0,0,0.35);
+        }
+        .bm-microscope::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(#64748b 1px, transparent 1px);
+            background-size: 15px 15px;
+            opacity: 0.12;
+        }
+        .bm-2d-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .bm-particle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #fbbf24;
+            border: 2px solid #fff;
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(251,191,36,0.85);
+            transform: translate(-50%, -50%);
+            z-index: 3;
+        }
+        .bm-subnote {
+            margin-top: 14px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #64748b;
+            text-align: center;
+        }
+        .bm-graphs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+        }
+       .bm-graph-box {
+    flex: 0 0 110px;
+    display: flex;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f8fafc;
+    box-shadow: inset 0 2px 10px rgba(148,163,184,0.12);
+    min-height: 110px;
+}
+        .bm-graph-label {
+            width: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 18px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+        .bm-graph-label.x { background: #fff1f2; color: #e11d48; border-right: 1px solid #fecdd3; }
+        .bm-graph-label.y { background: #eff6ff; color: #2563eb; border-right: 1px solid #bfdbfe; }
+        .bm-graph-canvas {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .bm-footnote {
+            margin-top: 12px;
+            font-size: 14px;
+            line-height: 1.75;
+            color: #64748b;
+        }
+
+
+        /* ===== Brown运动 vs 泊松过程 对比仿真页 ===== */
+.compare-sim-slide .content-area {
+    justify-content: flex-start;
+    padding-top: 10px;
+}
+
+.compare-sim-wrap {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    width: 100%;
+    padding: 18px 22px 20px 22px;
+}
+
+.compare-sim-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.compare-sim-btn {
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(79, 70, 229, 0.22);
+    transition: 0.2s ease;
+}
+
+.compare-sim-btn:hover {
+    background: #4338ca;
+}
+
+.compare-sim-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.compare-sim-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+}
+
+.compare-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f8fafc;
+    min-height: 240px;
+    box-shadow: inset 0 2px 10px rgba(148,163,184,0.10);
+}
+
+.compare-panel.bm {
+    border-color: #fecdd3;
+}
+
+.compare-panel.pp {
+    border-color: #bbf7d0;
+}
+
+.compare-panel-top {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    right: 14px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.compare-panel-tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.05);
+}
+
+.compare-panel.bm .compare-panel-tag {
+    color: #be123c;
+    border-color: #fecdd3;
+}
+
+.compare-panel.pp .compare-panel-tag {
+    color: #047857;
+    border-color: #bbf7d0;
+}
+
+.compare-panel-value {
+    font-size: 15px;
+    font-family: monospace;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.86);
+}
+
+.compare-panel.bm .compare-panel-value {
+    color: #e11d48;
+}
+
+.compare-panel.pp .compare-panel-value {
+    color: #059669;
+}
+
+.compare-canvas {
+    width: 100%;
+    height: 220px;
+    display: block;
+}
+
+.compare-time-axis {
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 700;
+    margin-top: 10px;
+}
+
+.compare-scanner-line {
+    position: absolute;
+    width: 2px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 8;
+    display: none;
+}
+
+.compare-panel.bm .compare-scanner-line {
+    background: #f43f5e;
+    box-shadow: 0 0 10px #f43f5e;
+}
+
+.compare-panel.pp .compare-scanner-line {
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+@media (max-width: 1100px) {
+    .compare-sim-main {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+/* ===== 宏观趋势 vs 微观碎形 仿真页 ===== */
+.bm-fractal-slide .content-area {
+    justify-content: flex-start;
+    padding-top: 8px;
+}
+
+.bm-fractal-wrap {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    padding: 18px 22px 18px 22px;
+}
+
+.bm-fractal-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.bm-fractal-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #1f2937;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bm-fractal-btn {
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(79, 70, 229, 0.22);
+    transition: 0.2s ease;
+    white-space: nowrap;
+}
+
+.bm-fractal-btn:hover {
+    background: #4338ca;
+}
+
+.bm-fractal-explains {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+    align-items: stretch;
+}
+
+.bm-fractal-card {
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+}
+
+.bm-fractal-card.macro {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+}
+
+.bm-fractal-card.micro {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+}
+
+.bm-fractal-card h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bm-fractal-chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+
+.bm-fractal-card.macro .bm-fractal-chip {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.bm-fractal-card.micro .bm-fractal-chip {
+    background: #c7d2fe;
+    color: #3730a3;
+}
+
+.bm-fractal-card p {
+    font-size: 15px;
+    line-height: 1.75;
+    color: #475569;
+    margin: 0;
+}
+
+.bm-fractal-visuals {
+    margin-top: 18px;
+    position: relative;
+}
+
+.bm-fractal-macro-box,
+.bm-fractal-micro-box {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 16px;
+}
+
+.bm-fractal-macro-box {
+    height: 170px;
+    border: 2px solid #cbd5e1;
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+}
+
+.bm-fractal-micro-box {
+    height: 230px;
+    border: 2px solid #818cf8;
+    box-shadow: 0 8px 22px rgba(99,102,241,0.18);
+    margin-top: 6px;
+}
+
+.bm-fractal-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #ffffff;
+}
+
+.bm-fractal-top-tag {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    z-index: 8;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.05);
+}
+
+.bm-fractal-macro-box .bm-fractal-top-tag {
+    color: #334155;
+}
+
+.bm-fractal-micro-box .bm-fractal-top-tag {
+    color: #4338ca;
+    background: rgba(79,70,229,0.92);
+    color: #fff;
+    border-color: #6366f1;
+}
+
+.bm-fractal-time-label {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 8;
+    font-size: 12px;
+    font-family: monospace;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #c7d2fe;
+    color: #4338ca;
+}
+
+.bm-fractal-zoom-box {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 10%;
+    background: rgba(99, 102, 241, 0.15);
+    border: 2px solid rgba(99, 102, 241, 0.8);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    cursor: grab;
+    z-index: 6;
+}
+
+.bm-fractal-zoom-box:active {
+    cursor: grabbing;
+}
+
+.bm-fractal-slider-wrap {
+    width: 100%;
+    padding: 12px 0 4px 0;
+    position: relative;
+    z-index: 20;
+}
+
+.bm-fractal-slider-wrap input[type=range] {
+    -webkit-appearance: none;
+    background: transparent;
+    width: 100%;
+}
+
+.bm-fractal-slider-wrap input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 22px;
+    width: 22px;
+    border-radius: 50%;
+    background: #4f46e5;
+    cursor: pointer;
+    margin-top: -7px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.bm-fractal-slider-wrap input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    cursor: pointer;
+    background: #e2e8f0;
+    border-radius: 4px;
+}
+
+.bm-fractal-slider-hint {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4f46e5;
+    margin-top: 4px;
+}
+
+.bm-fractal-connector-svg {
+    position: absolute;
+    width: 100%;
+    height: 80px;
+    top: 170px;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+    .bm-fractal-explains {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+
+
+        /* ===== 翻页笔/浏览模式修复 ===== */
+        body:not(.presentation-mode) .slide-container::after { content: '浏览模式：全部内容已显示'; }
+        body.presentation-mode .slide-container::after { content: '鼠标/空格/回车/翻页笔：显示下一部分'; }
+        body.presentation-mode .slide-container.all-shown::after { content: '本页内容已全部显示；再按翻页笔进入下一页'; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Slide 1: 标题页 -->
+    <div class="slide-container title-slide" id="slide1">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-water"></i> 第7章 </div>
+            <h1>Brown运动<span>连续时间随机波动的标准基石模型</span></h1>
+            <p class="subtitle"></p>
+        
+            <div class="course-info" style="margin-top: 80px;">
+                <div><i class="fas fa-book"></i> 应用随机过程</div>
+                <div><i class="fas fa-university"></i> 计算机科学与技术</div>
+            </div>
+        </div>
+       
+    </div>
+
+ <!-- Slide : 7.1 Brown运动概念 -->
+    <div class="slide-container" id="slide14" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+        <div class="content-area" style="align-items: center; text-align: center;">
+            <h2 style="font-size: 64px; margin-bottom: 20px;">7.1 基本概念与性质</h2>
+            <hr style="width: 150px; height: 6px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border: none; margin: 20px 0;">
+            
+        </div>
+    </div>
+
+
+
+
+    <!-- Slide 2: 7.1 Brown运动的背景 -->
+    <div class="slide-container" id="slide2">
+        <h2 class="slide-title"><i class="fas fa-history"></i> 7.1 Brown运动的背景</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">Brown运动最初来源于对物理现象的观察：</p>
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 40px;">
+                <ul class="bullet-list" style="font-size: 22px; line-height: 2;">
+                    <li><strong>1827年：</strong> 英国生物学家 Brown 观察到水面上花粉微粒做无规则运动；</li>
+                    <li><strong>1905年：</strong> Einstein 首次给出这一现象的数学化物理解释；</li>
+                    <li><strong>1918年：</strong> Wiener 用概率论与随机过程理论建立了严格的数学模型。</li>
+                </ul>
+                <p style="font-size: 22px; margin-top: 20px; color: #1e293b; font-weight: bold;">
+                    因此，Brown运动也称为 Wiener过程 (Wiener Process)。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3A: Brown运动实时仿真 -->
+    <div class="slide-container" id="slide3a">
+        <h2 class="slide-title"><i class="fas fa-microscope"></i> Brown运动实时仿真 <span class="bm-badge">Live Simulation</span></h2>
+        <div class="content-area" style="justify-content:flex-start; padding-top: 0;">
+            <div class="bm-toolbar">
+                <div class="bm-slider-wrap">
+                    <label for="bmTempSlider">温度（方差 ）</label>
+                    <input type="range" id="bmTempSlider" min="0.5" max="5" step="0.5" value="1.5">
+                    <span id="bmTempDisplay" style="min-width:28px; text-align:right; font-family:monospace;">1.5</span>
+                </div>
+                <button type="button" class="bm-reset-btn" id="bmResetBtn">重新观察</button>
+            </div>
+            <blockquote class="bm-quote">
+                爱因斯坦（1905）证明这是由于大量水分子的热运动碰撞造成的。
+                在数学上，二维布朗运动其实就是两个独立的一维维纳过程Wx(t)和 Wy(t) 的正交组合。”
+            </blockquote>
+            <div class="bm-live-wrap">
+                <div class="bm-panel">
+                    <h3>显微镜视角（2D 物理空间）</h3>
+                    <div class="bm-microscope" id="bmMicroscope">
+                        <canvas id="bmCanvas2d" class="bm-2d-canvas" width="320" height="320"></canvas>
+                        <div id="bmParticle" class="bm-particle"></div>
+                    </div>
+                    <div class="bm-subnote">
+                        微粒不断受到周围隐形水分子的随机撞击，呈现<strong>处处连续，但处处不可导</strong>的混沌轨迹。
+                    </div>
+                </div>
+                <div class="bm-panel">
+                    <h3>数学投影：两个独立的一维维纳过程 <span style="font-size:13px; background:#f3f4f6; color:#4b5563; padding:4px 8px; border-radius:999px; font-family:monospace;">X(t) ⊥ Y(t)</span></h3>
+                    <div class="bm-graphs">
+                        <div class="bm-graph-box">
+                            <div class="bm-graph-label x">X(t)</div>
+                            <canvas id="bmCanvasX" class="bm-graph-canvas"></canvas>
+                        </div>
+                        <div class="bm-graph-box">
+                            <div class="bm-graph-label y">Y(t)</div>
+                            <canvas id="bmCanvasY" class="bm-graph-canvas"></canvas>
+                        </div>
+                    </div>
+                    <p style="font-size: 20px;">
+                        <strong>核心数学性质：</strong>
+                        \(\Delta W = W(t+\Delta t)-W(t) \sim N(0,\sigma^2\Delta t).\)
+                        布朗运动的增量服从正态分布，且方差与时间成正比。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+    <!-- Slide 3: Brown运动的应用领域 -->
+    <div class="slide-container" id="slide3">
+        <h2 class="slide-title"><i class="fas fa-globe"></i> Brown运动的应用领域</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">Brown运动应用十分广泛，几乎涵盖自然科学和人文科学的许多领域，例如：</p>
+            <div class="two-column-top" style="margin-top: 20px;">
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 22px;">自然与工程科学</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li>物理学中的粒子无规则运动</li>
+                        <li>生物学中的扩散现象</li>
+                        <li>工程中的随机扰动模型</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 22px;">金融与经济学</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li>金融中的证券价格建模</li>
+                        <li>期权、债券等连续时间金融衍生品定价模型</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Slide : 7.2 Brown运动概念 -->
+    <div class="slide-container" id="slide14" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+        <div class="content-area" style="align-items: center; text-align: center;">
+            <h2 style="font-size: 64px; margin-bottom: 20px;">7.2 Brown运动的定义及其基本性质</h2>
+            <hr style="width: 150px; height: 6px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border: none; margin: 20px 0;">
+            
+        </div>
+    </div>
+    <!-- Slide 4: 定义7-1：Brown运动 -->
+    <div class="slide-container" id="slide4">
+        <h2 class="slide-title"><i class="fas fa-cube"></i> 定义7-1：Brown运动 (Wiener过程)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">如果随机过程 \(\{X(t), t \ge 0\}\) 满足以下三个条件，则称其为 <strong>Brown运动</strong>：</p>
+            
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-top: 5px solid #3b82f6; border-radius: 16px; padding: 5px; margin-top: 20px;">
+                <p style="font-size: 24px; color: #1e293b; font-weight: bold; margin-bottom: 10px;">（1）从原点出发：\(X(0) = 0 \) </p>
+                
+                <p style="font-size: 24px; color: #1e293b; font-weight: bold; margin-bottom: 10px;">（2）平稳独立增量：</p>
+                <div style="font-size: 26px; margin-left: 40px; margin-bottom: 30px; color: #334155;">\(\{X(t), t \ge 0\}\) 有平稳独立增量</div>
+                
+                <p style="font-size: 24px; color: #1e293b; font-weight: bold; margin-bottom: 10px;">（3）增量服从正态分布：对每一个 \(t\gt 0\)，有：</p>
+                <div style="font-size: 26px; margin-left: 40px; color: #334155;">\( X(t) \sim N(0, c^2 t) \)</div>
+            </div>
+              <p style="font-size: 24px; color: #1e293b; font-weight: bold; margin-bottom: 10px;">
+               则称 \(\{X(t), t \geqslant 0\}\) 为 Brown 运动，也称为 Wiener 过程，常记为 \(\{B(t), t \geqslant 0\}\) 或 \(\{W(t), t \geqslant 0\}\)</p>
+        </div>
+    </div>
+
+    <!-- Slide 5: 标准Brown运动 -->
+    <div class="slide-container" id="slide5">
+        <h2 class="slide-title"><i class="fas fa-ruler-combined"></i> 标准 Brown 运动</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 10px;">
+                <p style="font-size: 24px;">当方差参数 \(c=1\) 时，Wiener过程称为<strong>标准Wiener过程</strong>或<strong>标准Brown运动</strong>。此时满足：</p>
+                <div class="math-box">
+                    \[X(0) = 0, \qquad X(t) \sim N(0, t)\]
+                </div>
+                <p style="font-size: 22px; margin-top: 15px;">通常把标准Brown运动专属记为：</p>
+                <div class="math-box" style="border-left: 6px solid #8b5cf6;">
+                    \[B = \{B(t), t \ge 0\}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+  <div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-check-circle"></i> 性质 7.1.1：Brown 运动的三个基本性质</h2>
+    <div class="content-area">
+
+
+        <div class="tile" style="border-top-color: #3b82f6; padding: 5px; margin-top: 18px;">
+            <h3 style="font-size: 24px;">（1）正态增量</h3>
+            <p style="font-size: 20px; line-height: 1.8;">
+                对任意 \(0 \leqslant s \lt t\)，有  \(
+                B(t)-B(s)\sim N(0,t-s)
+                \),即 \(B(t)-B(s)\) 服从均值为 0、方差为 \(t-s\) 的正态分布。特别地，当 \(s=0\) 时，
+                 \(
+                B(t)-B(0)\sim N(0,t)
+                \).
+            </p>
+            
+        </div>
+
+        <div class="tile" style="border-top-color: #8b5cf6; padding: 5px; margin-top: 18px;">
+            <h3 style="font-size: 24px;">（2）独立增量</h3>
+            <p style="font-size: 20px; line-height: 1.8;">
+                对任意 \(0 \leqslant s \lt t\)，随机变量 \(B(t)-B(s)\) 独立于过程的过去状态
+                \(
+                B(u),\qquad 0 \leqslant u \leqslant s.
+                \), 也就是说，未来增量与过去历史无关。
+            </p>
+        </div>
+
+        <div class="tile" style="border-top-color: #10b981; padding: 5px; margin-top: 18px;">
+            <h3 style="font-size: 24px;">（3）路径的连续性</h3>
+            <p style="font-size: 20px; line-height: 1.8;">
+                Brown 运动的样本路径 \(B(t)\,(t \geqslant 0)\) 关于 \(t\) 是连续函数。
+                 \(
+                t\mapsto B(t)\quad \text{连续}
+                \), 因而，Brown 运动的轨道虽然连续，但通常非常不规则。
+            </p>
+           
+            
+        </div>
+
+    </div>
+</div>
+
+<!-- Slide：二次变差的引入 -->
+<div class="slide-container" id="slide-qv-intro">
+    <h2 class="slide-title"><i class="fas fa-route"></i> Brown 运动的路径性质：为什么要看二次变差？</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:23px; line-height:1.8;">
+                为了讨论 Brown 运动的路径性质，我们不仅要看它在某一时刻的分布，
+                还要观察它在整个区间上的轨道变化。
+            </p>
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:28px; margin-top:20px; background:#faf5ff;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-lightbulb"></i> 直观想法
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                普通函数常用“总变差”描述路径上下波动的总长度；
+                但 Brown 运动太粗糙，普通变差会变成无穷大。
+                于是我们改看每段增量平方的累加，也就是<strong>二次变差</strong>。
+            </p>
+        </div>
+
+        <div class="info-box" style="margin-top:24px;">
+            <p><i class="fas fa-pen-nib"></i> 一句话理解</p>
+            <span style="font-size:22px; color:#0369a1;">
+                二次变差不是在量“走了多远”，而是在量“随机波动累积了多少强度”。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：定义 7.1.3 Brown 运动的二次变差 -->
+<div class="slide-container" id="slide-qv-definition">
+    <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> 定义 7.1.3：Brown 运动的二次变差</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            设 \(\{t_i^n\}_{i=0}^{n}\) 是区间 \([0,t]\) 的一个分割：
+        </p>
+
+        <div class="math-box" style="font-size:24px; padding:14px;">
+            \[
+            0=t_0^n \lt t_1^n \lt \cdots \lt t_n^n=t
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            记该分割的模为
+        </p>
+
+        <div class="math-box" style="font-size:24px; padding:14px;">
+            \[
+            \delta_n
+            =
+            \max_{0\leqslant i\leqslant n-1}
+            \left\{t_{i+1}^n-t_i^n\right\}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:26px; margin-top:16px;">
+            <p style="font-size:21px; line-height:1.8;">
+                Brown 运动的二次变差 \([B,B](t)\) 定义为：
+                当分割越来越细，即 \(\delta_n\to0\) 时，下面平方增量和在
+                <strong>依概率收敛</strong>意义下的极限。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：二次变差公式 -->
+<div class="slide-container" id="slide-qv-formula">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> Brown 运动二次变差的公式</h2>
+    <div class="content-area">
+
+        <div class="math-box" style="font-size:25px; padding:26px; border-left:8px solid #8b5cf6;">
+            \[
+            [B,B](t)
+            =
+            [B,B]([0,t])
+            =
+            \lim_{\delta_n\to0}
+            \sum_{i=0}^{n-1}
+            \left|
+            B(t_{i+1}^n)-B(t_i^n)
+            \right|^2
+            \]
+        </div>
+
+        <div class="two-column-top" style="margin-top:24px;">
+            <div class="tile" style="border-top-color:#10b981; padding:28px;">
+                <h3 style="font-size:24px; color:#047857;">
+                    <i class="fas fa-layer-group"></i> 每一小段
+                </h3>
+                <p style="font-size:21px; line-height:1.8;">
+                    \[
+                    B(t_{i+1}^n)-B(t_i^n)
+                    \]
+                    表示 Brown 运动在一小段时间内的增量。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#ec4899; padding:28px; background:#fff7fb;">
+                <h3 style="font-size:24px; color:#9d174d;">
+                    <i class="fas fa-square"></i> 平方再相加
+                </h3>
+                <p style="font-size:21px; line-height:1.8; color:#831843;">
+                    把每段增量平方后累加，就能捕捉路径的随机波动强度。
+                    这比直接加绝对值更适合 Brown 运动这种“疯狂抖动”的路径。
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：为什么 Brown 运动的二次变差等于 t -->
+<div class="slide-container" id="slide-qv-why-t">
+    <h2 class="slide-title"><i class="fas fa-equals"></i> 为什么 Brown 运动的二次变差等于 \(t\)？</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            因为 Brown 运动具有独立平稳增量，对每一小段：
+        </p>
+
+        <div class="math-box" style="font-size:24px; padding:16px;">
+            \[
+            B(t_{i+1}^n)-B(t_i^n)
+            \sim
+            N\left(0,\ t_{i+1}^n-t_i^n\right)
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            因此它的平方增量的期望为：
+        </p>
+
+        <div class="math-box" style="font-size:24px; padding:16px;">
+            \[
+            E\left[
+            \left(B(t_{i+1}^n)-B(t_i^n)\right)^2
+            \right]
+            =
+            t_{i+1}^n-t_i^n
+            \]
+        </div>
+
+        <div class="math-box" style="font-size:25px; padding:18px; border-left:8px solid #10b981;">
+            \[
+            E\left[
+            \sum_{i=0}^{n-1}
+            \left(B(t_{i+1}^n)-B(t_i^n)\right)^2
+            \right]
+            =
+            \sum_{i=0}^{n-1}(t_{i+1}^n-t_i^n)
+            =
+            t
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#f59e0b; background:#fffaf0; padding:24px; margin-top:16px;">
+            <p style="font-size:21px; line-height:1.8; color:#78350f;">
+                当分割越来越细时，这个平方增量和不仅期望为 \(t\)，而且会在依概率意义下收敛到 \(t\)。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动路径的观察 -->
+<div class="slide-container" id="slide-path-observation">
+    <h2 class="slide-title"><i class="fas fa-magnifying-glass-chart"></i> Brown 运动的一条路径</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:32px;">
+            <p style="font-size:23px; line-height:1.85;">
+                从时刻 \(0\) 到时刻 \(T\) 对 Brown 运动的一次观察，称为 Brown 运动在区间
+                \([0,T]\) 上的一条<strong>样本路径</strong>，也称为一个<strong>实现</strong>。
+            </p>
+        </div>
+
+        <div class="math-box" style="font-size:25px; padding:20px; border-left:8px solid #8b5cf6;">
+            \[
+            \{B(t),\ 0\leqslant t\leqslant T\}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#ec4899; background:#fff7fb; padding:28px; margin-top:22px;">
+            <h3 style="font-size:24px; color:#9d174d;">
+                <i class="fas fa-lightbulb"></i> 直观理解
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#831843;">
+                Brown 运动不是一条光滑曲线，而是一条连续但极其粗糙的随机轨道。
+                它看起来像“没有跳跃”，但局部放大后到处都在剧烈震荡。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动的路径性质 -->
+<div class="slide-container" id="slide-path-properties-1">
+    <h2 class="slide-title"><i class="fas fa-wave-square"></i> Brown 运动的路径性质（1）</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            Brown 运动的几乎所有样本路径 \(B(t)\)，\(0\leqslant t\leqslant T\)，都具有下述性质：
+        </p>
+
+        <div class="tiled-content" style="margin-top:20px;">
+            <div class="tile" style="border-top-color:#10b981; padding:30px;">
+                <h3 style="font-size:24px; color:#047857;">
+                    <i class="fas fa-check-circle"></i> （1）连续
+                </h3>
+                <p style="font-size:21px; line-height:1.8;">
+                    样本路径是 \(t\) 的连续函数。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#f59e0b; padding:30px; background:#fffaf0;">
+                <h3 style="font-size:24px; color:#b45309;">
+                    <i class="fas fa-arrows-left-right"></i> （2）处处不单调
+                </h3>
+                <p style="font-size:21px; line-height:1.8; color:#78350f;">
+                    在任意区间上，无论区间多么小，路径都不是单调的。
+                </p>
+            </div>
+        </div>
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:24px; margin-top:24px; background:#eff6ff;">
+            <p style="font-size:21px; line-height:1.8; color:#1e40af;">
+                它连续，但不会乖乖地只往上或只往下走。
+               
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动的路径性质 -->
+<div class="slide-container" id="slide-path-properties-2">
+    <h2 class="slide-title"><i class="fas fa-wave-square"></i> Brown 运动的路径性质（2）</h2>
+    <div class="content-area">
+
+        <div class="tiled-content" style="margin-top:10px;">
+            <div class="tile" style="border-top-color:#ef4444; padding:30px; background:#fff5f5;">
+                <h3 style="font-size:24px; color:#b91c1c;">
+                    <i class="fas fa-ban"></i> （3）处处不可微
+                </h3>
+                <p style="font-size:21px; line-height:1.8; color:#7f1d1d;">
+                    在任意点都不是可微的。
+                    也就是说，它没有普通意义下的瞬时速度。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#ec4899; padding:30px; background:#fff7fb;">
+                <h3 style="font-size:24px; color:#9d174d;">
+                    <i class="fas fa-infinity"></i> （4）无限变差
+                </h3>
+                <p style="font-size:21px; line-height:1.8; color:#831843;">
+                    在任意区间上，无论区间多么小，路径都是无限变差的。
+                </p>
+            </div>
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:28px; margin-top:24px; background:#faf5ff;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-lightbulb"></i> 直观理解
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                Brown 运动虽然连续，但局部震荡太剧烈。
+                你越放大，它越不平滑。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动的路径性质 -->
+<div class="slide-container" id="slide-path-properties-3">
+    <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> Brown 运动的路径性质（3）</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:34px;">
+            <h3 style="font-size:26px;">
+                <i class="fas fa-square"></i> （5）二次变差
+            </h3>
+            <p style="font-size:23px; line-height:1.85;">
+                对任意 \(t\)，Brown 运动在区间 \([0,t]\) 上的二次变差等于 \(t\)：
+            </p>
+
+            <div class="math-box" style="font-size:30px; padding:22px; border-left:8px solid #3b82f6;">
+                \[
+                [B,B](t)=t
+                \]
+            </div>
+        </div>
+
+        <div class="tile" style="border-top-color:#10b981; padding:28px; margin-top:22px; background:#f0fdf4;">
+            <h3 style="font-size:24px; color:#047857;">
+                <i class="fas fa-link"></i> 与无限变差的关系
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#166534;">
+                性质（4）可以从性质（5）得到：
+                Brown 运动的普通总变差是无穷的，但平方增量和却稳定收敛到 \(t\)。
+                这说明它的路径既粗糙，又有非常精确的二阶结构。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：路径性质总结 -->
+<div class="slide-container" id="slide-path-summary">
+    <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> Brown 运动路径性质总结</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:34px;">
+            <ul class="bullet-list" style="font-size:22px; line-height:2;">
+                <li>Brown 运动的路径是连续的；</li>
+                <li>但在任何小区间上都不是单调的；</li>
+                <li>在任意点都不可微；</li>
+                <li>在任意区间上都是无限变差的；</li>
+                <li>在 \([0,t]\) 上的二次变差等于 \(t\)。</li>
+            </ul>
+        </div>
+
+        <div class="math-box" style="font-size:26px; padding:22px; margin-top:24px; border-left:8px solid #ec4899;">
+            \[
+            \text{Brown 运动：连续，但极其粗糙；不可微，却有确定的二次变差。}
+            \]
+        </div>
+
+       
+
+    </div>
+</div>
+<div class="slide-container bm-fractal-slide">
+    <h2 class="slide-title"><i class="fas fa-magnifying-glass-chart"></i> 布朗运动：宏观趋势与微观碎形</h2>
+    <div class="content-area">
+
+        <div class="bm-fractal-wrap">
+            <div class="bm-fractal-header">
+                <div class="bm-fractal-title">
+                    <span style="color:#4f46e5;">🔎</span>
+                    布朗运动：宏观单调 vs 微观碎形
+                </div>
+                <button onclick="bmFractalGenerateData()" class="bm-fractal-btn">重新生成随机轨道</button>
+            </div>
+
+           
+
+            <div class="bm-fractal-visuals">
+                <!-- 宏观图 -->
+                <div class="bm-fractal-macro-box" id="bmFractalMacroContainer">
+                    <span class="bm-fractal-top-tag">宏观全景 X(t) (t=0 到 10)</span>
+                    <canvas id="bmFractalCanvasMacro" class="bm-fractal-canvas"></canvas>
+                    <div id="bmFractalZoomBox" class="bm-fractal-zoom-box" style="left:45%;"></div>
+                </div>
+
+                <!-- 滑块 -->
+                <div class="bm-fractal-slider-wrap">
+                    <input type="range" id="bmFractalZoomSlider" min="0" max="90" value="45" oninput="bmFractalUpdateZoom()">
+                    <div class="bm-fractal-slider-hint">左右拖动滑块移动放大镜区域</div>
+                </div>
+
+                <!-- 连接区 -->
+                <svg class="bm-fractal-connector-svg" id="bmFractalConnectorSvg">
+                    <polygon id="bmFractalConnectorPoly" points="0,0 0,0 0,0 0,0"
+                        fill="rgba(99, 102, 241, 0.10)"
+                        stroke="rgba(99, 102, 241, 0.30)"
+                        stroke-width="1" />
+                </svg>
+
+                <!-- 微观图 -->
+                <div class="bm-fractal-micro-box">
+                    <span class="bm-fractal-top-tag">微观放大细节 \(\Delta t = 1.0\)</span>
+                    <span id="bmFractalMicroTimeLabel" class="bm-fractal-time-label">t = 4.500 ~ 5.500</span>
+                    <canvas id="bmFractalCanvasMicro" class="bm-fractal-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="slide-container bm-fractal-slide">
+    <h2 class="slide-title"><i class="fas fa-magnifying-glass-chart"></i> 布朗运动：宏观趋势与微观碎形</h2>
+    <div class="content-area">
+       
+
+         <div class="tile" style="border-top-color: #8b5cf6; padding: 5px; margin-top: 18px; background: #faf5ff;">
+            <h3 style="font-size: 28px; color: #6d28d9;"><i class="fas fa-lightbulb"></i> <span >宏观尺度</span>确定性趋势主导</h3>
+            <p style="font-size: 25px; line-height: 1.8; color: #4c1d95;">
+                 在较长时间跨度下，漂移项 \(\mu \Delta t\) 占据主导地位。因为时间 \(t\) 足够大时，
+                        线性增长的 \(t\) 远大于 \(\sqrt{t}\)。因此，整体轨道呈现明显的
+                        <strong>单调递增趋势</strong>。
+            </p>
+        </div>
+
+
+     
+        <div class="tile" style="border-top-color: #0d6e03ef; padding: 5px; margin-top: 18px; background: #faf5ff;">
+            <h3 style="font-size: 28px; color: #28d93a;"><i class="fas fa-lightbulb"></i> <span>微观尺度</span>随机性波动主导</h3>
+            <p style="font-size: 25px; line-height: 1.8; color: #15ae07;">
+                  在极小的时间跨度内，当 \(\Delta t \to 0\) 时，因为 \(\sqrt{\Delta t} \gg \Delta t\)，
+                        随机波动项 \(\sigma W(t)\) 的量级瞬间淹没趋势项。局部放大后
+                        <strong>绝非单调</strong>，而是剧烈震荡，体现出处处不可导的碎形特征。
+            </p>
+        </div>
+
+
+
+    </div>
+</div>
+
+
+  <div class="slide-container">
+    <h2 class="slide-title"><i class="fas fa-arrows-left-right"></i> 定义 7.1.2：空间齐次性</h2>
+    <div class="content-area">
+
+        <p style="font-size: 22px;">
+            设 \(\{X(t), t \geqslant 0\}\) 是随机过程。若它的有限维分布具有空间平移不变性，即对任意
+             \(
+            0 \leqslant t_1 \lt t_2 \lt \cdots \lt t_n,\qquad x_1,x_2,\cdots,x_n,x\in\mathbb R,
+            \),都有
+        </p>
+
+       
+        <div class="math-box light-formula" style="text-align: left;font-size: 24px;padding: 5px;">
+            \[
+            \begin{aligned}
+            & P\left\{X(t_1)\leqslant x_1,\;X(t_2)\leqslant x_2,\;\cdots,\;X(t_n)\leqslant x_n \mid X(0)=0\right\} \\
+            ={}& P\left\{X(t_1)\leqslant x_1+x,\;X(t_2)\leqslant x_2+x,\;\cdots,\;X(t_n)\leqslant x_n+x \mid X(0)=x\right\},
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color: #3b82f6; padding: 5px; margin-top: 18px;">
+            <p style="font-size: 21px; line-height: 1.8;">
+                则称随机过程 \(\{X(t), t \geqslant 0\}\) 是<strong>空间齐次的</strong>。
+            </p>
+        </div>
+
+        <div class="tile" style="border-top-color: #8b5cf6; padding: 5px; margin-top: 18px; background: #faf5ff;">
+            <h3 style="font-size: 22px; color: #6d28d9;"><i class="fas fa-lightbulb"></i> 直观理解</h3>
+            <p style="font-size: 20px; line-height: 1.8; color: #4c1d95;">
+                过程的演化规律只与“相对位置变化”有关，而与起点在空间中的绝对位置无关。<br>
+                换句话说，把整个过程在空间上平移一个常数 \(x\)，其概率结构保持不变。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+    <!-- Slide 7: Brown运动是Markov过程 -->
+    <div class="slide-container" id="slide7">
+        <h2 class="slide-title"><i class="fas fa-link"></i> Brown运动是 Markov 过程</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">由于独立增量性，区间 \([s, s+t]\) 上的增量 \(X(s+t) - X(s)\) 与时刻 \(s\) 之前的全部历史信息独立。</p>
+            <p style="font-size: 20px;">对任意 \(x, y \in \mathbb{R}\)，计算给定历史下的条件概率：</p>
+            <div class="math-box" style="text-align: left; padding: 15px 30px; font-size: 23px;">
+                \[
+                \begin{aligned}
+                & P(X(t+s) \le y \mid X(s)=x,\ X(u),\, 0 \le u < s) \\
+                =& P(X(t+s) - X(s) \le y-x \mid X(s)=x,\ X(u),\, 0 \le u < s) \\
+                =& P(X(t+s) - X(s) \le y-x) \\
+                =& P(X(t+s) \le y \mid X(s)=x)
+                \end{aligned}
+                \]
+            </div>
+            <p style="font-size: 24px; font-weight: bold; margin-top: 20px; text-align: center; color: #1e293b;">
+                给定现在状态后，将来分布与过去无关，故 Brown运动是 Markov过程。
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 8: 例7-1：求均值、方差、协方差与相关函数 -->
+    <div class="slide-container" id="slide8">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 7-1：求二阶矩特性 (1/2)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">设 Brown运动满足 \(X(t) \sim N(0, c^2 t)\)。求它的均值、方差、协方差函数与相关函数。</p>
+            
+            <div class="tile" style="border-top-color: #10b981; margin-top: 30px; padding: 40px;">
+                <h3 style="font-size: 24px;">一阶与方差计算</h3>
+                <p style="font-size: 20px;">由 \(N(0, c^2 t)\) 的定义，立即可以得到：</p>
+                <div class="math-box">
+                    \[E[X(t)] = 0\]
+                    \[\mathrm{Var}(X(t)) = c^2 t\]
+                </div>
+            </div>
+            <p style="font-size: 22px; margin-top: 30px; text-align: center; color: #475569;">接下来，我们计算不同时间点 \(t_1, t_2\) 之间的协方差结构。</p>
+        </div>
+    </div>
+
+    <!-- Slide 9: 例7-1：协方差与相关函数计算 -->
+    <div class="slide-container" id="slide9">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 7-1：协方差与相关函数计算 (2/2)</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">设 \(t_1 < t_2\)，巧妙利用增量 \(X(t_2)-X(t_1)\) 独立于 \(X(t_1)\) 的性质：</p>
+            <div class="math-box" style="text-align: left;">
+                \[
+                \begin{aligned}
+                R(t_1, t_2) &= E[X(t_1)X(t_2)] \\
+                &= E\Big(X(t_1)\big[X(t_2)-X(t_1)\big] + X^2(t_1)\Big) \\
+                &= E[X(t_1)] \cdot E[X(t_2)-X(t_1)] + E[X^2(t_1)] \\
+                &= 0 + c^2 t_1 = c^2 t_1
+                \end{aligned}
+                \]
+            </div>
+            <p style="font-size: 20px;">同理，当 \(t_2 < t_1\) 时，\(R(t_1, t_2) = c^2 t_2\)。综合起来，相关/协方差函数为：</p>
+            <div class="math-box" style="border-left: 6px solid #ec4899;">
+                \[c_X(s, t) = \mathrm{Cov}(X(s), X(t)) = c^2 \min\{s, t\}\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10-1: 标准Brown运动的记号与基本分布 -->
+    <div class="slide-container" id="slide10_1">
+        <h2 class="slide-title"><i class="fas fa-bookmark"></i> 标准 Brown 运动的核心特征 (1/2)</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #3b82f6; padding: 40px;">
+                <p style="font-size: 24px; margin-bottom: 20px;">对于标准Brown运动 \(B=\{B(t), t \ge 0\}\)，我们有以下核心单点分布特征：</p>
+                <div class="math-box" style="padding: 20px;">
+                    \[B(0) = 0, \qquad B(t) \sim N(0, t)\]
+                </div>
+                <p style="font-size: 24px; margin-top: 30px; margin-bottom: 20px;">由此可直接得出其期望与方差：</p>
+                <div class="math-box" style="padding: 20px; border-left: 6px solid #3b82f6;">
+                    \[E[B(t)] = 0, \qquad \mathrm{Var}(B(t)) = t\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10-2: 标准Brown运动的记号与基本分布 -->
+    <div class="slide-container" id="slide10_2">
+        <h2 class="slide-title"><i class="fas fa-bookmark"></i> 标准 Brown 运动的核心特征 (2/2)</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 40px;">
+                <p style="font-size: 24px; margin-bottom: 20px;">对于跨时间点的二阶矩特征，标准 Brown 运动的协方差结构为：</p>
+                <div class="math-box" style="padding: 30px; font-size: 28px; border-left: 6px solid #8b5cf6; ">
+                    \[\mathrm{Cov}(B(s), B(t)) = \min\{s, t\}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 11: 定理7-1：Brown运动的增量分布 -->
+    <div class="slide-container" id="slide11">
+        <h2 class="slide-title"><i class="fas fa-chart-area"></i> 定理 7-1：Brown运动的增量分布</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">对任意时间划分：</p>
+            <div class="math-box">
+                \[0 \le t_1 < \cdots < t_n < +\infty\]
+            </div>
+            <p style="font-size: 24px;">Brown运动的增量满足：</p>
+            <div class="math-box" style="border-left: 6px solid #10b981;">
+                \[B(t_i) - B(t_{i-1}) \sim N(0, t_i - t_{i-1}), \qquad i=1, \dots, n\]
+            </div>
+            <p style="font-size: 24px; text-align: center; font-weight: bold; color: #1e293b; margin-top: 15px;">
+                并且这些增量相互独立。
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 12: 定理7-1：方差验证 -->
+    <div class="slide-container" id="slide12">
+        <h2 class="slide-title"><i class="fas fa-check-square"></i> 定理 7-1：方差的代数验证</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">我们可以纯粹通过协方差结构 \(\mathrm{Cov}(B(s), B(t)) = \min\{s, t\}\) 来验证增量的方差：</p>
+            <div class="math-box" style="text-align: left; padding: 20px 40px; font-size: 20px;">
+                \[
+                \begin{aligned}
+                \mathrm{Var}\big(B(t_i) - B(t_{i-1})\big) &= E\left[\big(B(t_i) - B(t_{i-1})\big)^2\right] \\
+                &= E[B^2(t_i)] - 2E[B(t_i)B(t_{i-1})] + E[B^2(t_{i-1})] \\
+                &= t_i - 2\min\{t_i, t_{i-1}\} + t_{i-1} \\
+                &= t_i - 2t_{i-1} + t_{i-1} \\
+                &= t_i - t_{i-1}
+                \end{aligned}
+                \]
+            </div>
+            <div class="tile" style="border-top-color: #3b82f6; text-align: center; padding: 15px; margin-top: 20px;">
+                <p style="margin: 0; font-size: 22px; font-weight: bold;">故 \(B(t_i) - B(t_{i-1}) \sim N(0, t_i - t_{i-1})\)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13: Brown运动与Poisson过程的比较 -->
+    <div class="slide-container" id="slide13">
+        <h2 class="slide-title"><i class="fas fa-balance-scale-right"></i> Brown运动 vs Poisson过程</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">两者都是独立增量过程，都具有<strong>平稳增量</strong>和<strong>独立增量</strong>。但它们的本质截然不同：</p>
+            
+            <div class="two-column-top" style="margin-top: 20px;">
+                <div class="tile" style="border-top-color: #f59e0b;">
+                    <h3 style="font-size: 24px; color: #b45309;"><i class="fas fa-level-up-alt"></i> Poisson过程</h3>
+                    <ul class="bullet-list" style="font-size: 18px;">
+                        <li>增量服从 <strong>Poisson 分布</strong>（离散）。</li>
+                        <li>样本轨道是<strong>跳跃式</strong>的阶梯。</li>
+                        <li>常用于描述离散事件的离散计数。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 24px; color: #1d4ed8;"><i class="fas fa-wave-square"></i> Brown运动</h3>
+                    <ul class="bullet-list" style="font-size: 18px;">
+                        <li>增量服从 <strong>正态分布</strong>（连续）。</li>
+                        <li>样本轨道是<strong>连续但粗糙</strong>的曲线。</li>
+                        <li>常用于描述连续状态的随机波动。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="slide-container compare-sim-slide">
+    <h2 class="slide-title"><i class="fas fa-code-compare"></i> 两大基石：布朗运动 vs 泊松过程</h2>
+    <div class="content-area">
+
+        <div class="compare-sim-wrap">
+            <div class="compare-sim-header">
+                <button id="compareSimBtn" onclick="startCompareSimulation()" class="compare-sim-btn">
+                    启动对比仿真
+                </button>
+            </div>
+
+            <div class="compare-sim-main">
+                <!-- Brown运动 -->
+                <div class="compare-panel bm">
+                    <div id="scannerBMCompare" class="compare-scanner-line"></div>
+                    <div class="compare-panel-top">
+                        <span class="compare-panel-tag">布朗运动轨道 \(W(t)\)</span>
+                        <span id="valBMCompare" class="compare-panel-value">0.00</span>
+                    </div>
+                    <canvas id="canvasBMCompare" class="compare-canvas"></canvas>
+                </div>
+
+                <!-- 泊松过程 -->
+                <div class="compare-panel pp">
+                    <div id="scannerPPCompare" class="compare-scanner-line"></div>
+                    <div class="compare-panel-top">
+                        <span class="compare-panel-tag">泊松过程轨道 \(N(t)\)</span>
+                        <span id="valPPCompare" class="compare-panel-value">0</span>
+                    </div>
+                    <canvas id="canvasPPCompare" class="compare-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="compare-time-axis">时间轴 \(t \in [0,T]\)</div>
+        </div>
+
+    </div>
+</div>
+
+    <!-- Slide 14: 7.3 Brown运动的推广 -->
+    <div class="slide-container" id="slide14" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+        <div class="content-area" style="align-items: center; text-align: center;">
+            <h2 style="font-size: 64px; margin-bottom: 20px;">7.3 Brown运动的推广</h2>
+        </div>
+    </div>
+
+    <!-- Slide 15: 定义7-2：正态过程 -->
+    <div class="slide-container" id="slide15">
+        <h2 class="slide-title"><i class="fas fa-bell"></i> 定义 7-2：正态过程 (Gauss Process)</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #3b82f6; padding: 30px;">
+                <p style="font-size: 24px;">随机过程 \(\{X(t), t \ge 0\}\) 称为<strong>正态过程（高斯过程）</strong>，若对任意有限个时间点：</p>
+                <div class="math-box">
+                    \[0 \le t_1 < \cdots < t_n\]
+                </div>
+                <p style="font-size: 24px;">其抽样构成的随机向量：</p>
+                <div class="math-box" style="border-left: 6px solid #3b82f6;">
+                    \[(X(t_1), X(t_2), \dots, X(t_n))\qquad \text{服从n维多元正态分布。}\]
+                </div>
+                <p style="font-size: 24px; font-weight: bold; color: #1e293b; text-align: center;">所谓 Gauss 过程，是指所有有限维分布都是多元正态分布的随机过程。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 16-1: Brown运动为什么是正态过程？ -->
+    <div class="slide-container" id="slide16_1">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> Brown运动为什么是正态过程？(1/2)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">设 \(\{X(t)\}\) 为Brown运动。为了证明它是正态过程，任取有限个时间点 \(t_1 < \cdots < t_n\)。</p>
+            <p style="font-size: 24px; margin-top: 20px;">我们将每个时刻的位置巧妙地拆解为<strong>增量之和</strong>：</p>
+            <div class="math-box" style="font-size: 28px; padding: 25px;">
+                \[X(t_k) = \sum_{i=1}^k \big(X(t_i) - X(t_{i-1})\big), \qquad X(t_0)=0\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 16-2: Brown运动为什么是正态过程？ -->
+    <div class="slide-container" id="slide16_2">
+        <h2 class="slide-title"><i class="fas fa-check-circle"></i> Brown运动为什么是正态过程？(2/2)</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #ec4899; padding: 40px;">
+                <p style="font-size: 24px; margin-bottom: 20px;">依据Brown运动的定义，各个增量片段：</p>
+                <div class="math-box" style="background: transparent; box-shadow: none; color: #1e293b; font-size: 24px;">
+                    \[X(t_1),\ X(t_2)-X(t_1),\ \dots,\ X(t_n)-X(t_{n-1})\]
+                </div>
+                <p style="font-size: 24px; color: #9d174d; font-weight: bold; margin-top: 20px; text-align: center;">
+                    不仅服从正态分布，而且是相互独立的！
+                </p>
+            </div>
+            <p style="font-size: 24px; margin-top: 20px;">因为 \((X(t_1), \dots, X(t_n))\) 是独立正态变量的线性组合，从而必然服从多元正态分布。</p>
+            <p style="font-size: 24px; font-weight: bold; color: #1e293b; text-align: center;">所以 Brown运动是正态过程。</p>
+        </div>
+    </div>
+
+
+    <!-- Slide：引理 7.2.1 多元正态分布的一个性质 -->
+<div class="slide-container" id="slide-lemma-721">
+    <h2 class="slide-title"><i class="fas fa-diagram-project"></i> 引理 7.2.1：独立正态变量的线性组合</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:28px;">
+            <p style="font-size:22px; line-height:1.8;">
+                设
+                \(
+                X\sim N(\mu_1,\sigma_1^2),\quad
+                Y\sim N(\mu_2,\sigma_2^2)
+                \)，
+                且 \(X\) 与 \(Y\) 相互独立，则随机向量
+                \(
+                (X,\ X+Y)
+                \)
+                服从二维正态分布。
+                 \[
+            (X,\ X+Y)\sim N(\boldsymbol\mu,\boldsymbol\Sigma)
+            \]
+            </p>
+        </div>
+
+    
+        <div class="two-column-top" style="margin-top:20px;">
+            <div class="tile" style="border-top-color:#10b981; padding:26px;">
+                <h3 style="font-size:23px; color:#047857;">
+                    <i class="fas fa-location-dot"></i> 均值向量
+                </h3>
+                <div class="math-box math-box-short" style="font-size:23px;">
+                    \[
+                    \boldsymbol\mu
+                    =
+                    \begin{pmatrix}
+                    \mu_1\\
+                    \mu_1+\mu_2
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color:#ec4899; padding:26px; background:#fff7fb;">
+                <h3 style="font-size:23px; color:#9d174d;">
+                    <i class="fas fa-table-cells"></i> 协方差矩阵
+                </h3>
+                <div class="math-box math-box-short" style="font-size:21px;">
+                    \[
+                    \boldsymbol\Sigma
+                    =
+                    \begin{pmatrix}
+                    \sigma_1^2 & \sigma_1^2\\
+                    \sigma_1^2 & \sigma_1^2+\sigma_2^2
+                    \end{pmatrix}
+                    \]
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：引理 7.2.1 的直观解释 -->
+<div class="slide-container" id="slide-lemma-721-explain">
+    <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 引理 7.2.1：为什么协方差矩阵这样写？</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            关键是分别计算 \((X,\ X+Y)\) 的方差与协方差。
+        </p>
+
+        <div class="math-box" style="font-size:24px; padding:18px; text-align:left;">
+            \[
+            \begin{aligned}
+            \operatorname{Var}(X)
+            &=\sigma_1^2,\\[4pt]
+            \operatorname{Var}(X+Y)
+            &=\operatorname{Var}(X)+\operatorname{Var}(Y)
+            =\sigma_1^2+\sigma_2^2,\\[4pt]
+            \operatorname{Cov}(X,X+Y)
+            &=\operatorname{Cov}(X,X)+\operatorname{Cov}(X,Y)\\
+            &=\sigma_1^2+0
+            =\sigma_1^2.
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; background:#faf5ff; padding:28px; margin-top:20px;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-comment-dots"></i> 直观理解
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                \(X+Y\) 里面包含了 \(X\)，所以 \(X\) 与 \(X+Y\) 当然相关。
+                相关的那部分正好来自 \(X\) 自己，因此协方差是 \(\sigma_1^2\)。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：定理 7.2.1 Brown 运动是 Gauss 过程 -->
+<div class="slide-container" id="slide-theorem-721">
+    <h2 class="slide-title"><i class="fas fa-bell"></i> 定理 7.2.1：Brown 运动是 Gauss 过程</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:30px;">
+            <p style="font-size:23px; line-height:1.85;">
+                Brown 运动 \(\{B(t),t\ge0\}\) 是一个 Gauss 过程，
+                其均值函数和协方差函数分别为：
+            </p>
+        </div>
+
+        <div class="two-column-top" style="margin-top:24px;">
+            <div class="tile" style="border-top-color:#10b981; padding:30px;">
+                <h3 style="font-size:24px; color:#047857;">
+                    <i class="fas fa-chart-line"></i> 均值函数
+                </h3>
+                <div class="math-box" style="font-size:28px;">
+                    \[
+                    m(t)=E[B(t)]=0
+                    \]
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color:#ec4899; padding:30px; background:#fff7fb;">
+                <h3 style="font-size:24px; color:#9d174d;">
+                    <i class="fas fa-grid-2"></i> 协方差函数
+                </h3>
+                <div class="math-box" style="font-size:28px;">
+                    \[
+                    \gamma(s,t)=\min\{s,t\}
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box" style="margin-top:24px;">
+            <p><i class="fas fa-pen-nib"></i> 结论</p>
+            <span style="font-size:22px; color:#0369a1;">
+                Brown 运动不仅每个时刻服从正态分布，而且任意有限多个时刻组成的随机向量都服从多元正态分布。
+            </span>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动协方差函数的推导 -->
+<div class="slide-container" id="slide-bm-cov-proof-1">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> Brown 运动协方差函数的推导（1）</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            由于 Brown 运动的均值为 \(0\)，所以其协方差函数为：
+        </p>
+
+        <div class="math-box" style="font-size:27px; padding:20px; border-left:8px solid #3b82f6;">
+            \[
+            \gamma(s,t)
+            =
+            \operatorname{Cov}[B(t),B(s)]
+            =
+            E[B(t)B(s)]
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:28px; margin-top:24px; background:#faf5ff;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-lightbulb"></i> 计算思路
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                两个时刻 \(s,t\) 谁小，协方差就等于谁。
+                因为较早时刻的随机波动会保留到较晚时刻中，而之后新增的增量与过去独立。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动协方差函数的推导 -->
+<div class="slide-container" id="slide-bm-cov-proof-2">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> Brown 运动协方差函数的推导（2）</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            若 \(t\lt s\)，则可以把较晚时刻 \(B(s)\) 拆成：
+        </p>
+
+        <div class="math-box" style="font-size:26px; padding:18px; border-left:8px solid #8b5cf6;">
+            \[
+            B(s)=B(t)+\bigl[B(s)-B(t)\bigr]
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            由独立增量性，\(B(s)-B(t)\) 与 \(B(t)\) 独立，并且均值为 \(0\)。因此：
+        </p>
+
+        <div class="math-box" style="font-size:23px; padding:20px; text-align:left;">
+            \[
+            \begin{aligned}
+            E[B(t)B(s)]
+            &=
+            E\left[B(t)\left(B(t)+B(s)-B(t)\right)\right]\\
+            &=
+            E[B^2(t)]
+            +
+            E\left\{B(t)[B(s)-B(t)]\right\}\\
+            &=
+            E[B^2(t)]
+            +
+            E[B(t)]E[B(s)-B(t)]\\
+            &=
+            t+0\\
+            &=
+            t.
+            \end{aligned}
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：Brown 运动协方差函数的推导 -->
+<div class="slide-container" id="slide-bm-cov-proof-3">
+    <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> Brown 运动协方差函数的推导（3）</h2>
+    <div class="content-area">
+
+        <div class="two-column-top">
+            <div class="tile" style="border-top-color:#3b82f6; padding:30px;">
+                <h3 style="font-size:24px;">
+                    <i class="fas fa-less-than"></i> 情形一：\(t\lt s\)
+                </h3>
+                <div class="math-box" style="font-size:27px;">
+                    \[
+                    E[B(t)B(s)]=t
+                    \]
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color:#10b981; padding:30px; background:#f0fdf4;">
+                <h3 style="font-size:24px; color:#047857;">
+                    <i class="fas fa-greater-than"></i> 情形二：\(t\gt s\)
+                </h3>
+                <div class="math-box" style="font-size:27px;">
+                    \[
+                    E[B(t)B(s)]=s
+                    \]
+                </div>
+            </div>
+        </div>
+
+        <div class="math-box" style="font-size:30px; padding:22px; margin-top:30px; border-left:8px solid #ec4899;">
+            \[
+            \gamma(s,t)
+            =
+            \operatorname{Cov}[B(t),B(s)]
+            =
+            \min\{s,t\}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#f59e0b; background:#fffaf0; padding:24px; margin-top:24px;">
+            <p style="font-size:21px; line-height:1.8; color:#78350f;">
+                这个公式非常重要：Brown 运动的协方差只由两个时刻中较早的那个决定。
+                早期积累的随机性会一直保留，后来的新增波动与过去独立。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：为什么 Brown 运动是 Gauss 过程 -->
+<div class="slide-container" id="slide-bm-gauss-proof">
+    <h2 class="slide-title"><i class="fas fa-sitemap"></i> 为什么 Brown 运动是 Gauss 过程？</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            对任意有限个时间点
+            \[
+            0\leqslant t_1\lt t_2\lt \cdots \lt t_n,
+            \]
+            可以把每个 \(B(t_k)\) 写成增量之和：
+        </p>
+
+        <div class="math-box" style="font-size:25px; padding:10px; border-left:8px solid #3b82f6;">
+            \[
+            B(t_k)
+            =
+            \sum_{i=1}^{k}
+            \left[B(t_i)-B(t_{i-1})\right],
+            \qquad t_0=0
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:8px; margin-top:22px; background:#faf5ff;">
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                Brown 运动的各段增量相互独立，并且都服从正态分布。
+                因此，\((B(t_1),\dots,B(t_n))\) 是独立正态增量的线性组合，
+                必然服从多元正态分布。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：定理 7.2.1 总结 -->
+<div class="slide-container" id="slide-theorem-721-summary">
+    <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 定理 7.2.1 总结</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:10px;">
+            <ul class="bullet-list" style="font-size:22px; line-height:2;">
+                <li>Brown 运动的均值函数为 \(m(t)=0\)；</li>
+                <li>Brown 运动的协方差函数为 \(\gamma(s,t)=\min\{s,t\}\)；</li>
+                <li>Brown 运动的任意有限维分布都是多元正态分布；</li>
+                <li>因此 Brown 运动是 Gauss 过程。</li>
+            </ul>
+        </div>
+
+        <div class="math-box" style="font-size:27px; padding:10px; margin-top:26px; border-left:8px solid #10b981;">
+            \[
+            \{B(t),t\ge0\}
+            \sim
+            \text{Gauss process with }
+            m(t)=0,\quad
+            \gamma(s,t)=\min\{s,t\}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#ec4899; background:#fff7fb; padding:10px; margin-top:20px;">
+            <p style="font-size:21px; line-height:1.8; color:#831843;">
+                这说明 Brown 运动虽然路径看起来乱得像没有收拾过的桌面，
+                但它的有限维分布结构非常规整：完全由均值函数和协方差函数决定。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+  <!-- Slide：例 7.2.1 题目与思路 -->
+<div class="slide-container" id="slide-example-721-1">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 7-2：Brown 运动线性组合的分布（1）</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:10px;">
+            <h3 style="font-size:24px;"
+                <i class="fas fa-question-circle"></i> 问题
+            </h3>
+            <p style="font-size:23px; line-height:1.85;">
+                设 \(\{B(t)\}\) 是 Brown 运动，求
+            </p>
+            <div class="math-box" style="font-size:30px; padding:10px; border-left:8px solid #3b82f6;">
+                \[
+                B(1)+B(2)+B(3)+B(4)
+                \]
+            </div>
+            <p style="font-size:23px; line-height:1.85;">
+                的分布。
+            </p>
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:8px; margin-top:22px; background:#faf5ff;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-lightbulb"></i> 思路
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                先把四个时刻的 Brown 运动取值组成一个随机向量，
+                利用 Brown 运动是 Gauss 过程，得到它服从多元正态分布。
+                然后用“正态向量的线性组合仍然正态”求和的分布。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.1 随机向量与协方差矩阵 -->
+<div class="slide-container" id="slide-example-721-2">
+    <h2 class="slide-title"><i class="fas fa-table"></i> 例 7.2.1：构造正态向量</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            考虑随机向量
+        </p>
+
+        <div class="math-box" style="font-size:27px; padding:8px; border-left:8px solid #3b82f6;">
+            \[
+            \boldsymbol X
+            =
+            \bigl(B(1),B(2),B(3),B(4)\bigr)^{\prime}
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            由定理 7.2.1 可知，\(\boldsymbol X\) 服从多元正态分布，均值为零向量。
+            其协方差为
+            \[
+            \operatorname{Cov}(B(s),B(t))=\min\{s,t\}
+            \]
+           
+        </p>
+
+        <div class="math-box" style="font-size:25px; padding:10px;">
+            \[
+            \boldsymbol{\Sigma}
+            =
+            \begin{pmatrix}
+            1 & 1 & 1 & 1\\
+            1 & 2 & 2 & 2\\
+            1 & 2 & 3 & 3\\
+            1 & 2 & 3 & 4
+            \end{pmatrix}
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.1 线性组合计算 -->
+<div class="slide-container" id="slide-example-721-3">
+    <h2 class="slide-title"><i class="fas fa-plus"></i> 例 7-2：线性组合的分布</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            令
+        </p>
+
+        <div class="math-box" style="font-size:27px; padding:10px;">
+            \[
+            \boldsymbol A=(1,1,1,1)
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            则
+        </p>
+
+        <div class="math-box" style="font-size:26px; padding:10px; border-left:8px solid #8b5cf6;">
+            \[
+            \boldsymbol A\boldsymbol X
+            =
+            X_1+X_2+X_3+X_4
+            =
+            B(1)+B(2)+B(3)+B(4)
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#10b981; padding:28px; margin-top:20px; background:#f0fdf4;">
+            <p style="font-size:22px; line-height:1.8; color:#166534;">
+                因为 \(\boldsymbol X\) 是多元正态向量，
+                所以它的任意线性组合 \(\boldsymbol A\boldsymbol X\) 仍服从正态分布。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.1 方差计算 -->
+<div class="slide-container" id="slide-example-721-4">
+    <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> 例 7-2：均值与方差</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.2;">
+            该线性组合的均值为
+        </p>
+
+        <div class="math-box" style="font-size:27px; padding:10px;">
+            \[
+            E(\boldsymbol A\boldsymbol X)=0
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.2;">
+            方差为
+        </p>
+
+        <div class="math-box" style="font-size:25px; padding:10px; border-left:8px solid #ec4899;">
+            \[
+            \operatorname{Var}(\boldsymbol A\boldsymbol X)
+            =
+            \boldsymbol A\boldsymbol\Sigma\boldsymbol A^{\prime}
+            =
+            30
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:8px; margin-top:24px;">
+            <h3 style="font-size:24px;">
+                <i class="fas fa-check-circle"></i> 结论
+            </h3>
+            <div class="math-box" style="font-size:25px; padding:5px; border-left:8px solid #3b82f6;">
+                \[
+                B(1)+B(2)+B(3)+B(4)
+                \sim
+                N(0,30)
+                \]
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.1 方差 30 从哪里来 -->
+<div class="slide-container" id="slide-example-721-5">
+    <h2 class="slide-title"><i class="fas fa-list-ol"></i> 例 7-2：为什么方差是 30？</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            因为
+            \(
+            \boldsymbol A\boldsymbol\Sigma\boldsymbol A^{\prime}
+            \)
+            等于协方差矩阵中所有元素的总和。
+        </p>
+
+        <div class="math-box" style="font-size:24px; padding:18px; text-align:left;">
+            \[
+            \begin{aligned}
+            \boldsymbol A\boldsymbol\Sigma\boldsymbol A^{\prime}
+            =30.
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#f59e0b; padding:24px; background:#fffaf0; margin-top:20px;">
+            <p style="font-size:21px; line-height:1.8; color:#78350f;">
+                注意：这些 \(B(1),B(2),B(3),B(4)\) 不是相互独立的。
+                越晚的 \(B(t)\) 包含了前面时刻的随机波动，所以协方差矩阵不是对角阵。
+               
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.2 题目与思路 -->
+<div class="slide-container" id="slide-example-722-1">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 7-3：缩短时间尺度后的线性组合</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:10px;">
+            <h3 style="font-size:24px;">
+                <i class="fas fa-question-circle"></i> 问题:求
+            </h3>
+            
+            <div class="math-box" style="font-size:25px; padding:10px; border-left:8px solid #3b82f6;">
+                \[
+                B\left(\frac14\right)
+                +
+                B\left(\frac12\right)
+                +
+                B\left(\frac34\right)
+                +
+                B(1)
+                \]
+            </div>
+            <p style="font-size:23px; line-height:1.85;">
+                的分布。
+            </p>
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:8px; margin-top:22px; background:#faf5ff;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-lightbulb"></i> 思路
+            </h3>
+            <p style="font-size:22px; line-height:1.0; color:#4c1d95;">
+                这组时间点
+                \[
+                \frac14,\frac12,\frac34,1
+                \]
+                正好是上一题时间点 \(1,2,3,4\) 的 \(\frac14\) 倍。
+                Brown 运动的协方差函数为 \(\min\{s,t\}\)，所以整个协方差矩阵也缩小为上一题的 \(\frac14\)。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.2 随机向量与协方差矩阵 -->
+<div class="slide-container" id="slide-example-722-2">
+    <h2 class="slide-title"><i class="fas fa-table"></i> 例 7-3：构造正态向量</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            考虑随机向量
+        </p>
+
+        <div class="math-box" style="font-size:25px; padding:18px; border-left:8px solid #3b82f6;">
+            \[
+            \boldsymbol Y
+            =
+            \left(
+            B\left(\frac14\right),
+            B\left(\frac12\right),
+            B\left(\frac34\right),
+            B(1)
+            \right)^{\prime}
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            与上一例相比，时间点整体缩小为原来的 \(\frac14\)，因此协方差矩阵为
+        </p>
+
+        <div class="math-box" style="font-size:25px; padding:20px;">
+            \[
+            \operatorname{Cov}(\boldsymbol Y)
+            =
+            \frac14
+            \boldsymbol\Sigma
+            =
+            \frac14
+            \begin{pmatrix}
+            1 & 1 & 1 & 1\\
+            1 & 2 & 2 & 2\\
+            1 & 2 & 3 & 3\\
+            1 & 2 & 3 & 4
+            \end{pmatrix}
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.2 线性组合结果 -->
+<div class="slide-container" id="slide-example-722-3">
+    <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> 例 7-3：求和的分布</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            仍令\(
+            \boldsymbol A=(1,1,1,1)
+            \), 则
+        </p>
+
+        <div class="math-box" style="font-size:25px; padding:18px; border-left:8px solid #8b5cf6;">
+            \[
+            \boldsymbol A\boldsymbol Y
+            =
+            B\left(\frac14\right)
+            +
+            B\left(\frac12\right)
+            +
+            B\left(\frac34\right)
+            +
+            B(1)
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            其均值为 \(0\)，方差为：
+        </p>
+
+        <div class="math-box" style="font-size:26px; padding:8px; border-left:8px solid #ec4899;">
+            \[
+            \operatorname{Var}(\boldsymbol A\boldsymbol Y)
+            =
+            \boldsymbol A
+            \left(\frac14\boldsymbol\Sigma\right)
+            \boldsymbol A^{\prime}
+            =
+            \frac14\cdot 30
+            =
+            \frac{15}{2}
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：例 7.2.2 结论 -->
+<div class="slide-container" id="slide-example-722-4">
+    <h2 class="slide-title"><i class="fas fa-check-circle"></i> 例 7-3：结论</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#10b981; padding:10px; background:#f0fdf4;">
+            <h3 style="font-size:25px; color:#047857;">
+                <i class="fas fa-flag-checkered"></i> 最终结果
+            </h3>
+
+            <div class="math-box" style="font-size:29px; padding:10px; border-left:8px solid #10b981;">
+                \[
+                B\left(\frac14\right)
+                +
+                B\left(\frac12\right)
+                +
+                B\left(\frac34\right)
+                +
+                B(1)
+                \sim
+                N\left(0,\frac{15}{2}\right)
+                \]
+            </div>
+        </div>
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:8px; margin-top:24px;">
+            <h3 style="font-size:24px;">
+                <i class="fas fa-lightbulb"></i> 对比上一题
+            </h3>
+            <p style="font-size:22px; line-height:1.8;">
+                上一题的时间点是 \(1,2,3,4\)，方差为 \(30\)；
+                本题的时间点是上一题的 \(\frac14\)，因此协方差矩阵整体乘以 \(\frac14\)，
+                方差也变为
+                \[
+                \frac14\times 30=\frac{15}{2}.
+                \]
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：两个例题方法总结 -->
+<div class="slide-container" id="slide-example-72-summary">
+    <h2 class="slide-title"><i class="fas fa-clipboard-check"></i> Brown 运动线性组合例题总结</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:34px;">
+            <h3 style="font-size:25px;">
+                <i class="fas fa-list-ol"></i> 通用步骤
+            </h3>
+            <ul class="bullet-list" style="font-size:22px; line-height:2;">
+                <li>第一步：把若干时刻的 Brown 运动取值组成正态向量；</li>
+                <li>第二步：利用 \(\operatorname{Cov}(B(s),B(t))=\min\{s,t\}\) 写出协方差矩阵；</li>
+                <li>第三步：把要求的和写成 \(\boldsymbol A\boldsymbol X\)；</li>
+                <li>第四步：用线性组合公式求均值和方差。</li>
+            </ul>
+        </div>
+
+        <div class="math-box" style="font-size:27px; padding:22px; margin-top:24px; border-left:8px solid #8b5cf6;">
+            \[
+            \boldsymbol X\sim N(\boldsymbol 0,\boldsymbol\Sigma)
+            \quad\Longrightarrow\quad
+            \boldsymbol A\boldsymbol X
+            \sim
+            N\left(0,\boldsymbol A\boldsymbol\Sigma\boldsymbol A^{\prime}\right)
+            \]
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+
+<!-- Slide：例 7.2.3 题目 -->
+<div class="slide-container" id="slide-example-723-1">
+    <h2 class="slide-title"><i class="fas fa-integral"></i> 例 7-4：Brown 运动积分的概率计算（1）</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:10px;">
+            <h3 style="font-size:25px;">
+                <i class="fas fa-question-circle"></i> 问题
+            </h3>
+            <p style="font-size:23px; line-height:1.85;">
+                设 \(\{B(t),0\leqslant t\leqslant 1\}\) 是标准 Brown 运动，求概率
+            </p>
+
+            <div class="math-box" style="font-size:30px; padding:5px; border-left:8px solid #3b82f6;">
+                \[
+                P\left\{
+                \int_0^1 B(t)\,\mathrm dt
+                >
+                \frac{2}{\sqrt{3}}
+                \right\}
+                \]
+            </div>
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:8px; margin-top:22px; background:#faf5ff;">
+            <h3 style="font-size:24px; color:#6d28d9;">
+                <i class="fas fa-lightbulb"></i> 核心思路
+            </h3>
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                Brown 运动路径连续，所以对每一条样本路径来说，
+                Riemann 积分
+                \(
+                \int_0^1 B(t)\,\mathrm dt
+                \)
+                是存在的。问题的关键是：先找出这个随机积分的分布。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：从 Riemann 和理解 Brown 运动积分 -->
+<div class="slide-container" id="slide-example-723-2">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 例 7-4：从 Riemann 和理解</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            由 Riemann 积分的定义，可以用分割和来逼近：
+        </p>
+
+        <div class="math-box" style="font-size:26px; padding:8px; border-left:8px solid #8b5cf6;">
+            \[
+            \int_0^1 B(t)\,\mathrm dt
+            \approx
+            \sum_i B(t_i)\Delta t_i
+            \]
+        </div>
+
+        <p style="font-size:22px; line-height:1.8;">
+            其中 \(t_i\) 是 \([0,1]\) 的分点，
+            \(
+            \Delta t_i=t_{i+1}-t_i.
+            \)
+        </p>
+
+        <div class="tile" style="border-top-color:#10b981; padding:8px; margin-top:22px; background:#f0fdf4;">
+            <p style="font-size:22px; line-height:1.8; color:#166534;">
+                例如取
+                \(
+                t_i=\frac{i}{n}.
+                \)
+                当 \(n=4\) 时，逼近和与前面例题中的 Brown 运动取值求和密切相关。
+                这说明：积分可以看成“越来越密的 Brown 运动取值加权和”。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：积分为什么服从正态分布 -->
+<div class="slide-container" id="slide-example-723-3">
+    <h2 class="slide-title"><i class="fas fa-bell"></i> 例 7-4：积分为什么是正态的？</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:10px;">
+            <p style="font-size:22px; line-height:1.85;">
+                对任意有限分割，
+                \(
+                \sum_i B(t_i)\Delta t_i
+                \)
+                是 Brown 运动有限多个时刻取值的线性组合。
+            </p>
+        </div>
+
+        <div class="math-box" style="font-size:26px; padding:8px; border-left:8px solid #3b82f6;">
+            \[
+            \sum_i B(t_i)\Delta t_i
+            \quad\text{服从正态分布}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; padding:8px; margin-top:22px; background:#faf5ff;">
+            <p style="font-size:22px; line-height:1.8; color:#4c1d95;">
+                当分割越来越细时，这些正态随机变量收敛到
+                \(
+                \int_0^1 B(t)\,\mathrm dt.
+                \),
+                因此该积分仍服从正态分布。
+                又因为 \(E[B(t)]=0\)，所以它的均值也是 \(0\)。
+            </p>
+        </div>
+
+        <div class="math-box" style="font-size:27px; padding:18px; border-left:8px solid #10b981;">
+            \[
+            \int_0^1 B(t)\,\mathrm dt
+            \sim
+            N(0,\sigma^2)
+            \]
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：计算积分的方差 -->
+<div class="slide-container" id="slide-example-723-4">
+    <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> 例 7-4：计算积分的方差（1）</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            下面计算
+            \(
+            \int_0^1 B(t)\,\mathrm dt
+            \)
+            的方差。
+        </p>
+
+        <div class="math-box" style="font-size:22px; padding:5px; text-align:left; border-left:8px solid #8b5cf6;">
+            \[
+            \begin{aligned}
+            \operatorname{Var}\left[
+            \int_0^1 B(t)\,\mathrm dt
+            \right]
+            &=
+            \operatorname{Cov}
+            \left[
+            \int_0^1 B(t)\,\mathrm dt,
+            \int_0^1 B(s)\,\mathrm ds
+            \right]\\
+            &=
+            E\left[
+            \int_0^1 B(t)\,\mathrm dt
+            \int_0^1 B(s)\,\mathrm ds
+            \right].
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#3b82f6; padding:10px; margin-top:20px;">
+            <p style="font-size:21px; line-height:1.8;">
+                因为该积分的均值为 \(0\)，所以方差等于二阶矩。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：计算积分的方差 -->
+<div class="slide-container" id="slide-example-723-5">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 7-4：计算积分的方差（2）</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            利用 Fubini 交换积分与期望，并代入 Brown 运动的协方差函数：
+        </p>
+
+        <div class="math-box" style="font-size:21px; padding:20px; text-align:left; border-left:8px solid #ec4899;">
+            \[
+            \begin{aligned}
+            \operatorname{Var}\left[
+            \int_0^1 B(t)\,\mathrm dt
+            \right]
+            &=
+            \int_0^1\int_0^1 E[B(t)B(s)]\,\mathrm dt\,\mathrm ds\\
+            &=
+            \int_0^1\int_0^1
+            \operatorname{Cov}[B(t),B(s)]\,\mathrm dt\,\mathrm ds\\
+            &=
+            \int_0^1\int_0^1
+            \min\{t,s\}\,\mathrm dt\,\mathrm ds.
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#10b981; padding:24px; margin-top:20px; background:#f0fdf4;">
+            <p style="font-size:21px; line-height:1.8; color:#166534;">
+                这里用到了 Brown 运动的重要结论：
+                \[
+                \operatorname{Cov}[B(t),B(s)]=\min\{t,s\}.
+                \]
+                
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：二重积分的计算 -->
+<div class="slide-container" id="slide-example-723-6">
+    <h2 class="slide-title"><i class="fas fa-grid-2"></i> 例 7-4：二重积分怎么算？</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            在单位正方形 \([0,1]\times[0,1]\) 上，
+            按照 \(s\leqslant t\) 和 \(s\gt t\) 分成两块。
+        </p>
+
+        <div class="math-box" style="font-size:22px; padding:20px; text-align:left; border-left:8px solid #3b82f6;">
+            \[
+            \begin{aligned}
+            \int_0^1\int_0^1 \min\{t,s\}\,\mathrm dt\,\mathrm ds
+            &=
+            2\int_0^1\int_0^t s\,\mathrm ds\,\mathrm dt\\
+            &=
+            2\int_0^1 \frac{t^2}{2}\,\mathrm dt\\
+            &=
+            \int_0^1 t^2\,\mathrm dt\\
+            &=
+            \frac13.
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#8b5cf6; background:#faf5ff; padding:24px; margin-top:20px;">
+            <p style="font-size:21px; line-height:1.8; color:#4c1d95;">
+                由于 \(\min\{t,s\}\) 关于 \(s,t\) 对称，所以只算三角形区域再乘以 \(2\)。
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：积分分布结论 -->
+<div class="slide-container" id="slide-example-723-7">
+    <h2 class="slide-title"><i class="fas fa-check-circle"></i> 例 7-4：积分的分布</h2>
+    <div class="content-area">
+
+        <div class="tile" style="border-top-color:#10b981; padding:34px; background:#f0fdf4;">
+            <h3 style="font-size:25px; color:#047857;">
+                <i class="fas fa-flag-checkered"></i> 结论
+            </h3>
+
+            <p style="font-size:23px; line-height:1.85; color:#166534;">
+                因为
+                \[
+                E\left[\int_0^1 B(t)\,\mathrm dt\right]=0,
+                \qquad
+                \operatorname{Var}\left[
+                \int_0^1 B(t)\,\mathrm dt
+                \right]=\frac13,
+                \]
+                所以
+            </p>
+
+            <div class="math-box" style="font-size:31px; padding:22px; border-left:8px solid #10b981;">
+                \[
+                \int_0^1 B(t)\,\mathrm dt
+                \sim
+                N\left(0,\frac13\right)
+                \]
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：概率计算 -->
+<div class="slide-container" id="slide-example-723-8">
+    <h2 class="slide-title"><i class="fas fa-percent"></i> 例 7-4：计算所求概率</h2>
+    <div class="content-area">
+
+        <p style="font-size:22px; line-height:1.8;">
+            由
+            \[
+            \int_0^1 B(t)\,\mathrm dt
+            \sim
+            N\left(0,\frac13\right),
+            \]
+            标准化得到：
+        </p>
+
+        <div class="math-box" style="font-size:23px; padding:10px; text-align:left; border-left:8px solid #8b5cf6;">
+            \[
+            \begin{aligned}
+            P\left\{
+            \int_0^1 B(t)\,\mathrm dt
+            >
+            \frac{2}{\sqrt3}
+            \right\}
+            &=
+            P\left\{
+            \sqrt3
+            \int_0^1 B(t)\,\mathrm dt
+            >
+            2
+            \right\}\\
+            &=
+            1-\Phi(2).
+            \end{aligned}
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#ec4899; padding:28px; margin-top:22px; background:#fff7fb;">
+            <p style="font-size:22px; line-height:1.8; color:#831843;">
+                其中 \(\Phi(x)\) 是标准正态分布的分布函数。
+                查表可得
+                \(
+                \Phi(2)\approx 0.977.
+                \)
+            </p>
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Slide：最终答案 -->
+<div class="slide-container" id="slide-example-723-9">
+    <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 例 7-4：最终答案</h2>
+    <div class="content-area">
+
+        <div class="math-box" style="font-size:32px; padding:6px; border-left:8px solid #3b82f6;">
+            \[
+            P\left\{
+            \int_0^1 B(t)\,\mathrm dt
+            >
+            \frac{2}{\sqrt3}
+            \right\}
+            =
+            1-\Phi(2)
+            \approx
+            0.023
+            \]
+        </div>
+
+        <div class="tile" style="border-top-color:#10b981; padding:5px; margin-top:28px; background:#f0fdf4;">
+            <h3 style="font-size:24px; color:#047857;">
+                <i class="fas fa-lightbulb"></i> 方法总结
+            </h3>
+            <ul class="bullet-list" style="font-size:21px; line-height:2;">
+                <li>Brown 运动路径连续，所以 Riemann 积分存在；</li>
+                <li>积分可由 Brown 运动有限维线性组合逼近；</li>
+                <li>因此积分服从正态分布；</li>
+                <li>再用协方差函数 \(\min\{s,t\}\) 计算方差；</li>
+                <li>最后标准化为标准正态概率。</li>
+            </ul>
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+
+
+
+
+    <!-- Slide 18: 例7-2：Brown桥过程的定义 -->
+    <div class="slide-container" id="slide18">
+        <h2 class="slide-title"><i class="fas fa-archway"></i> 例 7-5：Brown 桥 (Brownian Bridge)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">设 \(\{B(t), t \ge 0\}\) 是标准Brown运动，我们定义一个新的过程：</p>
+            <div class="math-box" style="font-size: 28px; padding: 25px; border-left: 6px solid #3b82f6;">
+                \[X(t) = B(t) - t B(1), \qquad 0 \le t \le 1\]
+            </div>
+            <div class="tile" style="border-top-color: #10b981; margin-top: 20px;">
+                <p style="font-size: 20px; margin-bottom: 10px;">观察它的两端取值：</p>
+                <div class="math-box" style="font-size: 20px; padding: 10px; background: transparent; color: #1e293b; box-shadow: none;">
+                    \[X(0) = B(0) - 0 \cdot B(1) = 0\]
+                    \[X(1) = B(1) - 1 \cdot B(1) = 0\]
+                </div>
+            </div>
+            <p style="font-size: 24px; margin-top: 20px; text-align: center;">所以 Brown桥是一条“从 0 出发，最终又回到 0”的随机轨道。</p>
+        </div>
+    </div>
+
+    <!-- Slide 19: 例7-2：Brown桥的均值与协方差 -->
+    <div class="slide-container" id="slide19">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> Brown桥的均值与协方差</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">Brown桥是正态过程的线性组合，必然也是正态过程。只需计算均值与协方差：</p>
+            <div class="math-box" style="font-size: 20px;">
+                \[E[X(t)] = E[B(t)] - t E[B(1)] = 0\]
+            </div>
+            <p style="font-size: 22px;">协方差的具体计算如下 (\(s, t \in [0, 1]\))：</p>
+            <div class="math-box" style="text-align: left; padding: 15px 40px; font-size: 18px;">
+                \[
+                \begin{aligned}
+                \mathrm{Cov}(X(s), X(t)) &= \mathrm{Cov}\big(B(s) - sB(1), \, B(t) - tB(1)\big) \\
+                &= \mathrm{Cov}(B(s), B(t)) - s\mathrm{Cov}(B(1), B(t)) - t\mathrm{Cov}(B(s), B(1)) + st\mathrm{Var}(B(1)) \\
+                &= \min\{s,t\} - st - ts + st \\
+                &= \min\{s,t\} - st
+                \end{aligned}
+                \]
+            </div>
+            <div class="math-box" style="font-size: 22px; border-left: 6px solid #ec4899; margin-top: 10px;">
+                \[c_X(s, t) = \min\{s, t\} - st\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 20: Brown桥的意义 -->
+    <div class="slide-container" id="slide20">
+        <h2 class="slide-title"><i class="fas fa-star"></i> Brown 桥的特性与意义</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 24px;">核心特点</h3>
+                    <ul class="bullet-list" style="font-size: 20px;">
+                        <li><strong>起点固定：</strong> \(X(0) = 0\)</li>
+                        <li><strong>终点固定：</strong> \(X(1) = 0\)</li>
+                        <li>中间部分仍有随机波动。</li>
+                        <li>仍然是一个高斯过程。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 24px;">学术应用</h3>
+                    <p style="font-size: 20px; line-height: 1.8;">
+                        Brown桥在<strong>经验分布函数</strong>、<strong>统计推断</strong>（如 Kolmogorov-Smirnov 检验的极限分布）、以及<strong>经验过程理论</strong>中扮演着核心角色。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21: 例7-3：带漂移的Brown运动 -->
+    <div class="slide-container" id="slide21">
+        <h2 class="slide-title"><i class="fas fa-location-arrow"></i> 例 7-6：带漂移的 Brown 运动 (BM with Drift)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">若随机过程 \(\{X(t), t \ge 0\}\) 满足：</p>
+            <div class="tile" style="border-top-color: #3b82f6; padding: 10px; margin-top: 20px;">
+                <ul class="bullet-list" style="font-size: 22px; line-height: 2;">
+                    <li>（1）从零出发：\(P(X(0)=0) = 1\)</li>
+                    <li>（2）有平稳独立增量</li>
+                    <li>（3）对每个 \(t > 0\)，边缘分布满足：
+                        <div class="math-box" style="font-size: 24px; padding: 15px; margin: 15px 0;">
+                            \[X(t) \sim N(\mu t, \sigma^2 t)\]
+                        </div>
+                        <span style="font-size: 18px; color: #64748b;">(其中 \(\sigma > 0, \mu \in \mathbb{R}\))</span>
+                    </li>
+                </ul>
+            </div>
+            <p style="text-align: center; font-size: 24px; font-weight: bold; margin-top: 30px; color: #1e293b;">
+                则称 \(\{X(t)\}\) 为 <span style="color: #3b82f6;">带漂移的 Brown 运动</span>。
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 22: 带漂移Brown运动的表达式 -->
+    <div class="slide-container" id="slide22">
+        <h2 class="slide-title"><i class="fas fa-code"></i> 带漂移 Brown 运动的表达式</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">利用标准 Brown 运动，我们可以非常直观地将其构造出来：</p>
+            <div class="math-box" style="font-size: 28px; padding: 25px; border-left: 6px solid #10b981;">
+                \[X(t) = \mu t + \sigma B(t), \qquad t \ge 0\]
+            </div>
+            <div class="two-column-top" style="margin-top: 20px;">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 20px;">高斯特征</h3>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[E[X(t)] = \mu t\]
+                        \[c_X(s, t) = \sigma^2 \min\{s, t\}\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 20px;">还原变换</h3>
+                    <p style="font-size: 18px;">若去掉均值趋势作变换：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[Y(t) = X(t) - \mu t\]
+                    </div>
+                    <p style="font-size: 16px; color: #9d174d;">则 \(Y(t)\) 重新转化为普通的中心化 Brown 运动。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 23: 带漂移Brown运动的直观解释 -->
+    <div class="slide-container" id="slide23">
+        <h2 class="slide-title"><i class="fas fa-comment-dots"></i> 带漂移过程的物理与直观解释</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">带漂移的 Brown 运动 \(X(t) = \mu t + \sigma B(t)\) 描述的是：</p>
+            <div class="tile" style="border-top-color: #3b82f6; padding: 30px; margin-top: 20px;">
+                <ul class="bullet-list" style="font-size: 22px;">
+                    <li>一个质点在直线上做无规则的<strong>随机游动</strong> (\(\sigma B(t)\))</li>
+                    <li>同时又带有平均速率为 \(\mu\) 的<strong>定向移动</strong> (\(\mu t\))</li>
+                </ul>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 20px; color: #475569;">
+                    <strong>参数含义：</strong><br>
+                    • \(\mu > 0\)：平均向上漂移<br>
+                    • \(\mu < 0\)：平均向下漂移<br>
+                    • \(\sigma\)：控制随机波动的强弱（波动率）
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 24: 例7-4：几何Brown运动 -->
+    <div class="slide-container" id="slide24">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 7-7：几何 Brown 运动 (Geometric BM)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">设 \(\{B(t), t \ge 0\}\) 是标准Brown运动，定义指数形式的新过程：</p>
+            <div class="math-box" style="font-size: 32px; padding: 5px; border-left: 6px solid #f59e0b;">
+                \[X(t) = \exp\{\mu t + \sigma B(t)\}, \qquad t \ge 0\]
+            </div>
+            <p style="font-size: 24px; text-align: center; margin-top: 20px;">称为 <strong>几何 Brown 运动 (GBM)</strong>。</p>
+            
+            <div class="tile" style="border-top-color: #10b981; margin-top: 30px;">
+                <ul class="bullet-list" style="font-size: 20px;">
+                    <li>它是带漂移Brown运动的指数形式。</li>
+                    <li>它<strong>不是</strong>正态过程（服从对数正态分布）。</li>
+                    <li>在<strong>金融数学与金融工程</strong>中处于统治地位（如 Black-Scholes 模型）。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 25: 例7-4：几何Brown运动的均值 -->
+    <div class="slide-container" id="slide25">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 几何 Brown 运动的均值 (需避坑)</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">计算 GBM 的期望时，需要利用对数正态变量的矩母函数性质：若 \(Z \sim N(0, \sigma^2 t)\)，则 \(E(e^Z) = e^{\sigma^2 t / 2}\)。</p>
+            <div class="math-box" style="text-align: left; padding: 20px 40px;">
+                \[
+                \begin{aligned}
+                E[X(t)] &= E\left(e^{\mu t + \sigma B(t)}\right) \\
+                &= e^{\mu t} E\left(e^{\sigma B(t)}\right) \\
+                &= e^{\mu t} \cdot e^{\frac{1}{2} \sigma^2 t} \\
+                &= e^{\left(\mu + \frac{\sigma^2}{2}\right)t}
+                \end{aligned}
+                \]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 26: 例7-4：协方差与方差函数 -->
+    <div class="slide-container" id="slide26">
+        <h2 class="slide-title"><i class="fas fa-chart-area"></i> 几何 Brown 运动的方差与协方差</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">当 \(s \le t\) 时，利用指数增量的独立性，可以推导协方差为：</p>
+            <div class="math-box">
+                \[c_X(t, s) = e^{\left(\mu + \frac{\sigma^2}{2}\right)(t+s)} \left(e^{\sigma^2 s} - 1\right)\]
+            </div>
+            <p style="font-size: 22px; margin-top: 20px;">特别地，当 \(t = s\) 时，方差函数为：</p>
+            <div class="math-box" style="border-left: 6px solid #8b5cf6;">
+                \[\mathrm{Var}(X(t)) = e^{(2\mu + \sigma^2)t} \left(e^{\sigma^2 t} - 1\right)\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 27: 例7-5：股票单周期收益率 -->
+    <div class="slide-container" id="slide27">
+        <h2 class="slide-title"><i class="fas fa-money-check-alt"></i> 例 7-8：金融资产的单周期收益率建模</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 22px;">模型假设</h3>
+                    <p style="font-size: 18px;">设对数收益过程服从带漂移 Brown 运动：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[X(T) \sim N(\mu T, \sigma^2 T)\]
+                    </div>
+                    <p style="font-size: 18px;">某股票当前价格为 \(S\)，经历一个周期 \(T\) 后价格为几何模型：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[S(T) = S e^{X(T)}\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 22px;">单周期收益率</h3>
+                    <p style="font-size: 18px;">相对收益率定义为：</p>
+                    <div class="math-box" style="font-size: 20px; padding: 15px;">
+                        \[\frac{S(T) - S}{S} = e^{X(T)} - 1\]
+                    </div>
+                    <p style="font-size: 18px; color: #475569; margin-top: 15px;">
+                        这是连续复利下的几何 Brown 运动模型中最常见的收益率形式。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 28: 例7-5：期望收益率与标准差 -->
+    <div class="slide-container" id="slide28">
+        <h2 class="slide-title"><i class="fas fa-percentage"></i> 例 7-8：期望收益率与风险 (标准差)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">利用前面推导的 GBM 的矩，可直接写出收益率的特征：</p>
+            <div class="tile" style="border-top-color: #ec4899; margin-top: 20px; padding: 30px;">
+                <h3 style="font-size: 22px;">期望收益率</h3>
+                <div class="math-box" style="font-size: 22px; padding: 15px;">
+                    \[E(e^{X(T)} - 1) = e^{\left(\mu + \frac{\sigma^2}{2}\right)T} - 1\]
+                </div>
+                <h3 style="font-size: 22px; margin-top: 30px;">收益率的风险 (标准偏差)</h3>
+                <div class="math-box" style="font-size: 22px; padding: 15px;">
+                    \[\sqrt{\mathrm{Var}(e^{X(T)} - 1)} = e^{\left(\mu + \frac{\sigma^2}{2}\right)T} \sqrt{e^{\sigma^2 T} - 1}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    
+    <div class="slide-container" id="slide18">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> Brown 运动相关的经典鞅</h2>
+        <div class="content-area">
+            <div class="tile fragment" data-step="1" style="border-top-color: #3b82f6;">
+                <h3 style="font-size: 22px;">设 \(B=\{B_t,t\ge0\}\) 是标准 Brown 运动，即\(B_t\sim N(0,t)\).</h3>
+                <ul class="bullet-list" style="font-size: 20px; margin-top: 12px;">
+                    <li>\(\{B_t,t\ge0\}\)</li>
+                    <li>\(\{B_t^2-t,t\ge0\}\)</li>
+                    <li>\(\left\{\exp\left(\sigma B_t-\frac{\sigma^2}{2}t\right),t\ge0\right\}\)</li>
+                </ul>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color: #10b981;">
+                <h3 style="font-size: 22px;">指数鞅的关键验证</h3>
+                <div class="math-box math-box-short" style="font-size: 18px;">
+                    \[
+                    E\left[e^{\sigma B_t-\frac{\sigma^2}{2}t}\mid \mathcal F_s\right]
+                    =e^{\sigma B_s-\frac{\sigma^2}{2}s}
+                    \]
+                </div>
+                <p style="font-size: 18px; margin-top: 10px;">利用独立增量性与正态分布矩母函数即可完成证明。</p>
+            </div>
+        </div>
+    </div>
+   
+
+
+    <div class="slide-container" id="slide21">
+        <h2 class="slide-title"><i class="fas fa-wave-square"></i> Brown 运动的鞅变换</h2>
+        <div class="content-area">
+            <p class="fragment" data-step="1">
+    设 \(B=\{B_t,t\ge0\}\) 为标准 Brown 运动，取划分 \(0=t_0\lt t_1\lt \cdots \lt t_n=t\)。
+</p>       
+            <div class="two-column-top fragment" data-step="2" style="margin-top: 18px;">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 22px;">鞅差</h3>
+                    <div class="math-box math-box-short">
+                        \[
+                        \Delta_iB=B_{t_i}-B_{t_{i-1}}
+                        \]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 22px;">可预见序列</h3>
+                    <div class="math-box math-box-short">
+                        \[
+                        \widetilde{B}_i=B_{t_{i-1}}
+                        \]
+                    </div>
+                </div>
+            </div>
+            <div class="math-box math-box-short fragment" data-step="3" style="border-left: 4px solid #ec4899;">
+                \[
+                (\widetilde{B}\cdot \Delta B)_k
+                =
+                \sum_{i=1}^k B_{t_{i-1}}\bigl(B_{t_i}-B_{t_{i-1}}\bigr)
+                \]
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Slide 29: 例7-6：先击中哪一个边界？ -->
+    <div class="slide-container" id="slide29">
+        <h2 class="slide-title"><i class="fas fa-door-open"></i> 例 7-9：边界击中概率 (Hitting Probability)</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">设随机过程为带漂移的 Brown 运动：\(X(t) = \mu t + B(t)\)。</p>
+            <p style="font-size: 20px;">存在上下边界 \(a, b > 0\)，且起点 \(-b < x < a\)。我们想求过程从 \(x\) 出发，在碰到下边界 \(-b\) 之前，<strong>率先击中上边界 \(a\)</strong> 的概率：</p>
+            <div class="math-box">
+                \[f(x) = P\big(X(t) \text{ 在击中 } -b \text{ 之前击中 } a \mid X(0)=x\big)\]
+            </div>
+            
+            <div class="tile" style="border-top-color: #8b5cf6; margin-top: 15px; padding: 5px;">
+                <p style="font-size: 18px; margin-bottom: 10px;">用首中时 (Hitting Time) 严格定义边界：</p>
+                <div class="math-box" style="background: transparent; color: #1e293b; box-shadow: none;">
+                    \[T_a = \min\{t > 0 : X(t) = a\}\]
+                    \[T_{-b} = \min\{t > 0 : X(t) = -b\}\]
+                </div>
+                <p style="font-size: 18px; margin-top: 10px; font-weight: bold; text-align: center; color: #ec4899;">
+                    目标即求： \(f(x) = P(T_a < T_{-b} < +\infty \mid X(0)=x)\)
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 30: 例7-6：建立微分方程 -->
+    <div class="slide-container" id="slide30">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 例 7-9：利用泰勒展开建立微分方程</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">考虑极短时间 \(h > 0\)，增量 \(Y = X(h) - X(0) \sim N(\mu h, h)\)。其矩为：</p>
+            <div class="math-box">
+                \[E(Y) = \mu h, \qquad E(Y^2) = \mu^2 h^2 + h\]
+            </div>
+            <div class="two-column-top" style="margin-top: 15px;">
+                <div class="tile" style="border-top-color: #3b82f6; padding: 20px;">
+                    <h3 style="font-size: 20px;">全概率分解</h3>
+                    <p style="font-size: 16px;">由无后效性，概率可以转移：</p>
+                    <div class="math-box">
+                        \[f(x) = E[f(x+Y)] + o(h)\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #10b981; padding: 20px;">
+                    <h3 style="font-size: 20px;">Taylor 展开</h3>
+                    <p style="font-size: 16px;">对 \(f(x+Y)\) 在 \(x\) 处展开：</p>
+                    <div class="math-box">
+                        \[f(x+Y) \approx f(x) + Y f'(x) + \frac{1}{2}Y^2 f''(x)\]
+                    </div>
+                </div>
+            </div>
+            <p style="font-size: 20px; margin-top: 15px;">两边取期望，消去 \(f(x)\) 并除以 \(h\)，当 \(h \to 0\) 时得到经典常微分方程：</p>
+            <div class="math-box" style="border-left: 6px solid #ec4899;">
+                \[\mu f'(x) + \frac{1}{2} f''(x) = 0\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 31-1: 例7-6：求解边界值问题 (1/2) -->
+    <div class="slide-container" id="slide31_1">
+        <h2 class="slide-title"><i class="fas fa-check"></i> 例 7-9：求解边界值常微分方程 (1/2)</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #3b82f6; padding: 10px;">
+                <h3 style="font-size: 26px; margin-bottom: 20px;">二阶线性常微分方程</h3>
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div class="math-box" style="display: inline-block; width: fit-content; font-size: 32px; padding: 20px 40px; margin: 0;">
+                        \[\mu f'(x) + \frac{1}{2} f''(x) = 0\]
+                    </div>
+                </div>
+                <h3 style="font-size: 26px; margin-bottom: 20px;">特征方程与通解</h3>
+                <p style="font-size: 22px;">特征方程为 \(\frac{1}{2}r^2 + \mu r = 0\)，解得通解形式：</p>
+                <div style="text-align: center;">
+                    <div class="math-box" style="display: inline-block; width: fit-content; font-size: 32px; padding: 20px 40px; border-left: 6px solid #8b5cf6; margin: 0;">
+                        \[f(x) = C_1 + C_2 e^{-2\mu x}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 31-2: 例7-6：求解边界值问题 (2/2) -->
+    <div class="slide-container" id="slide31_2">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 例 7-9：求解边界值常微分方程 (2/2)</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #ec4899; padding: 5px;">
+                <h3 style="font-size: 26px; margin-bottom: 20px;">代入物理边界条件</h3>
+                <p style="font-size: 24px;">（碰顶必赢，碰底必输）：</p>
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <div class="math-box" style="display: inline-block; width: fit-content; background: transparent; color: #1e293b; box-shadow: none; border: 2px dashed #ec4899; font-size: 28px; padding: 15px 30px; margin: 0;">
+                        \[f(a) = 1, \qquad f(-b) = 0\]
+                    </div>
+                </div>
+                <h3 style="font-size: 26px; margin-bottom: 20px;">最终解</h3>
+                <p style="font-size: 24px;">解出常数 \(C_1, C_2\)，得到终极概率公式：</p>
+                <div style="text-align: center;">
+                    <div class="math-box" style="display: inline-block; width: fit-content; font-size: 36px; padding: 25px 50px; border-left: 8px solid #3b82f6; margin: 0;">
+                        \[f(x) = \frac{e^{2\mu b} - e^{-2\mu x}}{e^{2\mu b} - e^{-2\mu a}}\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 32: 推论7-1：从 0 出发的击中概率 -->
+    <div class="slide-container" id="slide32">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 推论 7-1：单边击中概率与最大值</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #10b981; padding: 30px;">
+                    <h3 style="font-size: 22px;">从 0 出发的碰壁概率</h3>
+                    <p style="font-size: 18px;">代入起点 \(x=0\)：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[f(0) = \frac{e^{2\mu b} - 1}{e^{2\mu b} - e^{-2\mu a}}\]
+                    </div>
+                    <p style="font-size: 18px; margin-top: 15px;">若漂移向下 (\(\mu < 0\))，令下边界 \(b \to +\infty\)（即只有上边界）：</p>
+                    <div class="math-box" style="font-size: 18px; padding: 10px;">
+                        \[P(X(t) \text{ 迟早击中 } a \mid X(0)=0) = e^{2\mu a}\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899; padding: 30px;">
+                    <h3 style="font-size: 22px;">转化为最大值的分布</h3>
+                    <p style="font-size: 18px;">“迟早击中 \(a\)” 等价于“历史最大值超过 \(a\)”：</p>
+                    <div class="math-box">
+                        \[P\left(\max_{0 \le t < +\infty} X(t) \ge a \mid X(0)=0\right) = e^{-(-2\mu) a}\]
+                    </div>
+                    <p style="font-size: 20px; color: #1e293b; font-weight: bold; margin-top: 15px;">因此，当 \(\mu < 0\) 时，最大值服从参数为 \(-2\mu\) 的指数分布。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 33: 7.4 标准Brown运动的联合分布 -->
+    <div class="slide-container" id="slide33" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white;">
+        <div class="content-area" style="align-items: center; text-align: center;">
+            <h2 style="font-size: 64px; margin-bottom: 20px;">7.4 标准Brown运动的联合分布</h2>
+            
+        </div>
+    </div>
+
+
+    <!-- Slide 34: 定理7-2：有限维联合密度 -->
+    <div class="slide-container" id="slide34">
+        <h2 class="slide-title"><i class="fas fa-th"></i> 定理 7-2：有限维联合密度结构</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">对任意时间序列：\(0 = t_0 < t_1 < \cdots < t_n\)</p>
+            <p style="font-size: 24px;">随机向量 \((B(t_1), \dots, B(t_n))\) 的联合概率密度函数为：</p>
+            
+            <div class="math-box" style="border-left: 6px solid #3b82f6;">
+                \[f_B(x_1, \dots, x_n; t_1, \dots, t_n) = \prod_{i=1}^n p(x_i - x_{i-1}; t_i - t_{i-1})\]
+            </div>
+            
+            <p style="font-size: 22px; text-align: center; margin-top: 20px; color: #475569;">（其中初始化位置 \(x_0 = 0\)，\(B(t_0) = 0\)）</p>
+        </div>
+    </div>
+
+    <!-- Slide 35: 定理7-2：证明思路 -->
+    <div class="slide-container" id="slide35">
+        <h2 class="slide-title"><i class="fas fa-wrench"></i> 定理 7-2：联合密度的证明思路</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 20px;">1. 构造独立增量向量</h3>
+                    <p style="font-size: 16px;">令 \(X_1 = B(t_1)\)，\(X_i = B(t_i) - B(t_{i-1})\)。这 \(n\) 个变量相互独立。其联合密度即各边缘密度之积：</p>
+                    <div class="math-box" style="font-size: 16px; padding: 10px;">
+                        \[
+                        f_X(x_1, \dots, x_n) = \prod_{i=1}^n \frac{1}{\sqrt{2\pi(t_i-t_{i-1})}} \exp\left(-\frac{x_i^2}{2(t_i-t_{i-1})}\right)
+                        \]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 20px;">2. 多元变量的线性变换</h3>
+                    <p style="font-size: 16px;">原坐标 \(B(t_i)\) 可以表示为增量的累加：</p>
+                    <div class="math-box" style="font-size: 16px; padding: 10px;">
+                        \[B(t_i) = \sum_{k=1}^i X_k\]
+                    </div>
+                    <p style="font-size: 16px;">由于该变换是三角变换，其雅可比 (Jacobian) 行列式绝对值为 1。代入 \(x_i \to x_i - x_{i-1}\) 即可得证。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 36: 条件分布与转移密度 -->
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title"><i class="fas fa-random"></i> 条件分布与转移密度</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">由联合密度的乘积结构，如果已知 \(B(s) = y\)，我们求 \(B(s+t)\) 的条件密度：</p>
+            <div class="math-box" style="font-size: 26px; padding: 30px;">
+                \[
+                \begin{aligned}
+                p(x; t \mid y) &= p(x-y; t) \\
+                &= \frac{1}{\sqrt{2\pi t}} \exp\left(-\frac{(x-y)^2}{2t}\right)
+                \end{aligned}
+                \]
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Slide 36: 条件分布与转移密度 -->
+    <div class="slide-container" id="slide36">
+        <div class="content-area">
+            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 12px; margin-top: 30px; text-align: left;">
+                <p style="font-size: 20px; color: #0f0f11; margin-bottom: 10px;">单点密度 \(B(t) \sim N(0, t)\)：</p>
+                <div class="math-box" style="background: transparent; color: #171515; box-shadow: none;">
+                    \[p(x; t) = \frac{1}{\sqrt{2\pi t}} \exp\left(-\frac{x^2}{2t}\right)\]
+                </div>
+                <p style="font-size: 20px; color: #151515; margin-bottom: 10px; margin-top: 15px;">增量密度 \(B(t_2)-B(t_1) \sim N(0, t_2-t_1)\)：</p>
+                <div class="math-box" style="background: transparent; color: #fff; box-shadow: none;">
+                    \[p(x; t_2-t_1) = \frac{1}{\sqrt{2\pi(t_2-t_1)}} \exp\left(-\frac{x^2}{2(t_2-t_1)}\right)\]
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Slide 37: Brown运动的对称性 -->
+    <div class="slide-container" id="slide37">
+        <h2 class="slide-title"><i class="fas fa-arrows-alt-h"></i> Brown运动的绝对对称性</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">观察转移密度的正态钟形曲线特征，我们能得出：</p>
+            <div class="math-box" style="font-size: 26px; padding: 25px; border-left: 6px solid #10b981;">
+                \[P(B(s+t) > y \mid B(s)=y) = P(B(s+t) \le y \mid B(s)=y) = \frac{1}{2}\]
+            </div>
+            <div class="tile" style="border-top-color: #3b82f6; margin-top: 40px; padding: 40px; text-align: center;">
+                <h3 style="font-size: 26px; margin-bottom: 15px;">物理意义</h3>
+                <p style="font-size: 22px; color: #475569;">
+                    在给定当前位置 \(y\) 后，未来任意时刻 \(s+t\) 处于该水平面上方和下方的概率完全相同。<br><br>
+                    <strong>“从当前位置往后看，向上向下没有任何偏向。”</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 38: Brown运动满足的偏微分方程 -->
+    <div class="slide-container" id="slide38">
+        <h2 class="slide-title"><i class="fas fa-fire"></i> 转移密度与偏微分方程 (Heat Equation)</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">刚才得出的转移概率密度函数 \(p(x; t \mid y)\)：</p>
+            <div class="math-box" style="font-size: 22px; padding: 10px;">
+                \[p(x; t \mid y) = \frac{1}{\sqrt{2\pi t}} \exp\left(-\frac{(x-y)^2}{2t}\right)\]
+            </div>
+            <p style="font-size: 22px; margin-top: 20px;">如果你对它求导（对 \(t\) 求一阶偏导，对 \(x\) 求二阶偏导），你会发现它完美满足：</p>
+            <div class="math-box" style="font-size: 32px; padding: 10px; border-left: 6px solid #ef4444;">
+                \[\frac{\partial p}{\partial t} = \frac{1}{2} \frac{\partial^2 p}{\partial x^2}\]
+            </div>
+            <p style="font-size: 24px; margin-top: 20px; text-align: center; font-weight: bold; color: #1e293b;">它就是著名的热方程。</p>
+        </div>
+    </div>
+
+    <!-- Slide 39: 时间和空间齐次性 -->
+    <div class="slide-container" id="slide39">
+        <h2 class="slide-title"><i class="fas fa-clone"></i> 时间和空间的双重齐次性</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">对任意 \(s < t\)，转移概率密度可以写为：</p>
+            <div class="math-box" style="font-size: 26px;">
+                \[f(y, x; s, t) = \frac{1}{\sqrt{2\pi(t-s)}} \exp\left(-\frac{(x-y)^2}{2(t-s)}\right)\]
+            </div>
+            <div class="two-column" style="margin-top: 30px;">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 22px;">依赖的自变量：</h3>
+                    <ul class="bullet-list" style="font-size: 18px;">
+                        <li>只依赖于<strong>时间差</strong>：\(t - s\)</li>
+                        <li>只依赖于<strong>位置差</strong>：\(x - y\)</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 22px;">深刻结论：</h3>
+                    <ul class="bullet-list" style="font-size: 18px;">
+                        <li>具有<strong>时间齐次性</strong>（历史与现在的物理规律相同）</li>
+                        <li>具有<strong>空间齐次性</strong>（地球这头和那头的扩散规律相同）</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 40: 例7-7：反射Brown运动 -->
+    <div class="slide-container" id="slide40">
+        <h2 class="slide-title"><i class="fas fa-reply"></i> 例 7-10：反射 Brown 运动 (Reflected BM)</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">定义一个被强制限制在正半轴的随机过程： \[X(t) = |B(t)|\]</p>
+            
+            <p style="font-size: 22px; margin-top: 20px;">这称为在原点的<strong>反射 Brown 运动</strong>。对于分布特征：</p>
+            <div class="tile" style="border-top-color: #ec4899; margin-top: 10px;">
+                <ul class="bullet-list" style="font-size: 20px;">
+                    <li>当 \(x < 0\) 时，不可能发生：\(P(X(t) \le x) = 0\)</li>
+                    <li>当 \(x \ge 0\) 时，绝对值展开：
+                        <div class="math-box" style="background: transparent; box-shadow: none; color: #1e293b;padding: 5px;">
+                            \[P(X(t) \le x) = P(|B(t)| \le x) = P(-x \le B(t) \le x)\]
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 41: 例7-7：反射Brown运动的分布与矩 -->
+    <div class="slide-container" id="slide41">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 反射 Brown 运动的分布特征与矩</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #10b981; padding: 5px;">
+                    <h3 style="font-size: 20px;">转移密度 (折叠效应)</h3>
+                    <p style="font-size: 16px;">把位于负半轴的概率质量翻折到正半轴：</p>
+                    <div class="math-box">
+                        \[f(y,x; t) = p(x-y; t) + p(x+y; t)\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 5px;">
+                    <h3 style="font-size: 20px;">一阶矩期望</h3>
+                    <p style="font-size: 16px;">计算截断正态分布的绝对值期望：</p>
+                    <div class="math-box" style="font-size: 20px;">
+                        \[E[X(t)] = \int_{-\infty}^{+\infty} |x|p(x;t)\,dx = \sqrt{\frac{2t}{\pi}}\]
+                    </div>
+                </div>
+            </div>
+            <div class="tile" style="border-top-color: #3b82f6; margin-top: 15px; padding: 20px;">
+                <h3 style="font-size: 20px;">二阶特征</h3>
+                <div class="math-box">
+                    \[\mathrm{Var}(X(t)) = E[X^2(t)] - \frac{2t}{\pi} = t - \frac{2t}{\pi}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 42: 7.5 首中时与最大值 -->
+    <div class="slide-container" id="slide42" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+        <div class="content-area" style="align-items: center; text-align: center;">
+            <h2 style="font-size: 64px; margin-bottom: 20px;">7.5 首中时与最大值</h2>
+        </div>
+    </div>
+
+
+        <!-- Slide 43: 首中时与最大值的联系 -->
+    <div class="slide-container" id="slide43">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 首中时与最大值的精妙等价联系</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">探讨路径行为的极值特征与首次达标时间</p>
+             <div class="math-box" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); color: #fff; box-shadow: none; text-align: left;">
+                <p style="margin-bottom: 15px;">① 首中时 (Hitting Time)：首次触碰目标防线的时间</p>
+                \[T_a = \inf\{t : B(t) = a,\ t > 0\}\]
+            </div>
+             <div class="math-box" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); color: #fff; box-shadow: none; text-align: left;">
+                <p style="margin-top: 30px; margin-bottom: 15px;">② 最大值 (Running Maximum)：历史最高水位</p>
+                \[M(t) = \max_{0 \le s \le t} B(s)\]
+            </div>
+        </div>
+    </div>
+    <!-- Slide 43: 首中时与最大值的联系 -->
+    <div class="slide-container" id="slide43">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 首中时与最大值的精妙等价联系</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">对目标 \(a > 0\)，我们在逻辑上有一个非常优美的事件等价关系：</p>
+            <div class="math-box" style="font-size: 32px; padding: 30px; border-left: 6px solid #ec4899; background: #fdf2f8; color: #be185d;">
+                \[\{T_a \le t\} \iff \{M(t) \ge a\}\]
+            </div>
+            <p style="font-size: 24px; margin-top: 20px;">因此，它们的概率完全相同：</p>
+            <div class="math-box" style="font-size: 32px; padding: 20px;">
+                \[P(T_a \le t) = P(M(t) \ge a)\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 44: 定理7-3：首中时分布 -->
+    <div class="slide-container" id="slide44">
+        <h2 class="slide-title"><i class="fas fa-stopwatch"></i> 定理 7-3：首中时 \(T_a\) 的分布</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #10b981; padding: 30px;">
+                    <h3 style="font-size: 22px;">累积分布函数</h3>
+                    <div class="math-box">
+                        \[
+                        P(T_a \le t) = \frac{2}{\sqrt{2\pi}} \int_{\frac{|a|}{\sqrt{t}}}^{+\infty} e^{-x^2/2} \,dx
+                        \]
+                    </div>
+                    <p style="font-size: 16px; margin-top: 10px;">利用标准正态 CDF \(\Phi\) 可简写为：</p>
+                    <div class="math-box">
+                        \[P(T_a \le t) = 2\left[1 - \Phi\left(\frac{|a|}{\sqrt{t}}\right)\right]\]
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ef4444; padding: 30px;">
+                    <h3 style="font-size: 22px; color: #ef4444;">极限与期望特征</h3>
+                    <p style="font-size: 18px;">一个极其有趣的反直觉结论：</p>
+                    <div class="math-box" style="border-left: 4px solid #ef4444;">
+                        \[P(T_a < +\infty) = 1\]
+                        \[E(T_a) = +\infty\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 45: 定理7-3：证明思路 -->
+    <div class="slide-container" id="slide45">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 定理 7-3：基于反射原理的精妙证明</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 25px;">
+                <p style="font-size: 20px; margin-bottom: 10px;">利用全概率公式，按是否在时间 \(t\) 内击中过 \(a\) 来拆解：</p>
+                <div class="math-box">
+                    \[
+                    P(B(t) \ge a) = P(B(t) \ge a \mid T_a \le t)P(T_a \le t) + P(B(t) \ge a \mid T_a > t)P(T_a > t)
+                    \]
+                </div>
+            </div>
+            
+            <div class="two-column-top" style="margin-top: 15px;">
+                <div>
+                    <p style="font-size: 18px;">由于 \(T_a > t\) 意味着在 \(t\) 时刻还没碰到过 \(a\)，显然：</p>
+                    <div class="math-box">
+                        \[P(B(t) \ge a \mid T_a > t) = 0\]
+                    </div>
+                </div>
+                <div>
+                    <p style="font-size: 20px; font-weight: bold; color: #1e293b;">若 \(T_a \le t\)：</p>
+                    <p style="font-size: 18px;">即过程先前碰到了 \(a\)。由强马氏性与对称性：</p>
+                    <div class="math-box">
+                        \[P(B(t) \ge a \mid T_a \le t) = \frac{1}{2}\]
+                    </div>
+                </div>
+            </div>
+            
+            <p style="font-size: 22px; text-align: center; margin-top: 15px;">代入方程得 \(\frac{1}{2} P(T_a \le t) = P(B(t) \ge a)\)，于是：</p>
+            <div class="math-box" style="border-left: 6px solid #3b82f6;">
+                \[P(T_a \le t) = 2 P(B(t) \ge a)\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 46: 首中时分布的进一步结论 -->
+    <div class="slide-container" id="slide46">
+        <h2 class="slide-title"><i class="fas fa-exclamation-circle"></i> 首中时分布的进一步“反常”推论</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">由分布函数在极限下的取值可知：</p>
+            <div style="text-align: center;">
+                <div class="math-box" style="display: inline-block; width: fit-content; padding: 5px 30px;">
+                    \[P(T_a < +\infty) = \lim_{t \to +\infty} P(T_a \le t) = 2[1 - \Phi(0)] = 1\]
+                </div>
+            </div>
+            <p style="font-size: 22px; color: #1e293b; font-weight: bold; margin-top: 10px;">
+                即：Brown运动几乎必然在有限时间内击中任意水平 \(a\)。
+            </p>
+            
+            <div class="tile" style="border-top-color: #ec4899; margin-top: 20px; padding: 5px;">
+                <p style="font-size: 20px;">但另一方面，由正值随机变量期望的尾积分公式：</p>
+                <div style="text-align: center;">
+                    <div class="math-box" style="display: inline-block; width: fit-content; padding: 5px 30px;">
+                        \[E(T_a) = \int_0^{+\infty} P(T_a > x) \,dx\]
+                    </div>
+                </div>
+                <p style="font-size: 20px;">积分发散，可严谨推出 <strong>\(E(T_a) = +\infty\)</strong>。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 47: 首中时的密度函数 -->
+    <div class="slide-container" id="slide47">
+        <h2 class="slide-title"><i class="fas fa-wave-square"></i> 首中时的概率密度函数</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">我们将分布函数 \(P(T_a \le t)\) 对时间 \(t\) 求导，应用微积分基本定理与复合函数求导链式法则，可得 \(T_a\) 的概率密度函数为：</p>
+            
+            <div class="math-box" style="border-left: 6px solid #8b5cf6;">
+                \[f_{T_a}(t) = \frac{|a|}{\sqrt{2\pi}} \, t^{-3/2} \exp\left(-\frac{a^2}{2t}\right)\]
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 48: 最大值 M(t) 的分布 -->
+    <div class="slide-container" id="slide48">
+        <h2 class="slide-title"><i class="fas fa-level-up-alt"></i> 最大值 \(M(t)\) 的概率密度</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">因为事件等价关系 \(\{M(t) \ge a\} \iff \{T_a \le t\}\)，所以当 \(a \ge 0\) 时其互补分布为：</p>
+            <div class="math-box"  style="font-size: 24px; padding: 5px;">
+                \[P(M(t) \ge a) = \frac{2}{\sqrt{2\pi}} \int_{a/\sqrt{t}}^{+\infty} e^{-x^2/2} \,dx\]
+            </div>
+            <p style="font-size: 22px; margin-top: 15px;">为了求密度函数 \(f_{M(t)}(a)\)，我们将上式对边界值 \(a\) 求导（取负号）：</p>
+            <div class="math-box" style="border-left: 6px solid #ec4899;font-size: 24px; padding: 5px;">
+                \[
+                f_{M(t)}(a) =
+                \begin{cases}
+                \dfrac{2}{\sqrt{2\pi t}} \exp\left(-\dfrac{a^2}{2t}\right), & a \ge 0 \\[15pt]
+                0, & a \lt 0
+                \end{cases}
+                \]
+            </div>
+            <p style="text-align: center; color: #475569; font-size: 20px; margin-top: 15px;">
+                可见，Brown运动在区间上的最大值，相当于“半个正态分布”（折叠在正半轴）。
+            </p>
+        </div>
+    </div>
+
+    <!-- Slide 49: 第7章小结 -->
+    <div class="slide-container" id="slide49">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 第 7 章 本章总结</h2>
+        <div class="content-area">
+            <div style="background: #f8fafc; padding: 35px; border-radius: 16px; border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6;">
+                <div class="two-column-top">
+                    <div>
+                        <h3 style="font-size: 22px; color: #1e293b; margin-bottom: 10px;">1. 基础构架</h3>
+                        <ul class="bullet-list" style="font-size: 18px;">
+                            <li><strong>定义三要素：</strong>从 0 出发、平稳独立增量、正态增量。</li>
+                            <li><strong>属性双重性：</strong>既是 Markov 过程（无后效性），又是高斯过程（完全由均值与协方差 \(\min\{s,t\}\) 决定）。</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 22px; color: #1e293b; margin-bottom: 10px;">2. 核心延展</h3>
+                        <ul class="bullet-list" style="font-size: 18px;">
+                            <li><strong>三大推广：</strong>Brown桥（两端固定）、带漂移（趋势+波动）、几何（指数模型，金融基石）。</li>
+                            <li><strong>PDE 联系：</strong>转移密度满足著名的热传导方程。</li>
+                            <li><strong>边界与极值：</strong>首中时与最大值的等价关系、反射原理的妙用，以及期望无限的反常属性。</li>
+                        </ul>
+                    </div>
+                </div>
+               
+            </div>
+             <div class="math-box" style="margin-top: 30px; font-size: 26px; border: none; color: #38bdf8;">
+                    \(\text{Brown运动} = \text{连续时间随机波动的终极标准基石}\)
+                </div>
+        </div>
+    </div>
+
+    <!-- Slide 50: 课堂思考题 -->
+    <div class="slide-container" id="slide50">
+        <h2 class="slide-title"><i class="fas fa-chalkboard-teacher"></i> 课堂思考题</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 50px;">
+                <ul class="bullet-list" style="font-size: 22px; line-height: 2.5;">
+                    <li><i class="fas fa-question-circle" style="color: #8b5cf6;"></i> Brown运动与 Poisson过程都具有平稳独立增量，它们最本质的区别是什么体现在样本路径上？</li>
+                    <li><i class="fas fa-question-circle" style="color: #8b5cf6;"></i> 为什么说 Brown运动既是 Markov过程，又是高斯过程？两者分别提供了什么数学便利？</li>
+                    <li><i class="fas fa-question-circle" style="color: #8b5cf6;"></i> Brown桥和普通 Brown运动相比，方差函数在 \(t=1\) 处发生了怎样的质变？</li>
+                    <li><i class="fas fa-question-circle" style="color: #8b5cf6;"></i> 几何 Brown运动为什么天然更适合用来描述股票资产的长期价格过程？</li>
+                    <li><i class="fas fa-question-circle" style="color: #8b5cf6;"></i> 为什么首中时 \(T_a\) 满足 \(P(T_a < \infty) = 1\)，但数学期望 \(E(T_a) = \infty\)？</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const slides = Array.from(document.querySelectorAll('.slide-container'));
+    let currentSlideIndex = 0;
+
+    function isPresentationMode() {
+        return document.body.classList.contains('presentation-mode');
+    }
+
+    function applyPresentationScale(slide) {
+        if (!isPresentationMode() || !slide) return;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scale = Math.min(vw / 1280, vh / 720);
+        slide.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function showSlide(index) {
+        slides.forEach(slide => slide.classList.remove('active-slide'));
+        if (!slides[index]) return;
+        const slide = slides[index];
+        slide.classList.add('active-slide');
+        applyPresentationScale(slide);
+    }
+
+    function goNextSlide() {
+        if (currentSlideIndex < slides.length - 1) {
+            currentSlideIndex++;
+            showSlide(currentSlideIndex);
+        }
+    }
+
+    function goPrevSlide() {
+        if (currentSlideIndex > 0) {
+            currentSlideIndex--;
+            showSlide(currentSlideIndex);
+        }
+    }
+
+    function bindControlEventGuards() {
+        const selector = 'button, a, input, select, textarea, canvas, label, [contenteditable="true"], .bm-fractal-zoom-box, .bm-fractal-slider-wrap, .compare-sim-wrap, .bm-toolbar, .bm-microscope';
+        document.querySelectorAll(selector).forEach(el => {
+            ['click', 'dblclick', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'input', 'change', 'wheel'].forEach(type => {
+                el.addEventListener(type, function (ev) {
+                    ev.stopPropagation();
+                });
+            });
+        });
+    }
+
+    function getActiveSlide() {
+        if (isPresentationMode()) return slides[currentSlideIndex];
+
+        const centerElement = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        const centerSlide = centerElement ? centerElement.closest('.slide-container') : null;
+        if (centerSlide) return centerSlide;
+
+        const viewportCenter = window.innerHeight / 2;
+        let bestSlide = slides[0];
+        let bestDistance = Infinity;
+        slides.forEach(slide => {
+            const rect = slide.getBoundingClientRect();
+            const center = rect.top + rect.height / 2;
+            const distance = Math.abs(center - viewportCenter);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestSlide = slide;
+            }
+        });
+        return bestSlide;
+    }
+
+    function getHiddenFragments(slide) {
+        return [...slide.querySelectorAll('.fragment:not(.show)')];
+    }
+
+    function getShownFragments(slide) {
+        return [...slide.querySelectorAll('.fragment.show')];
+    }
+
+    function updateAllShownState(slide) {
+        if (!slide.querySelector('.fragment')) {
+            slide.classList.add('all-shown');
+            return;
+        }
+        if (slide.querySelector('.fragment:not(.show)')) {
+            slide.classList.remove('all-shown');
+        } else {
+            slide.classList.add('all-shown');
+        }
+    }
+
+    function rerenderMath(el) {
+        if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+            MathJax.typesetPromise([el]).catch(function (err) {
+                console.error('MathJax 渲染失败:', err);
+            });
+        }
+    }
+
+    function normalizeFormulaBoxes() {
+        document.querySelectorAll('.math-box').forEach(box => {
+            const style = (box.getAttribute('style') || '').toLowerCase();
+            const className = box.className.toLowerCase();
+            const needsLight =
+                className.includes('transparent-math') ||
+                className.includes('formula-plain') ||
+                className.includes('light-formula') ||
+                style.includes('background: transparent') ||
+                style.includes('background:transparent') ||
+                style.includes('#fdf2f8') ||
+                style.includes('#fff') ||
+                style.includes('#fef2f2') ||
+                style.includes('#fef3c7') ||
+                style.includes('#d1fae5') ||
+                style.includes('#e0f2fe') ||
+                style.includes('box-shadow: none') ||
+                style.includes('box-shadow:none');
+
+            if (needsLight) {
+                box.classList.add('light-formula');
+            }
+        });
+    }
+
+    function autoFragmentizeSlides() {
+        slides.forEach(slide => {
+            if (slide.classList.contains('title-slide')) return;
+            const area = slide.querySelector('.content-area');
+            if (!area) return;
+
+            const directChildren = [...area.children].filter(el => el && el.tagName !== 'SCRIPT');
+            const hasAnyFragment = area.querySelector('.fragment');
+
+            if (!hasAnyFragment) {
+                directChildren.forEach((child, i) => {
+                    child.classList.add('fragment');
+                    child.dataset.step = String(i + 1);
+                });
+                return;
+            }
+
+            let maxStep = 0;
+            area.querySelectorAll('.fragment').forEach(el => {
+                const step = Number(el.dataset.step || '1');
+                if (step > maxStep) maxStep = step;
+            });
+
+            directChildren.forEach(child => {
+                const hasDirectFragmentClass = child.classList.contains('fragment');
+                const containsFragments = child.querySelector('.fragment');
+                if (!hasDirectFragmentClass && !containsFragments) {
+                    maxStep += 1;
+                    child.classList.add('fragment');
+                    child.dataset.step = String(maxStep);
+                }
+            });
+        });
+    }
+
+    function revealNextStep(slide) {
+        if (!slide) return 'finished';
+        const hidden = getHiddenFragments(slide);
+        if (hidden.length === 0) {
+            updateAllShownState(slide);
+            return 'finished';
+        }
+
+        const step = hidden[0].dataset.step || '1';
+        const targets = [...slide.querySelectorAll('.fragment[data-step="' + step + '"]:not(.show)')];
+
+        if (targets.length > 0) {
+            targets.forEach(el => {
+                el.classList.add('show');
+                rerenderMath(el);
+            });
+        } else {
+            hidden[0].classList.add('show');
+            rerenderMath(hidden[0]);
+        }
+
+        updateAllShownState(slide);
+        return 'revealed';
+    }
+
+    function hideLastStep(slide) {
+        if (!slide) return;
+        const shown = getShownFragments(slide);
+        if (!shown.length) return;
+
+        const steps = [...new Set(shown.map(el => Number(el.dataset.step || 1)))].sort((a, b) => a - b);
+        const lastStep = steps[steps.length - 1];
+
+        slide.querySelectorAll('.fragment.show[data-step="' + lastStep + '"]').forEach(el => {
+            el.classList.remove('show');
+        });
+
+        updateAllShownState(slide);
+    }
+
+    function enterPresentationMode(fromCurrent = true) {
+        if (fromCurrent) {
+            const active = getActiveSlide();
+            currentSlideIndex = Math.max(0, slides.indexOf(active));
+        } else {
+            currentSlideIndex = 0;
+        }
+
+        document.body.classList.add('presentation-mode');
+        showSlide(currentSlideIndex);
+
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(() => {});
+        }
+    }
+
+    function exitPresentationMode() {
+        document.body.classList.remove('presentation-mode');
+        slides.forEach(slide => {
+            slide.classList.remove('active-slide');
+            slide.style.transform = '';
+        });
+        const currentSlide = slides[currentSlideIndex];
+        if (currentSlide) {
+            requestAnimationFrame(() => {
+                currentSlide.scrollIntoView({behavior: 'auto', block: 'start'});
+            });
+        }
+        if (document.fullscreenElement && document.exitFullscreen) {
+            document.exitFullscreen().catch(() => {});
+        }
+    }
+
+    normalizeFormulaBoxes();
+    autoFragmentizeSlides();
+    bindControlEventGuards();
+
+    slides.forEach(slide => {
+        updateAllShownState(slide);
+        if (slide.classList.contains('title-slide')) return;
+        slide.addEventListener('click', function (e) {
+            const state = revealNextStep(slide);
+            if (isPresentationMode() && state === 'finished' && currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                showSlide(currentSlideIndex);
+            }
+            e.stopPropagation();
+        });
+    });
+
+    window.addEventListener('resize', function () {
+        if (isPresentationMode()) showSlide(currentSlideIndex);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        const activeSlide = getActiveSlide();
+        if (!activeSlide) return;
+
+        if (e.key === 'F5') {
+            e.preventDefault();
+            if (!isPresentationMode()) {
+                enterPresentationMode(true);
+            } else {
+                exitPresentationMode();
+            }
+            return;
+        }
+
+        if (e.key === 'Escape' && isPresentationMode()) {
+            e.preventDefault();
+            exitPresentationMode();
+            return;
+        }
+
+        // 放映模式：鼠标点击、空格/回车、右箭头、PageDown、翻页笔都先显示当前页下一部分；
+        // 当前页内容全部显示后，再按一次才进入下一页。这样上课不用每次都跑去点鼠标。
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'ArrowDown' || e.key === 'N' || e.key === 'n' || e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            if (isPresentationMode()) {
+                const state = revealNextStep(slides[currentSlideIndex]);
+                if (state === 'finished') {
+                    goNextSlide();
+                }
+            } else {
+                const idx = Math.max(0, slides.indexOf(activeSlide));
+                const next = slides[Math.min(idx + 1, slides.length - 1)];
+                next?.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+            return;
+        }
+
+        // 放映模式：左箭头/PageUp/翻页笔上一页键，先撤回当前页上一段内容；
+        // 如果当前页还没有显示内容，则回到上一页。
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp' || e.key === 'Backspace' || e.key === 'P' || e.key === 'p') {
+            e.preventDefault();
+            if (isPresentationMode()) {
+                const shown = getShownFragments(slides[currentSlideIndex]);
+                if (shown.length > 0) {
+                    hideLastStep(slides[currentSlideIndex]);
+                } else {
+                    goPrevSlide();
+                }
+            } else {
+                const idx = Math.max(0, slides.indexOf(activeSlide));
+                const prev = slides[Math.max(idx - 1, 0)];
+                prev?.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+            return;
+        }
+    });
+
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement && isPresentationMode()) {
+            exitPresentationMode();
+        }
+    });
+
+    // Brown运动实时仿真
+    (function initBrownianSimulation() {
+        const MAX_POINTS = 800;
+        let sigma = 1.5;
+        let pathData = [];
+        let animationId = null;
+
+        const canvas2d = document.getElementById('bmCanvas2d');
+        const canvasX = document.getElementById('bmCanvasX');
+        const canvasY = document.getElementById('bmCanvasY');
+        const particleEl = document.getElementById('bmParticle');
+        const slider = document.getElementById('bmTempSlider');
+        const tempDisplay = document.getElementById('bmTempDisplay');
+        const resetBtn = document.getElementById('bmResetBtn');
+        const microscope = document.getElementById('bmMicroscope');
+
+        if (!canvas2d || !canvasX || !canvasY || !particleEl || !slider || !tempDisplay || !resetBtn || !microscope) return;
+
+        const ctx2d = canvas2d.getContext('2d');
+        const ctxX = canvasX.getContext('2d');
+        const ctxY = canvasY.getContext('2d');
+
+        function randomGaussian(mean = 0, stdDev = 1) {
+            let u1 = Math.random();
+            let u2 = Math.random();
+            while (u1 === 0) u1 = Math.random();
+            const z0 = Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+            return z0 * stdDev + mean;
+        }
+
+        function stopEventPropagation(el) {
+            ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend', 'input', 'change'].forEach(evt => {
+                el.addEventListener(evt, e => e.stopPropagation());
+            });
+        }
+
+        [slider, resetBtn, microscope, canvas2d, canvasX, canvasY].forEach(stopEventPropagation);
+
+        function resizeCanvases() {
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            const size = microscope.clientWidth || 320;
+            canvas2d.width = size * ratio;
+            canvas2d.height = size * ratio;
+            canvas2d.style.width = size + 'px';
+            canvas2d.style.height = size + 'px';
+            ctx2d.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+            [canvasX, canvasY].forEach((canvas, idx) => {
+                const box = canvas.parentElement;
+                const w = Math.max(box.clientWidth - 46, 200);
+                const h = Math.max(box.clientHeight, 140);
+                canvas.width = w * ratio;
+                canvas.height = h * ratio;
+                canvas.style.width = w + 'px';
+                canvas.style.height = h + 'px';
+                const ctx = idx === 0 ? ctxX : ctxY;
+                ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+            });
+        }
+
+        function updateTempDisplay() {
+            sigma = parseFloat(slider.value);
+            tempDisplay.textContent = sigma.toFixed(1);
+        }
+
+        function drawGraph(ctx, canvas, dataStream, color) {
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            ctx.clearRect(0, 0, w, h);
+            const midY = h / 2;
+            ctx.beginPath();
+            ctx.moveTo(0, midY);
+            ctx.lineTo(w, midY);
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            if (dataStream.length < 2) return;
+            const stepX = w / MAX_POINTS;
+            const startIdx = Math.max(0, MAX_POINTS - dataStream.length);
+            let maxDev = 15;
+            for (const val of dataStream) maxDev = Math.max(maxDev, Math.abs(val));
+            const scaleY = (h / 2 - 14) / maxDev;
+            ctx.beginPath();
+            for (let i = 0; i < dataStream.length; i++) {
+                const px = (startIdx + i) * stepX;
+                const py = midY - dataStream[i] * scaleY;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            const lastY = midY - dataStream[dataStream.length - 1] * scaleY;
+            const lastX = (startIdx + dataStream.length - 1) * stepX;
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function render() {
+            const lastPoint = pathData[pathData.length - 1];
+            const dx = randomGaussian(0, sigma);
+            const dy = randomGaussian(0, sigma);
+            const size = microscope.clientWidth || 320;
+            const center = size / 2;
+            let newX = lastPoint.x + dx;
+            let newY = lastPoint.y + dy;
+            const r = Math.sqrt((newX - center) ** 2 + (newY - center) ** 2);
+            if (r > size * 0.46) {
+                newX = lastPoint.x - dx * 0.5;
+                newY = lastPoint.y - dy * 0.5;
+            }
+            const rawX = lastPoint.rx + dx;
+            const rawY = lastPoint.ry + dy;
+            pathData.push({ x: newX, y: newY, rx: rawX, ry: rawY });
+            if (pathData.length > MAX_POINTS) pathData.shift();
+
+            ctx2d.clearRect(0, 0, size, size);
+            ctx2d.beginPath();
+            ctx2d.moveTo(pathData[0].x, pathData[0].y);
+            for (let i = 1; i < pathData.length; i++) ctx2d.lineTo(pathData[i].x, pathData[i].y);
+            ctx2d.strokeStyle = 'rgba(245, 158, 11, 0.55)';
+            ctx2d.lineWidth = 1.4;
+            ctx2d.lineJoin = 'round';
+            ctx2d.stroke();
+
+            particleEl.style.left = newX + 'px';
+            particleEl.style.top = newY + 'px';
+
+            drawGraph(ctxX, canvasX, pathData.map(p => p.rx), '#e11d48');
+            drawGraph(ctxY, canvasY, pathData.map(p => p.ry), '#2563eb');
+            animationId = requestAnimationFrame(render);
+        }
+
+        function resetSimulation() {
+            if (animationId) cancelAnimationFrame(animationId);
+            resizeCanvases();
+            const size = microscope.clientWidth || 320;
+            const center = size / 2;
+            pathData = [{ x: center, y: center, rx: 0, ry: 0 }];
+            particleEl.style.left = center + 'px';
+            particleEl.style.top = center + 'px';
+            ctx2d.clearRect(0, 0, size, size);
+            ctxX.clearRect(0, 0, canvasX.clientWidth, canvasX.clientHeight);
+            ctxY.clearRect(0, 0, canvasY.clientWidth, canvasY.clientHeight);
+            render();
+        }
+
+        slider.addEventListener('input', updateTempDisplay);
+        resetBtn.addEventListener('click', resetSimulation);
+        window.addEventListener('resize', () => {
+            updateTempDisplay();
+            resetSimulation();
+        });
+
+        updateTempDisplay();
+        setTimeout(resetSimulation, 300);
+    })();
+
+});
+</script>
+
+<script>
+/* ===== Brown运动 vs 泊松过程 对比仿真 ===== */
+const COMPARE_T_MAX = 20;
+const COMPARE_SIM_DURATION = 8000;
+const COMPARE_DT = 0.05;
+const COMPARE_LAMBDA = 1.0;
+const COMPARE_SIGMA = 1.0;
+
+let compareBMData = [];
+let comparePPData = [];
+let compareAnimId = null;
+let compareStartTime = null;
+let compareScalesCache = null;
+
+function compareRandomGaussian() {
+    let u1 = Math.random();
+    let u2 = Math.random();
+    while (u1 === 0) u1 = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+}
+
+function compareRandomExponential(rate) {
+    return -Math.log(1.0 - Math.random()) / rate;
+}
+
+function generateCompareData() {
+    compareBMData = [];
+    let w = 0;
+    for (let t = 0; t <= COMPARE_T_MAX; t += COMPARE_DT) {
+        compareBMData.push({ t: t, w: w });
+        w += compareRandomGaussian() * COMPARE_SIGMA * Math.sqrt(COMPARE_DT);
+    }
+
+    comparePPData = [];
+    let t = 0;
+    while (true) {
+        let dt = compareRandomExponential(COMPARE_LAMBDA);
+        t += dt;
+        if (t > COMPARE_T_MAX) break;
+        comparePPData.push(t);
+    }
+}
+
+function initCompareCanvas(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+
+    const dpr = window.devicePixelRatio || 1;
+    const width = rect.width;
+    const height = rect.height;
+
+    canvas.width = Math.floor(width * dpr);
+    canvas.height = Math.floor(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    return { ctx, w: width, h: height };
+}
+
+function drawCompareGrid(ctx, w, h, centerZero = false) {
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i <= 4; i++) {
+        const x = (i / 4) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(0, centerZero ? h / 2 : h - 1);
+    ctx.lineTo(w, centerZero ? h / 2 : h - 1);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.setLineDash(centerZero ? [4, 4] : []);
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function calcCompareScales() {
+    let maxW = 0.1;
+    compareBMData.forEach(d => {
+        if (Math.abs(d.w) > maxW) maxW = Math.abs(d.w);
+    });
+    maxW *= 1.2;
+
+    let maxN = Math.max(comparePPData.length, COMPARE_LAMBDA * COMPARE_T_MAX) * 1.2;
+    return { maxW, maxN };
+}
+
+function drawCompareProgress(progress, scales) {
+    const currentT = progress * COMPARE_T_MAX;
+    const { maxW, maxN } = scales;
+
+    /* Brown运动 */
+    const bmCanvas = initCompareCanvas('canvasBMCompare');
+    if (bmCanvas) {
+        drawCompareGrid(bmCanvas.ctx, bmCanvas.w, bmCanvas.h, true);
+
+        bmCanvas.ctx.beginPath();
+        let lastW = 0;
+        let firstPoint = true;
+
+        for (let i = 0; i < compareBMData.length; i++) {
+            if (compareBMData[i].t > currentT) break;
+            const px = (compareBMData[i].t / COMPARE_T_MAX) * bmCanvas.w;
+            const py = bmCanvas.h / 2 - (compareBMData[i].w / maxW) * (bmCanvas.h / 2 - 12);
+
+            if (firstPoint) {
+                bmCanvas.ctx.moveTo(px, py);
+                firstPoint = false;
+            } else {
+                bmCanvas.ctx.lineTo(px, py);
+            }
+            lastW = compareBMData[i].w;
+        }
+
+        bmCanvas.ctx.strokeStyle = '#f43f5e';
+        bmCanvas.ctx.lineWidth = 2;
+        bmCanvas.ctx.lineJoin = 'round';
+        bmCanvas.ctx.stroke();
+
+        const bmVal = document.getElementById('valBMCompare');
+        if (bmVal) bmVal.innerText = lastW.toFixed(2);
+    }
+
+    /* 泊松过程 */
+    const ppCanvas = initCompareCanvas('canvasPPCompare');
+    if (ppCanvas) {
+        drawCompareGrid(ppCanvas.ctx, ppCanvas.w, ppCanvas.h, false);
+
+        ppCanvas.ctx.beginPath();
+        ppCanvas.ctx.moveTo(0, ppCanvas.h - 1);
+        let lastY = ppCanvas.h - 1;
+        let currentN = 0;
+
+        for (let i = 0; i < comparePPData.length; i++) {
+            if (comparePPData[i] > currentT) break;
+
+            const px = (comparePPData[i] / COMPARE_T_MAX) * ppCanvas.w;
+            const py = ppCanvas.h - ((i + 1) / maxN) * (ppCanvas.h - 10);
+
+            ppCanvas.ctx.lineTo(px, lastY);
+            ppCanvas.ctx.lineTo(px, py);
+
+            lastY = py;
+            currentN = i + 1;
+        }
+
+        const currPx = (currentT / COMPARE_T_MAX) * ppCanvas.w;
+        ppCanvas.ctx.lineTo(currPx, lastY);
+
+        ppCanvas.ctx.strokeStyle = '#10b981';
+        ppCanvas.ctx.lineWidth = 2.5;
+        ppCanvas.ctx.stroke();
+
+        /* 期望线 */
+        ppCanvas.ctx.beginPath();
+        ppCanvas.ctx.moveTo(0, ppCanvas.h - 1);
+        const expY = ppCanvas.h - ((COMPARE_LAMBDA * currentT) / maxN) * (ppCanvas.h - 10);
+        ppCanvas.ctx.lineTo(currPx, expY);
+        ppCanvas.ctx.strokeStyle = 'rgba(16,185,129,0.45)';
+        ppCanvas.ctx.setLineDash([5, 5]);
+        ppCanvas.ctx.stroke();
+        ppCanvas.ctx.setLineDash([]);
+
+        const ppVal = document.getElementById('valPPCompare');
+        if (ppVal) ppVal.innerText = currentN;
+    }
+}
+
+function compareStepAnimation(timestamp) {
+    if (!compareStartTime) compareStartTime = timestamp;
+    let progress = (timestamp - compareStartTime) / COMPARE_SIM_DURATION;
+    if (progress > 1) progress = 1;
+
+    const percentPos = progress * 100;
+    const bmScanner = document.getElementById('scannerBMCompare');
+    const ppScanner = document.getElementById('scannerPPCompare');
+    if (bmScanner) bmScanner.style.left = percentPos + '%';
+    if (ppScanner) ppScanner.style.left = percentPos + '%';
+
+    drawCompareProgress(progress, compareScalesCache);
+
+    if (progress < 1) {
+        compareAnimId = requestAnimationFrame(compareStepAnimation);
+    } else {
+        const btn = document.getElementById('compareSimBtn');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerText = '重新生成随机轨道';
+        }
+        if (bmScanner) bmScanner.style.display = 'none';
+        if (ppScanner) ppScanner.style.display = 'none';
+    }
+}
+
+function startCompareSimulation() {
+    const btn = document.getElementById('compareSimBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = '仿真对比中...';
+    }
+
+    if (compareAnimId) cancelAnimationFrame(compareAnimId);
+
+    generateCompareData();
+    compareScalesCache = calcCompareScales();
+    compareStartTime = null;
+
+    const bmScanner = document.getElementById('scannerBMCompare');
+    const ppScanner = document.getElementById('scannerPPCompare');
+    if (bmScanner) bmScanner.style.display = 'block';
+    if (ppScanner) ppScanner.style.display = 'block';
+
+    compareAnimId = requestAnimationFrame(compareStepAnimation);
+}
+
+window.addEventListener('resize', function () {
+    if (compareScalesCache && !document.getElementById('compareSimBtn')?.disabled) {
+        drawCompareProgress(1, compareScalesCache);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+        if (document.getElementById('compareSimBtn')) {
+            startCompareSimulation();
+        }
+    }, 300);
+});
+</script>
+
+
+<script>
+/* ===== 布朗运动：宏观趋势 vs 微观碎形 ===== */
+const BM_FRACTAL_N = 8000;
+const BM_FRACTAL_T = 10;
+const BM_FRACTAL_DT = BM_FRACTAL_T / BM_FRACTAL_N;
+const BM_FRACTAL_MU = 1.5;
+const BM_FRACTAL_SIGMA = 1.2;
+const BM_FRACTAL_ZOOM_WIDTH_PERCENT = 10;
+
+let bmFractalPathData = [];
+let bmFractalMinXMacro = 0;
+let bmFractalMaxXMacro = 0;
+
+function bmFractalRandomGaussian() {
+    let u1 = Math.random();
+    let u2 = Math.random();
+    while (u1 === 0) u1 = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+}
+
+function bmFractalSetupCanvas(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    return { ctx, w: rect.width, h: rect.height };
+}
+
+function bmFractalGenerateData() {
+    bmFractalPathData = [];
+    let currentX = 0;
+    bmFractalMinXMacro = 0;
+    bmFractalMaxXMacro = 0;
+
+    for (let i = 0; i <= BM_FRACTAL_N; i++) {
+        bmFractalPathData.push({ t: i * BM_FRACTAL_DT, x: currentX });
+
+        if (currentX < bmFractalMinXMacro) bmFractalMinXMacro = currentX;
+        if (currentX > bmFractalMaxXMacro) bmFractalMaxXMacro = currentX;
+
+        const dw = bmFractalRandomGaussian() * Math.sqrt(BM_FRACTAL_DT);
+        currentX += BM_FRACTAL_MU * BM_FRACTAL_DT + BM_FRACTAL_SIGMA * dw;
+    }
+
+    bmFractalDrawMacro();
+    bmFractalUpdateZoom();
+}
+
+function bmFractalDrawMacro() {
+    const cvs = bmFractalSetupCanvas('bmFractalCanvasMacro');
+    if (!cvs) return;
+
+    const { ctx, w, h } = cvs;
+    const paddingY = 20;
+    const rangeY = Math.max(1e-6, bmFractalMaxXMacro - bmFractalMinXMacro);
+    const scaleY = (h - paddingY * 2) / rangeY;
+    const scaleX = w / BM_FRACTAL_N;
+
+    /* 背景网格 */
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const x = (i / 4) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+
+    /* 漂移参考线 */
+    ctx.beginPath();
+    ctx.moveTo(0, h - paddingY - (0 - bmFractalMinXMacro) * scaleY);
+    const endExpectedX = BM_FRACTAL_MU * BM_FRACTAL_T;
+    ctx.lineTo(w, h - paddingY - (endExpectedX - bmFractalMinXMacro) * scaleY);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* 主轨迹 */
+    ctx.beginPath();
+    for (let i = 0; i <= BM_FRACTAL_N; i++) {
+        const px = i * scaleX;
+        const py = h - paddingY - (bmFractalPathData[i].x - bmFractalMinXMacro) * scaleY;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+function bmFractalDrawMicro(startIndex) {
+    const cvs = bmFractalSetupCanvas('bmFractalCanvasMicro');
+    if (!cvs) return;
+
+    const { ctx, w, h } = cvs;
+    const zoomPoints = Math.floor((BM_FRACTAL_ZOOM_WIDTH_PERCENT / 100) * BM_FRACTAL_N);
+    const subData = bmFractalPathData.slice(startIndex, startIndex + zoomPoints + 1);
+    if (!subData.length) return;
+
+    let minX = subData[0].x;
+    let maxX = subData[0].x;
+    for (const p of subData) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+    }
+
+    const paddingY = 30;
+    const rangeY = Math.max(1e-6, maxX - minX);
+    const scaleY = (h - paddingY * 2) / rangeY;
+    const scaleX = w / zoomPoints;
+
+    /* 背景网格 */
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const x = (i / 4) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+
+    /* 局部漂移参考线 */
+    const startVal = subData[0].x;
+    const localExpectedEnd = startVal + BM_FRACTAL_MU * (zoomPoints * BM_FRACTAL_DT);
+    ctx.beginPath();
+    ctx.moveTo(0, h - paddingY - (startVal - minX) * scaleY);
+    ctx.lineTo(w, h - paddingY - (localExpectedEnd - minX) * scaleY);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* 全局局部路径 */
+    ctx.beginPath();
+    for (let i = 0; i < subData.length; i++) {
+        const px = i * scaleX;
+        const py = h - paddingY - (subData[i].x - minX) * scaleY;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = '#4f46e5';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    /* 向下的片段用红色高亮 */
+    ctx.beginPath();
+    for (let i = 1; i < subData.length; i++) {
+        const prev = subData[i - 1];
+        const curr = subData[i];
+        if (curr.x < prev.x) {
+            const px1 = (i - 1) * scaleX;
+            const py1 = h - paddingY - (prev.x - minX) * scaleY;
+            const px2 = i * scaleX;
+            const py2 = h - paddingY - (curr.x - minX) * scaleY;
+            ctx.moveTo(px1, py1);
+            ctx.lineTo(px2, py2);
+        }
+    }
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('红色段表示即使宏观向上，微观依然存在大量暴跌', 14, h - 12);
+}
+
+function bmFractalUpdateZoom() {
+    const slider = document.getElementById('bmFractalZoomSlider');
+    const zoomBox = document.getElementById('bmFractalZoomBox');
+    const macroContainer = document.getElementById('bmFractalMacroContainer');
+    const poly = document.getElementById('bmFractalConnectorPoly');
+    const label = document.getElementById('bmFractalMicroTimeLabel');
+
+    if (!slider || !zoomBox || !macroContainer || !poly || !label) return;
+
+    const percent = parseInt(slider.value, 10);
+    zoomBox.style.left = percent + '%';
+
+    const w = macroContainer.clientWidth;
+    const topLeftX = (percent / 100) * w;
+    const topRightX = ((percent + BM_FRACTAL_ZOOM_WIDTH_PERCENT) / 100) * w;
+    poly.setAttribute('points', `${topLeftX},0 ${topRightX},0 ${w},80 0,80`);
+
+    const startIndex = Math.floor((percent / 100) * BM_FRACTAL_N);
+    bmFractalDrawMicro(startIndex);
+
+    const startTime = (percent / 100) * BM_FRACTAL_T;
+    const endTime = ((percent + BM_FRACTAL_ZOOM_WIDTH_PERCENT) / 100) * BM_FRACTAL_T;
+    label.innerText = `t = ${startTime.toFixed(3)} ~ ${endTime.toFixed(3)}`;
+}
+
+window.addEventListener('resize', function () {
+    if (document.getElementById('bmFractalCanvasMacro')) {
+        bmFractalDrawMacro();
+        bmFractalUpdateZoom();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+        if (document.getElementById('bmFractalCanvasMacro')) {
+            bmFractalGenerateData();
+        }
+    }, 100);
+});
+</script>
+
+</body>
+</html>
