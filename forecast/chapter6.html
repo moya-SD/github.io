@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计预测与决策 - 第6章 自适应过滤法</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: { scale: 1.05, displayAlign: 'center' }
+        };
+    </script>
+<script>
+    (function () {
+        const localSrc = "./mathjax/tex-mml-chtml.js";
+        const cdnSrc = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+        const s = document.createElement("script");
+        s.id = "MathJax-script";
+        s.defer = true;
+        s.src = localSrc;
+        s.onerror = function () {
+            const c = document.createElement("script");
+            c.id = "MathJax-script-cdn";
+            c.defer = true;
+            c.src = cdnSrc;
+            document.head.appendChild(c);
+        };
+        document.head.appendChild(s);
+    })();
+</script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body { margin: 0; padding: 0; font-family: 'Noto Sans SC', sans-serif; background-color: #e5e7eb; }
+
+        /* ===================== 浏览模式（默认） ===================== */
+        body.browse-mode { overflow-y: auto; overflow-x: hidden; min-height: 100vh; }
+        body.browse-mode #presentation-container {
+            position: relative; width: 1280px; margin: 24px auto 60px auto;
+            transform: none !important; height: auto; background: transparent; overflow: visible;
+        }
+        body.browse-mode .slide {
+            position: relative; width: 1280px; height: 720px; margin: 0 auto 28px auto;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 1 !important; pointer-events: auto !important;
+            background: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); overflow: hidden;
+        }
+        body.browse-mode .step { opacity: 1 !important; transform: none !important; }
+        body.browse-mode .anim-line, body.browse-mode .anim-fade { opacity: 1 !important; stroke-dashoffset: 0 !important; animation: none !important; }
+        body.browse-mode .progress-bar, body.browse-mode .slide-counter { display: none; }
+
+        /* ===================== 放映模式 ===================== */
+        body.presentation-mode { background-color: #020617; width: 100vw; height: 100vh; overflow: hidden; }
+        body.presentation-mode #presentation-container {
+            position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); background-color: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden;
+        }
+        body.presentation-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #8b5cf6, #3b82f6, #06b6d4); z-index: 100;
+        }
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* ===================== 动画 ===================== */
+        .step { opacity: 0; transform: translateY(20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        .step.visible { opacity: 1; transform: translateY(0); }
+        .anim-line { stroke-dasharray: 1000; stroke-dashoffset: 1000; opacity: 0; }
+        .anim-fade { opacity: 0; }
+        .start-anim .anim-line { opacity: 1; animation: drawLine 2.5s linear forwards; }
+        .start-anim .anim-fade { animation: fadeIn 1s ease forwards 2s; }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* ===================== 内容样式 ===================== */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 34px; color: #1e293b;
+            margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+        }
+        .slide-title i { color: #8b5cf6; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; justify-content: flex-start; overflow: visible; }
+
+        p { font-size: 19px; color: #334155; line-height: 1.5; margin: 0; }
+        ul { list-style: none; margin-left: 5px; }
+        li { position: relative; padding-left: 25px; margin-bottom: 6px; font-size: 18px; color: #475569; line-height: 1.5; }
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 3px; color: #8b5cf6; font-size: 18px; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: center; }
+        .tile { background: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #cbd5e1; border-top: 5px solid #8b5cf6; }
+        .tile h3 { font-size: 22px; color: #0f172a; margin-bottom: 8px; }
+
+        /* 公式背景设置为浅色背景，无滑动条 */
+        .math-center { text-align: center; width: 100%; margin: 5px 0; }
+        .math-box {
+            background: #f8fafc; border-left: 5px solid #8b5cf6; border-radius: 8px;
+            padding: 8px 15px; color: #000; font-size: 18px;
+            display: inline-block; width: fit-content; text-align: left; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: visible !important; white-space: normal;
+        }
+        mjx-container { overflow: visible !important; }
+
+        .info-box { background: #f3e8ff; border-left: 6px solid #a855f7; padding: 10px 20px; border-radius: 8px; margin: 2px 0; }
+        .info-box p { margin: 0; color: #581c87; font-size: 18px; font-weight: bold; }
+
+        .table-wrapper { width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; overflow-y: auto; background: white; margin: 5px 0; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: center; color: #334155; }
+        .data-table th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; position: sticky; top: 0; z-index: 1; }
+        .data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+        .svg-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; position: relative; overflow: hidden; }
+
+        /* ===================== 四象限评估卡片 ===================== */
+        .eval-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        .eval-card { background: #fff; border: 1px solid #e2e8f0; border-left: 5px solid; padding: 12px 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .eval-card h4 { font-size: 18px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; color: #0f172a; }
+        .eval-card p { font-size: 15px; line-height: 1.5; color: #475569; margin: 0; }
+        
+        .eval-why { border-left-color: #3b82f6; background-color: #eff6ff; } 
+        .eval-why h4 { color: #1d4ed8; }
+        
+        .eval-where { border-left-color: #10b981; background-color: #f0fdf4; } 
+        .eval-where h4 { color: #047857; }
+        
+        .eval-caution { border-left-color: #f59e0b; background-color: #fffbeb; } 
+        .eval-caution h4 { color: #b45309; }
+        
+        .eval-cons { border-left-color: #ef4444; background-color: #fef2f2; } 
+        .eval-cons h4 { color: #b91c1c; }
+
+        /* ===================== 封面与小节封面 ===================== */
+        .title-slide { background: #020617 !important; color: white; justify-content: center !important; align-items: center !important; text-align: center; padding: 0; position: relative; }
+        .title-slide::after { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 40px 40px; z-index: 1; }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        .title-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.6); padding: 60px 80px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; color: #fff; }
+        .title-content h1 span { background: linear-gradient(to right, #a855f7, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .section-slide { background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important; color: #ffffff; justify-content: center !important; align-items: center !important; text-align: center; position: relative; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 48px; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 6px; background: #8b5cf6; border: none; margin: 20px 0; }
+
+        body.browse-mode .title-slide, body.browse-mode .section-slide { min-height: 720px; display: flex !important; }
+
+        .hw-btn { background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white; padding: 12px 35px; border-radius: 50px; font-size: 22px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3); border: none; cursor: pointer; margin-top: 20px; transition: transform 0.2s; }
+        .hw-btn:hover { transform: translateY(-3px); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: #8b5cf6; transition: width 0.3s ease; z-index: 200; }
+        .slide-counter { position: absolute; bottom: 20px; right: 30px; font-size: 18px; font-weight: bold; color: #94a3b8; z-index: 100; }
+
+        .presentation-launcher {
+            position: fixed; right: 24px; bottom: 24px; z-index: 9999;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6); color: white;
+            border: none; border-radius: 999px; padding: 14px 22px; font-size: 16px;
+            font-weight: 700; box-shadow: 0 10px 24px rgba(59,130,246,0.28); cursor: pointer;
+            display: inline-flex; align-items: center; gap: 10px;
+        }
+        body.presentation-mode .presentation-launcher { display: none; }
+
+
+.dynamic-flow-wrap { display:flex; flex-direction:column; gap:16px; }
+.dynamic-flow-board {
+    position: relative; height: 430px; border: 1px solid #e2e8f0; border-radius: 14px;
+    background: #f8fafc; overflow: hidden;
+}
+.dynamic-flow-board .formula-tag {
+    position:absolute; background: rgba(255,255,255,0.92); border:1px solid #dbeafe;
+    border-radius:10px; padding:6px 10px; font-size:16px; color:#1e293b; box-shadow:0 3px 10px rgba(0,0,0,0.06);
+    white-space: nowrap;
+}
+.dynamic-flow-board .tag-green { border-color:#bbf7d0; }
+.dynamic-flow-board .tag-red { border-color:#fecaca; }
+.dynamic-flow-board .tag-purple { border-color:#e9d5ff; }
+.dynamic-legend { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; }
+.dynamic-legend .info-card {
+    background-color: #ffffff; border-left: 5px solid; padding: 14px 16px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+}
+.dynamic-legend .info-card h4 { margin: 0 0 8px 0; font-size: 17px; color: #1e293b; }
+.dynamic-legend .info-card p { margin: 0; font-size: 14px; color: #475569; line-height: 1.55; }
+.air-chart-wrap {
+    height: 250px; border: 1px solid #dbeafe; border-radius: 12px; background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+    padding: 10px; margin-top: 8px;
+}
+.small-note { font-size: 15px; color:#64748b; line-height:1.5; }
+
+
+        
+        .rolling-demo-original {
+            display:flex; flex-direction:column; gap:16px;
+        }
+        .rolling-demo-original .svg-wrapper {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+            width: 100%; height: 400px; position: relative; margin-bottom: 8px;
+        }
+        .rolling-demo-original .info-panel {
+            background: #eff6ff; border-left: 6px solid #3b82f6;
+            padding: 20px; border-radius: 8px; font-size: 18px; color: #1e3a8a;
+            min-height: 120px; display: flex; align-items: center; line-height: 1.7;
+        }
+        .rolling-demo-original .tip-row { text-align:right; color:#94a3b8; font-size:14px; }
+        @keyframes slideWindow1 {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(100px); }
+        }
+        @keyframes slideWindow2 {
+            0% { transform: translateX(100px); }
+            100% { transform: translateX(200px); }
+        }
+        @keyframes slideWindow3 {
+            0% { transform: translateX(200px); }
+            100% { transform: translateX(300px); }
+        }
+        .anim-t1 { animation: slideWindow1 1s ease-in-out forwards; }
+        .anim-t2 { animation: slideWindow2 1s ease-in-out forwards; }
+        .anim-t3 { animation: slideWindow3 1s ease-in-out forwards; }
+        .pulse-error { animation: pulseRed 1s infinite alternate; }
+        @keyframes pulseRed {
+            from { fill: #ef4444; filter: drop-shadow(0 0 2px #ef4444); }
+            to { fill: #b91c1c; filter: drop-shadow(0 0 8px #ef4444); }
+        }
+        .highlight-weight { fill: #8b5cf6 !important; font-weight: bold; }
+        .update-arrow { stroke-dasharray: 10; animation: dashMove 0.5s linear infinite; }
+        @keyframes dashMove { to { stroke-dashoffset: -20; } }
+
+@media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide { width: 100vw !important; height: 100vh !important; margin: 0 !important; box-shadow: none !important; page-break-after: always; page-break-inside: avoid; border: 1px solid transparent; }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+    </style>
+</head>
+<body class="browse-mode">
+
+
+<div id="presentation-container">
+    <button class="presentation-launcher" id="presentation-launcher"><i class="fas fa-play"></i> 开始放映</button>
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== Slide 0: 封面 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div><div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge" style="background:rgba(139,92,246,0.1); border:1px solid #a855f7; color:#a855f7; padding:8px 20px; border-radius:50px; margin-bottom:20px; font-size:18px;">统计预测与决策</div>
+            <h1><span>第六章 自适应过滤法</span></h1>
+            <p style="color:#94a3b8; font-size:24px; margin-top:10px;">让权数在误差中学习，而不是一开始就拍脑袋定死</p>
+            <div class="step" style="margin-top:30px; background:rgba(0,0,0,0.4); padding:12px 25px; border-radius:12px;">
+                <p style="font-size:18px; color:#a855f7; margin:0;"><i class="fas fa-keyboard"></i> <strong>F5 / Ctrl+Enter</strong> 开启全屏放映 | 单击鼠标步进内容</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 1: 导入 ==================== -->
+    <div class="slide" id="slide-1-intro">
+        <h2 class="slide-title"><i class="fas fa-headphones"></i> 导入：为什么固定权数会“反应慢半拍”？</h2>
+        <div class="content-area">
+            <div class="step two-column" style="align-items:stretch; gap:22px;">
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3><i class="fas fa-clock"></i> 固定权数的问题</h3>
+                    <p>移动平均法和指数平滑法都有一个共同点：权数结构先定好。比如移动平均是每期一样重，指数平滑是近期更重、远期更轻。</p>
+                    <p style="margin-top:10px;">可是实际序列不总是这么听话。市场、销量、库存、客流量一旦变化，旧权数还在那里“岁月静好”，预测值就开始滞后。数据都跑了，模型还在原地系鞋带。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3><i class="fas fa-filter"></i> 自适应过滤法的想法</h3>
+                    <p>自适应过滤法把预测看成一个不断修正权数的过程：</p>
+                    <ul>
+                        <li>先给一组初始权数；</li>
+                        <li>用它预测下一期；</li>
+                        <li>比较实际值，得到误差；</li>
+                        <li>根据误差方向和大小修正权数；</li>
+                        <li>反复迭代，直到误差较小。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step info-box" style="background:#f5f3ff; border-left-color:#8b5cf6;">
+                <p style="color:#581c87;">本章核心：从“人工指定权数”转向“误差驱动权数学习”。听起来像机器学习，其实它确实有一点早期梯度修正的味道。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 2: 学习目标 ==================== -->
+    <div class="slide" id="slide-2-map">
+        <h2 class="slide-title"><i class="fas fa-map-signs"></i> 本章学习路线：先懂目的，再会计算</h2>
+        <div class="content-area">
+            <div class="step eval-grid">
+                <div class="eval-card eval-why">
+                    <h4><i class="fas fa-bullseye"></i> 方法目的</h4>
+                    <p>通过误差反馈自动调整历史数据权数，使预测误差逐步减小，得到一组较优权数。</p>
+                </div>
+                <div class="eval-card eval-where">
+                    <h4><i class="fas fa-location-dot"></i> 应用场景</h4>
+                    <p>适合短期预测、滞后关系明显、季节性较强或需要滚动更新权数的序列。</p>
+                </div>
+                <div class="eval-card eval-caution">
+                    <h4><i class="fas fa-triangle-exclamation"></i> 关键难点</h4>
+                    <p>要会选 $p$、初始权数和学习常数 $k$，并理解为什么要标准化。</p>
+                </div>
+                <div class="eval-card eval-cons">
+                    <h4><i class="fas fa-ban"></i> 不适合什么</h4>
+                    <p>样本极短、纯随机波动、结构突变过于剧烈且无可学习规律时，别指望它开天眼。</p>
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color:#3b82f6;">
+                <h3>推进顺序</h3>
+                <p>概念定位 → 模型公式 → 权数更新逻辑 → 手工例题 → 标准化处理 → 季节性案例 → 完整业务案例。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第一节 ==================== -->
+    <div class="slide section-slide" id="slide-sec1">
+        <div class="glow-orb-1"></div>
+        <h2>第一节 方法概述</h2>
+        <hr><p class="step" style="font-size:24px;">从固定权数到误差反馈</p>
+    </div>
+
+    <!-- ==================== Slide 3: 模型定位 ==================== -->
+    <div class="slide" id="slide-3-position">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 自适应过滤法本质：可学习权数的加权预测</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#8b5cf6;">
+                <h3>一般预测形式</h3>
+                <p>设用过去 $p$ 期数据预测下一期，模型写作：</p>
+                <div class="math-center"><div class="math-box" style="font-size:22px;">
+                    \[ \hat{x}_{t+1}=\phi_1x_t+\phi_2x_{t-1}+\cdots+\phi_px_{t-p+1} \]
+                </div></div>
+                <p>其中，$\phi_1,\ldots,\phi_p$ 是历史数据的权数。问题是：这些权数到底该怎么定？</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:260px;">
+                <table class="data-table" style="font-size:21px;">
+                    <thead><tr><th>方法</th><th>权数怎么来</th><th>特点</th><th>一句话评价</th></tr></thead>
+                    <tbody>
+                        <tr><td>移动平均</td><td>人为规定一样大</td><td>平滑但滞后</td><td>大家平均背锅</td></tr>
+                        <tr><td>指数平滑</td><td>由 $\alpha$ 决定递减</td><td>重视近期</td><td>近亲优先</td></tr>
+                        <tr style="background:#f5f3ff; font-weight:bold;"><td>自适应过滤</td><td>由预测误差反复修正</td><td>权数会学习</td><td>谁有用谁上位</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    
+<!-- ==================== Slide 4: 负反馈 ==================== -->
+<div class="slide" id="slide-4-loop">
+    <h2 class="slide-title"><i class="fas fa-rotate"></i> 运行机制：预测错了，就改权数</h2>
+    <div class="content-area">
+        <div class="step dynamic-flow-wrap">
+            <div class="dynamic-flow-board">
+                <svg viewBox="0 0 1000 500" style="width:100%;height:100%;">
+                    <defs>
+                        <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b" /></marker>
+                        <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" /></marker>
+                        <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#10b981" /></marker>
+                        <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ef4444" /></marker>
+                        <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6" /></marker>
+                        <filter id="shadow-flow" x="-10%" y="-10%" width="130%" height="130%">
+                            <feDropShadow dx="2" dy="5" stdDeviation="5" flood-color="#cbd5e1" flood-opacity="0.5"/>
+                        </filter>
+                    </defs>
+
+                    <line x1="80" y1="150" x2="250" y2="150" stroke="#64748b" stroke-width="3" marker-end="url(#arrow-gray)"/>
+                    <line x1="150" y1="150" x2="150" y2="380" stroke="#64748b" stroke-width="2" stroke-dasharray="6,4"/>
+                    <line x1="150" y1="380" x2="250" y2="380" stroke="#64748b" stroke-width="2" marker-end="url(#arrow-gray)"/>
+                    <line x1="480" y1="150" x2="700" y2="150" stroke="#3b82f6" stroke-width="4" marker-end="url(#arrow-blue)"/>
+                    <line x1="730" y1="40" x2="730" y2="120" stroke="#10b981" stroke-width="4" marker-end="url(#arrow-green)"/>
+                    <path d="M 760 150 L 900 150 L 900 380 L 610 380" fill="none" stroke="#ef4444" stroke-width="4" class="path-anim" marker-end="url(#arrow-red)"/>
+                    <line x1="365" y1="330" x2="365" y2="210" stroke="#8b5cf6" stroke-width="4" stroke-dasharray="8,4" marker-end="url(#arrow-purple)" class="path-anim"/>
+
+                    <text x="80" y="130" font-size="20" font-weight="bold" fill="#334155">输入数据</text>
+                    <text x="730" y="25" font-size="20" font-weight="bold" fill="#10b981" text-anchor="middle">实际观测值</text>
+
+                    <rect x="250" y="90" width="230" height="120" rx="12" fill="#ffffff" stroke="#3b82f6" stroke-width="3" filter="url(#shadow-flow)"/>
+                    <text x="365" y="130" font-size="22" font-weight="bold" fill="#1d4ed8" text-anchor="middle">数字滤波器</text>
+                    <text x="365" y="170" font-size="18" fill="#2563eb" text-anchor="middle">加权预测 + 误差学习</text>
+
+                    <text x="590" y="135" font-size="20" font-weight="bold" fill="#3b82f6" text-anchor="middle">预测值</text>
+
+                    <circle cx="730" cy="150" r="30" fill="#ffffff" stroke="#334155" stroke-width="3" filter="url(#shadow-flow)"/>
+                    <text x="730" y="162" font-size="28" font-weight="bold" fill="#334155" text-anchor="middle">Σ</text>
+                    <text x="750" y="110" font-size="24" font-weight="bold" fill="#10b981">+</text>
+                    <text x="690" y="190" font-size="30" font-weight="bold" fill="#3b82f6">-</text>
+
+                    <text x="830" y="135" font-size="20" font-weight="bold" fill="#ef4444" text-anchor="middle">预测误差</text>
+
+                    <rect x="250" y="330" width="360" height="120" rx="12" fill="#ffffff" stroke="#d946ef" stroke-width="3" filter="url(#shadow-flow)"/>
+                    <text x="430" y="370" font-size="22" font-weight="bold" fill="#a21caf" text-anchor="middle">权数更新模块</text>
+                    <text x="430" y="405" font-size="18" fill="#a21caf" text-anchor="middle">误差越大，修正越明显</text>
+                    <text x="380" y="275" font-size="18" font-weight="bold" fill="#8b5cf6">回传修正后的权数</text>
+
+                    <circle r="8" fill="#64748b">
+                        <animateMotion dur="3s" repeatCount="indefinite" path="M 80 150 L 250 150"/>
+                    </circle>
+                    <circle r="8" fill="#3b82f6">
+                        <animateMotion dur="3s" repeatCount="indefinite" path="M 480 150 L 700 150"/>
+                    </circle>
+                    <circle r="8" fill="#10b981">
+                        <animateMotion dur="3s" repeatCount="indefinite" path="M 730 40 L 730 120"/>
+                    </circle>
+                    <circle r="12" fill="#ef4444" class="pulse">
+                        <animateMotion dur="3s" repeatCount="indefinite" path="M 760 150 L 900 150 L 900 380 L 610 380"/>
+                    </circle>
+                    <circle r="8" fill="#8b5cf6">
+                        <animateMotion dur="3s" repeatCount="indefinite" path="M 365 330 L 365 210"/>
+                    </circle>
+                </svg>
+
+                <div class="formula-tag" style="left:58px; top:140px;">输入：$x_{t-i+1}$</div>
+                <div class="formula-tag tag-green" style="left:692px; top:18px;">实际：$x_{t+1}$</div>
+                <div class="formula-tag" style="left:288px; top:170px;">$\hat{x}_{t+1}=\sum \phi_i x_{t-i+1}$</div>
+                <div class="formula-tag" style="left:538px; top:154px;">预测：$\hat{x}_{t+1}$</div>
+                <div class="formula-tag tag-red" style="left:785px; top:156px;">误差：$e_{t+1}$</div>
+                <div class="formula-tag tag-purple" style="left:280px; top:392px;">$\phi_i'=\phi_i+2k\,e_{t+1}x_{t-i+1}$</div>
+            </div>
+
+            <div class="dynamic-legend">
+                <div class="info-card" style="border-color:#3b82f6;background:#eff6ff;">
+                    <h4><i class="fas fa-microchip"></i> 1. 前向预测</h4>
+                    <p>先用当前权数把历史数据加权，得到下一期预测值 $\hat{x}_{t+1}$。这一步相当于模型先交一份作业。</p>
+                </div>
+                <div class="info-card" style="border-color:#ef4444;background:#fef2f2;">
+                    <h4><i class="fas fa-balance-scale-right"></i> 2. 误差比对</h4>
+                    <p>真实值出来后，与预测值比较得到 $e_{t+1}$。高估时误差为负，低估时误差为正。</p>
+                </div>
+                <div class="info-card" style="border-color:#8b5cf6;background:#faf5ff;">
+                    <h4><i class="fas fa-sync-alt"></i> 3. 反馈修正</h4>
+                    <p>误差沿反馈回路返回，调整每个权数。谁对预测贡献大，谁就被优先奖惩，毫无职场温情可言。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- ==================== Slide 5: 核心公式 ==================== -->
+    <div class="slide" id="slide-5-formula">
+        <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> 核心公式：权数如何更新？</h2>
+        <div class="content-area">
+            <div class="step math-center">
+                <div class="math-box" style="font-size:24px; padding:18px 35px;">
+                    \[ \phi_i'=\phi_i+2ke_{t+1}x_{t-i+1} \]
+                </div>
+            </div>
+            <div class="step table-wrapper" style="max-height:330px;">
+                <table class="data-table" style="font-size:16px;">
+                    <thead><tr><th>符号</th><th>含义</th><th>怎么理解</th></tr></thead>
+                    <tbody>
+                        <tr><td>$\phi_i$</td><td>调整前第 $i$ 个权数</td><td>旧经验</td></tr>
+                        <tr><td>$\phi_i'$</td><td>调整后第 $i$ 个权数</td><td>新经验</td></tr>
+                        <tr><td>$e_{t+1}=x_{t+1}-\hat{x}_{t+1}$</td><td>预测误差</td><td>模型被现实打脸的程度</td></tr>
+                        <tr><td>$x_{t-i+1}$</td><td>对应历史观察值</td><td>哪个历史数据参与了预测</td></tr>
+                        <tr><td>$k$</td><td>学习常数</td><td>每次改权数的步长</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box" style="background:#fffbeb; border-left-color:#f59e0b;">
+                <p style="color:#92400e;">这条公式的意思很朴素：误差越大，修正越大；参与预测的数据越大，它对应权数被修正得也越多。统计学终于开始承认“谁造成的误差，谁负责整改”。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 6: 参数选择 ==================== -->
+    <div class="slide" id="slide-6-params">
+        <h2 class="slide-title"><i class="fas fa-sliders"></i> 三个参数先说清：$p$、初始权数、$k$</h2>
+        <div class="content-area">
+            <div class="step eval-grid">
+                <div class="eval-card eval-why"><h4><i class="fas fa-clock-rotate-left"></i> $p$：参考多少期</h4><p>若无季节性，可从较小的 $p$ 开始；若有季节性，常取季节长度，如季度取 $4$、月度取 $12$。</p></div>
+                <div class="eval-card eval-where"><h4><i class="fas fa-weight-scale"></i> 初始权数</h4><p>常用等权：$\phi_1=\cdots=\phi_p=1/p$。若有业务经验，可让同季或近期权数更大。</p></div>
+                <div class="eval-card eval-caution"><h4><i class="fas fa-person-running"></i> $k$：学习速度</h4><p>$k$ 越大，权数改得越快；但过大可能发散。稳健比热血重要，模型不是青春偶像剧。</p></div>
+                <div class="eval-card eval-cons"><h4><i class="fas fa-ruler"></i> 标准化</h4><p>原始数据太大时，直接更新会爆。先标准化，可让 $k$ 取得更合理，收敛更快。</p></div>
+            </div>
+            <div class="step math-center">
+                <div class="math-box" style="font-size:18px;">
+                    常用约束：\[ k\leq \frac{1}{\max\sum_{i=1}^{p}x_{t-i+1}^{2}} \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== Slide 7: 滚动向前更新示意图 ==================== -->
+    <div class="slide" id="slide-6b-rolling-demo" data-rolling-demo="true">
+        <h2 class="slide-title"><i class="fas fa-step-forward"></i> 滚动向前更新：模型不是算一次就完事</h2>
+        <div class="content-area">
+            <div class="step rolling-demo-original">
+                <div class="svg-wrapper">
+                    <svg viewBox="0 0 1000 400" style="width: 100%; height: 100%;">
+                        <defs>
+                            <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+                            </marker>
+                            <marker id="arrow-purp" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                                <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6" />
+                            </marker>
+                        </defs>
+                        <line x1="50" y1="150" x2="950" y2="150" stroke="#cbd5e1" stroke-width="4"/>
+                        <g fill="#475569" font-size="16" text-anchor="middle">
+                            <text x="100" y="180">t=1</text><circle cx="100" cy="150" r="6" fill="#94a3b8"/><text x="100" y="130">x1</text>
+                            <text x="200" y="180">t=2</text><circle cx="200" cy="150" r="6" fill="#94a3b8"/><text x="200" y="130">x2</text>
+                            <text x="300" y="180">t=3</text><circle cx="300" cy="150" r="6" fill="#94a3b8"/><text x="300" y="130">x3</text>
+                            <text x="400" y="180">t=4</text><circle cx="400" cy="150" r="6" fill="#94a3b8"/><text x="400" y="130">x4</text>
+                            <text x="500" y="180">t=5</text><circle cx="500" cy="150" r="6" fill="#94a3b8"/><text x="500" y="130">x5</text>
+                            <text x="600" y="180">t=6</text><circle cx="600" cy="150" r="6" fill="#94a3b8"/><text x="600" y="130">x6</text>
+                            <text x="700" y="180">t=7</text><circle cx="700" cy="150" r="6" fill="#94a3b8"/><text x="700" y="130">x7</text>
+                        </g>
+                        <g id="sliding-window" transform="translateX(0)">
+                            <rect x="70" y="100" width="260" height="90" fill="rgba(16,185,129,0.1)" stroke="#10b981" stroke-width="2" stroke-dasharray="5,5" rx="8"/>
+                            <text x="200" y="90" fill="#10b981" font-size="14" font-weight="bold" text-anchor="middle">历史输入视窗 (p=3)</text>
+                            <rect x="70" y="240" width="260" height="50" fill="#f8fafc" stroke="#3b82f6" stroke-width="2" rx="4"/>
+                            <text x="200" y="270" fill="#1d4ed8" font-size="16" font-weight="bold" text-anchor="middle" id="weight-text">当前权重: [ 𝛟1, 𝛟2, 𝛟3 ]</text>
+                            <path d="M 200 100 Q 200 50 380 50" fill="none" stroke="#3b82f6" stroke-width="3" marker-end="url(#arrow)"/>
+                            <circle cx="400" cy="50" r="35" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+                            <text x="400" y="55" fill="#3b82f6" font-size="14" font-weight="bold" text-anchor="middle">x估计值</text>
+                            <line x1="400" y1="130" x2="400" y2="75" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4,4"/>
+                            <circle cx="450" cy="90" r="15" fill="#ef4444" id="error-node"/>
+                            <text x="450" y="95" fill="white" font-size="12" font-weight="bold" text-anchor="middle">e</text>
+                            <line x1="400" y1="90" x2="435" y2="90" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow)"/>
+                            <path d="M 450 105 Q 450 265 330 265" fill="none" stroke="#8b5cf6" stroke-width="3" class="update-arrow" marker-end="url(#arrow-purp)"/>
+                            <text x="400" y="255" fill="#8b5cf6" font-size="14" font-weight="bold">更新权重</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="info-panel" id="info-text">滚动迭代过程</div>
+                <div class="tip-row"><i class="fas fa-mouse-pointer"></i> 单击推进</div>
+            </div>
+        </div>
+    </div>
+
+<!-- ==================== 第二节 ==================== -->
+    <div class="slide section-slide" id="slide-sec2">
+        <div class="glow-orb-2"></div>
+        <h2>第二节 计算步骤与手工例题</h2>
+        <hr><p class="step" style="font-size:24px;">先把第一轮算明白</p>
+    </div>
+
+    <!-- ==================== Slide 7: 算法步骤 ==================== -->
+    <div class="slide" id="slide-7-steps">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> 自适应过滤法完整步骤</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:470px;">
+                <table class="data-table" style="font-size:20px;">
+                    <thead><tr><th>步骤</th><th>做什么</th><th>公式/操作</th><th>目的</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>确定 $p$</td><td>选择参与预测的历史期数</td><td>确定模型记忆长度</td></tr>
+                        <tr><td>2</td><td>给初始权数</td><td>$\phi_i=1/p$ 或业务经验值</td><td>让迭代有起点</td></tr>
+                        <tr><td>3</td><td>历史期预测</td><td>$\hat{x}_{t+1}=\sum\phi_ix_{t-i+1}$</td><td>检验当前权数好不好</td></tr>
+                        <tr><td>4</td><td>计算误差</td><td>$e_{t+1}=x_{t+1}-\hat{x}_{t+1}$</td><td>给权数调整提供方向</td></tr>
+                        <tr><td>5</td><td>更新权数</td><td>$\phi_i'=\phi_i+2ke_{t+1}x_{t-i+1}$</td><td>纠正高估或低估</td></tr>
+                        <tr><td>6</td><td>滚动训练</td><td>继续预测下一期、再更新</td><td>完成一轮训练</td></tr>
+                        <tr><td>7</td><td>多轮迭代</td><td>上一轮末权数作为下一轮初始权数</td><td>让 MSE 下降并趋稳</td></tr>
+                        <tr><td>8</td><td>预测未来</td><td>用最终权数代入最近 $p$ 期数据</td><td>得到未来预测值</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 8: 例6-1背景 ==================== -->
+    <div class="slide" id="slide-8-ex61-bg">
+        <h2 class="slide-title"><i class="fas fa-edit"></i> 【例 6-1】题目与建模思路</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#3b82f6;">
+                <h3>题目</h3>
+                <p>某商品最近 5 年销售额如下，应用自适应过滤法预测 2021 年和 2022 年销售额。</p>
+                <div class="table-wrapper" style="margin-top:8px;">
+                    <table class="data-table" style="font-size:16px;"><tr><th>年份</th><th>2016</th><th>2017</th><th>2018</th><th>2019</th><th>2020</th></tr><tr><td>销售额</td><td>43</td><td>45</td><td>48</td><td>50</td><td>53</td></tr></table>
+                </div>
+            </div>
+            <div class="step two-column" style="align-items:stretch;">
+                <div class="tile" style="border-top-color:#10b981;"><h3>为什么取 $p=2$？</h3><p>样本只有 5 个，不能取太多滞后项。取 $p=2$，表示下一年主要由最近两年销售额决定。</p></div>
+                <div class="tile" style="border-top-color:#f59e0b;"><h3>初始设定</h3><p>初始权数取等权：$\phi_1=0.5,\phi_2=0.5$。学习常数取 $k=0.0002$，便于手工演示。</p></div>
+            </div>
+            <div class="step info-box" style="background:#fef2f2; border-left-color:#ef4444;"><p style="color:#991b1b;">注意：原教材中 $k$ 的收敛条件只是保守建议，本例为了手算简洁采用近似取值。课堂重点是理解“预测—误差—调权”的过程，不是迷信小数点后第几位。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 9: 例6-1第一轮 ==================== -->
+    <div class="slide" id="slide-9-ex61-round1">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 【例 6-1】第一轮训练：逐步算给学生看</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-left:5px solid #8b5cf6;">
+                <h3>第 1 步：用 2016、2017 预测 2018</h3>
+                <p>$\hat{x}_3=0.5\times45+0.5\times43=44$，误差 $e_3=48-44=4$。</p>
+                <p>$\phi_1'=0.5+2\times0.0002\times4\times45=0.572$；$\phi_2'=0.5+2\times0.0002\times4\times43=0.569$。</p>
+            </div>
+            <div class="step tile" style="border-left:5px solid #10b981; margin-top:10px;">
+                <h3>第 2 步：用新权数预测 2019</h3>
+                <p>$\hat{x}_4=0.572\times48+0.569\times45\approx53$，误差 $e_4=50-53=-3$。</p>
+                <p>$\phi_1''=0.572+2\times0.0002\times(-3)\times48=0.514$；$\phi_2''=0.569+2\times0.0002\times(-3)\times45=0.515$。</p>
+            </div>
+            <div class="step tile" style="border-left:5px solid #f59e0b; margin-top:10px;">
+                <h3>第 3 步：用新权数预测 2020</h3>
+                <p>$\hat{x}_5=0.514\times50+0.515\times48\approx50$，误差 $e_5=53-50=3$。</p>
+                <p>$\phi_1'''=0.514+2\times0.0002\times3\times50=0.574$；$\phi_2'''=0.515+2\times0.0002\times3\times48=0.573$。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 10: 例6-1表格和结论 ==================== -->
+    <div class="slide" id="slide-10-ex61-table">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 【例 6-1】第一轮训练汇总与最终预测</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:300px;">
+                <table class="data-table" style="font-size:20px;">
+                    <thead><tr><th>训练步</th><th>预测公式</th><th>预测值</th><th>实际值</th><th>误差</th><th>调整后权数</th><th>解释</th></tr></thead>
+                    <tbody>
+                        <tr><td>$x_3$</td><td>$0.5x_2+0.5x_1$</td><td>44</td><td>48</td><td>+4</td><td>0.572, 0.569</td><td>低估，上调</td></tr>
+                        <tr><td>$x_4$</td><td>$0.572x_3+0.569x_2$</td><td>53</td><td>50</td><td>-3</td><td>0.514, 0.515</td><td>高估，下调</td></tr>
+                        <tr><td>$x_5$</td><td>$0.514x_4+0.515x_3$</td><td>50</td><td>53</td><td>+3</td><td>0.574, 0.573</td><td>低估，上调</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step tile" style="border-top-color:#10b981;">
+                <h3>为什么还要继续迭代？</h3>
+                <p>第一轮只让模型走过一次历史数据。接下来把 $0.574,0.573$ 作为新初始权数，从头再训练。重复几轮后，MSE 趋于稳定。</p>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:21px; border-left-color:#10b981;">
+                收敛后取 $\phi_1=0.54,\phi_2=0.541$。<br>
+                2021 年：$\hat{x}_6=0.54\times53+0.541\times50\approx56$。<br>
+                2022 年：$\hat{x}_7=0.54\times56+0.541\times53\approx59$。
+            </div></div>
+        </div>
+    </div>
+
+    <!-- ==================== 第三节 ==================== -->
+    <div class="slide section-slide" id="slide-sec3">
+        <div class="glow-orb-1"></div>
+        <h2>第三节 标准化与计算机迭代</h2>
+        <hr><p class="step" style="font-size:24px;">解决“算得慢”和“算不稳”</p>
+    </div>
+
+    <!-- ==================== Slide 11: 标准化 ==================== -->
+    <div class="slide" id="slide-11-standard">
+        <h2 class="slide-title"><i class="fas fa-ruler-combined"></i> 为什么要标准化？</h2>
+        <div class="content-area">
+            <div class="step two-column" style="align-items:stretch; gap:22px;">
+                <div class="tile" style="border-top-color:#ef4444;"><h3>不标准化的麻烦</h3><p>权数调整项包含 $x$。如果数据很大，$2ke x$ 会非常大，权数容易发散；为了不发散，又必须让 $k$ 极小，导致收敛很慢。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3>标准化的作用</h3><p>把局部数据压到相似尺度，让更新公式更稳定。标准化后通常可以取更大的 $k$，计算速度明显提高。</p></div>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:23px;">
+                \[w=\left(\sum_{i=1}^{p}x_{t-i}^{2}\right)^{1/2},\qquad x_{t-i}^{*}=\frac{x_{t-i}}{w},\qquad e_t^{*}=\frac{e_t}{w}\]
+                \[\phi_i'=\phi_i+2ke_t^{*}x_{t-i}^{*}\]
+            </div></div>
+            <div class="step info-box" style="background:#fffbeb; border-left-color:#f59e0b;"><p style="color:#92400e;">标准化不是为了好看，是为了别让权数更新像脱缰野马。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 12: 例6-2 ==================== -->
+    <div class="slide" id="slide-12-ex62">
+        <h2 class="slide-title"><i class="fas fa-search-plus"></i> 【例 6-2】标准化第一步怎么计算？</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#3b82f6;padding: 20px;">
+                <h3>题目设定</h3>
+                <p>已知序列前几项 $x_1=1.97,x_2=1.89,x_3=2.40$。取 $p=2,k=0.5$，用前两期预测第三期，并做一次权数更新。</p>
+            </div>
+            <div class="step two-column" style="align-items:stretch; gap:22px;">
+                <div class="tile" style="border-top-color:#8b5cf6;padding: 20px;">
+                    <h3>1. 求标准化常数</h3>
+                    <p>$w_3=\sqrt{1.97^2+1.89^2}=2.73$。</p>
+                    <p>$x_1^*=1.97/2.73=0.722$，$x_2^*=1.89/2.73=0.692$，$x_3^*=2.40/2.73=0.879$。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;padding: 20px;">
+                    <h3>2. 预测并更新</h3>
+                    <p>初始 $\phi_1=\phi_2=0.5$。</p>
+                    <p>$\hat{x}_3^*=0.5\times0.692+0.5\times0.722=0.707$。</p>
+                    <p>$e_3^*=0.879-0.707=0.172$。</p>
+                    <p>$\phi_1'=0.5+2(0.5)(0.172)(0.692)=0.619$；$\phi_2'=0.624$。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 13: 计算机意义 ==================== -->
+    <div class="slide" id="slide-13-computer">
+        <h2 class="slide-title"><i class="fas fa-computer"></i> 为什么要用计算机？因为迭代不是一两步</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#3b82f6;padding: 20px;">
+                <h3>手算能讲原理，计算机负责重复劳动</h3>
+                <p>自适应过滤法每预测一期就要更新一次权数；一轮训练结束后，还要把最后权数作为下一轮起点重新训练。样本稍微长一点，人手算就开始怀疑人生。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:300px;padding: 20px;">
+                <table class="data-table" style="font-size:21px;">
+                    <thead><tr><th>计算任务</th><th>人工处理</th><th>计算机处理</th></tr></thead>
+                    <tbody>
+                        <tr><td>逐期预测</td><td>容易漏项</td><td>循环计算</td></tr>
+                        <tr><td>权数更新</td><td>小数多，容易错</td><td>自动保存和更新</td></tr>
+                        <tr><td>多轮迭代</td><td>非常费时</td><td>毫秒级完成</td></tr>
+                        <tr><td>MSE 比较</td><td>表格繁琐</td><td>自动搜索最优轮数</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step info-box" style="background:#eff6ff; border-left-color:#3b82f6;"><p style="color:#1d4ed8;">手算一轮，是为了看懂算法；实际建模必须交给计算机。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 14: 例6-3季节性 ==================== -->
+    <div class="slide" id="slide-14-ex63">
+        <h2 class="slide-title"><i class="fas fa-calendar-alt"></i> 【例 6-3】季度数据为什么取 $p=4$？</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#8b5cf6;">
+                <h3>核心逻辑：同季相似</h3>
+                <p>季度销售具有季节性。预测今年第一季度，不能只看上一季度，还应重点看去年第一季度。因此取 $p=4$，让模型同时参考前四个季度。</p>
+            </div>
+            <div class="step two-column" style="align-items:stretch;">
+                <div class="tile" style="border-top-color:#3b82f6;"><h3>初始权数</h3><p>可设 $\phi=[0.2,0.2,0.2,0.4]$，其中 $0.4$ 给去年同季，体现业务经验。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3>迭代结论</h3><p>若多轮训练后同季权数仍最大，说明数据确实存在强季节规律，不是教师强行加戏。</p></div>
+            </div>
+            <div class="step table-wrapper" style="max-height:210px;padding: 20px;">
+                <table class="data-table" style="font-size:20px;">
+                    <thead><tr><th>迭代次数</th><th>标准误差</th><th>$\phi_1$</th><th>$\phi_2$</th><th>$\phi_3$</th><th>$\phi_4$</th><th>解释</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>1578</td><td>0.1618</td><td>0.1715</td><td>0.2543</td><td>0.4605</td><td>同季权数较大</td></tr>
+                        <tr><td>20</td><td>431</td><td>0.2471</td><td>-0.1022</td><td>0.0531</td><td>0.7154</td><td>强化同季影响</td></tr>
+                        <tr style="background:#ecfdf5; font-weight:bold;"><td>100</td><td>383</td><td>0.1847</td><td>-0.0511</td><td>0.0660</td><td>0.7275</td><td>基本收敛</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- ==================== 第四节 ==================== -->
+    <div class="slide section-slide" id="slide-sec4">
+        <div class="glow-orb-2"></div>
+        <h2>第四节 完整实际案例</h2>
+        <hr><p class="step" style="font-size:24px;">国际航空月客运量预测：144 个月真实数据</p>
+    </div>
+
+    <!-- ==================== Slide 15: case bg ==================== -->
+    <div class="slide" id="slide-15-case-bg">
+        <h2 class="slide-title"><i class="fas fa-plane-departure"></i> 完整案例 (1/5)：业务问题与数据背景</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#3b82f6;">
+                <h3>业务问题</h3>
+                <p>用 1949 年 1 月到 1960 年 12 月的国际航空月客运量数据，建立自适应过滤模型，预测 1961 年前几个月的客运量，用于运力调度、机票投放和旺季资源准备。</p>
+                <p class="small-note" style="margin-top:8px;">这是一个经典真实数据集，共 <strong>144 个月</strong>，同时具有长期增长趋势和明显的年内季节性。比课本里那种五六个数据点的玩具例子更像现实世界。</p>
+            </div>
+            <div class="step two-column" style="align-items:stretch; gap:18px;">
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>数据窗口示例</h3>
+                    <div class="table-wrapper" style="max-height:250px;">
+                        <table class="data-table" style="font-size:15px;">
+                            <thead><tr><th>年份</th><th>1月</th><th>4月</th><th>7月</th><th>10月</th><th>12月</th></tr></thead>
+                            <tbody>
+                                <tr><td>1949</td><td>112</td><td>129</td><td>148</td><td>119</td><td>118</td></tr>
+                                <tr><td>1952</td><td>171</td><td>181</td><td>230</td><td>191</td><td>194</td></tr>
+                                <tr><td>1956</td><td>284</td><td>313</td><td>413</td><td>306</td><td>306</td></tr>
+                                <tr><td>1960</td><td>417</td><td>461</td><td>622</td><td>461</td><td>432</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3>趋势图（1949-1960）</h3>
+                    <div class="air-chart-wrap">
+                        <svg viewBox="0 0 620 220" style="width:100%;height:100%;">
+                            <rect x="0" y="0" width="620" height="220" fill="none"/>
+                            <line x1="40" y1="190" x2="600" y2="190" stroke="#94a3b8" stroke-width="2"/>
+                            <line x1="40" y1="20" x2="40" y2="190" stroke="#94a3b8" stroke-width="2"/>
+                            <text x="18" y="190" font-size="12" fill="#64748b">100</text>
+                            <text x="18" y="140" font-size="12" fill="#64748b">250</text>
+                            <text x="18" y="90" font-size="12" fill="#64748b">400</text>
+                            <text x="18" y="40" font-size="12" fill="#64748b">550</text>
+                            <polyline fill="none" stroke="#3b82f6" stroke-width="3" points="40.00,186.08 43.92,184.12 47.83,179.54 51.75,180.52 55.66,183.13 59.58,178.56 63.50,174.31 67.41,174.31 71.33,178.23 75.24,183.79 79.16,188.69 83.08,184.12 86.99,185.10 90.91,181.50 94.83,176.60 98.74,178.56 102.66,181.83 106.57,173.98 110.49,167.12 114.41,167.12 118.32,171.04 122.24,179.21 126.15,185.42 130.07,176.92 133.99,175.29 137.90,173.65 141.82,164.50 145.73,169.40 149.65,166.46 153.57,164.50 157.48,157.63 161.40,157.63 165.31,162.54 169.23,169.73 173.15,174.96 177.06,168.42 180.98,166.79 184.90,163.85 188.81,159.60 192.73,163.52 196.64,162.87 200.56,151.42 204.48,147.50 208.39,143.58 212.31,154.37 216.22,160.25 220.14,166.46 224.06,159.27 227.97,158.62 231.89,158.62 235.80,145.54 239.72,145.87 243.64,147.83 247.55,143.25 251.47,136.38 255.38,133.77 259.30,145.21 263.22,153.71 267.13,163.85 271.05,156.98 274.97,156.00 278.88,161.23 282.80,145.87 286.71,148.48 290.63,146.19 294.55,136.38 298.46,123.96 302.38,126.90 306.29,138.02 310.21,147.83 314.13,156.33 318.04,147.83 321.96,143.58 325.87,146.52 329.79,135.40 333.71,134.75 337.62,134.42 341.54,119.71 345.45,103.69 349.37,109.25 353.29,120.69 357.20,133.12 361.12,145.21 365.03,131.81 368.95,129.85 372.87,132.13 376.78,119.06 380.70,120.37 384.62,118.73 388.53,100.42 392.45,87.67 396.36,90.29 400.28,106.63 404.20,122.65 408.11,134.10 412.03,122.65 415.94,119.71 419.86,124.29 423.78,106.31 427.69,108.92 431.61,106.63 435.52,84.73 439.44,70.67 443.36,70.02 447.27,90.62 451.19,109.25 455.10,122.98 459.02,112.85 462.94,111.54 466.85,118.73 470.77,104.35 474.69,108.92 478.60,104.02 482.52,80.48 486.43,62.17 490.35,57.60 494.27,90.62 498.18,105.33 502.10,121.35 506.01,112.52 509.93,105.00 513.85,110.88 517.76,89.96 521.68,93.23 525.59,85.38 529.51,68.38 533.43,43.54 537.34,39.94 541.26,71.33 545.17,89.63 549.09,104.35 553.01,90.29 556.92,86.37 560.84,94.87 564.76,85.71 568.67,71.98 572.59,68.38 576.50,47.79 580.42,19.35 584.34,24.58 588.25,56.62 592.17,71.98 596.08,95.19 600.00,81.46"/>
+                            <text x="56" y="208" font-size="12" fill="#64748b">1949</text>
+                            <text x="284" y="208" font-size="12" fill="#64748b">1955</text>
+                            <text x="540" y="208" font-size="12" fill="#64748b">1960</text>
+                        </svg>
+                    </div>
+                    <p class="small-note">曲线同时往上爬，还一到暑期就猛蹿。这种“趋势 + 季节”结构，很适合用 $p=12$ 的月度自适应过滤来讲课。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 16: case setup ==================== -->
+    <div class="slide" id="slide-16-case-setup">
+        <h2 class="slide-title"><i class="fas fa-sitemap"></i> 完整案例 (2/5)：建模方案与初始设置</h2>
+        <div class="content-area">
+            <div class="step eval-grid">
+                <div class="eval-card eval-why"><h4><i class="fas fa-calendar"></i> 为什么取 $p=12$？</h4><p>这是月度序列，完整季节周期为 12 个月。预测某月时，去年同月往往最有参考价值。</p></div>
+                <div class="eval-card eval-where"><h4><i class="fas fa-weight-hanging"></i> 初始权数怎么给？</h4><p>先给最近 11 个月较小权数，各取 $0.03$；给“去年同月”较大权数 $0.67$，体现季节经验。</p></div>
+                <div class="eval-card eval-caution"><h4><i class="fas fa-gauge-high"></i> 学习常数</h4><p>采用归一化更新，取 $k=0.5$。这样每次调整会自动按输入规模缩放，不容易发散。</p></div>
+                <div class="eval-card eval-cons"><h4><i class="fas fa-repeat"></i> 训练方式</h4><p>对 144 个月数据做滚动单步预测，重复迭代 30 轮，比较 RMSE 的下降过程，再用最终权数预测 1961 年。</p></div>
+            </div>
+            <div class="step math-center">
+                <div class="math-box" style="font-size:19px;">
+                    \[
+                    \hat{x}_t=\sum_{i=1}^{12}\phi_i x_{t-i},\qquad
+                    \phi_i'=\phi_i+2k\,\frac{e_t}{\sum_{j=1}^{12}x_{t-j}^2}\,x_{t-i}
+                    \]
+                </div>
+            </div>
+            <div class="step info-box" style="background:#eff6ff; border-left-color:#3b82f6;">
+                <p style="color:#1d4ed8;">这里不再用五六个观测值硬掰出“完整案例”，而是直接上 12 年的真实月度业务序列。学生更容易理解为什么计算机迭代是刚需。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 17: case training ==================== -->
+    <div class="slide" id="slide-17-case-train">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 完整案例 (3/5)：首轮滚动训练摘要</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:355px;">
+                <table class="data-table" style="font-size:14px;">
+                    <thead><tr><th>预测月份</th><th>实际值</th><th>首轮预测值</th><th>误差 $e_t$</th><th>更新后关键权数</th><th>课堂解释</th></tr></thead>
+                    <tbody>
+                        <tr><td>1950-01</td><td>115</td><td>117.28</td><td>-2.28</td><td>去年同月权数 $0.670 \to 0.669$</td><td>略高估，先轻微下调</td></tr>
+                        <tr><td>1950-02</td><td>126</td><td>120.07</td><td>+5.93</td><td>去年同月权数 $0.669 \to 0.671$</td><td>低估，开始补偿</td></tr>
+                        <tr><td>1950-03</td><td>141</td><td>132.24</td><td>+8.76</td><td>去年同月权数 $0.671 \to 0.674$</td><td>旺季上升更快，权数继续上调</td></tr>
+                        <tr><td>1950-04</td><td>135</td><td>134.98</td><td>+0.02</td><td>权数几乎不动</td><td>说明模型在局部窗口里已基本对上节奏</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step tile" style="border-top-color:#f59e0b;">
+               
+                <p>自适应过滤不是神秘黑箱，它只是每来一个新观测，就把“去年同月”和“近几个月”的权数再掂量一遍。模型不是突然聪明，只是比较会认错。</p>
+            </div>
+            <div class="step tile" style="border-top-color:#8b5cf6;">
+                <h3>为什么只展示摘要？</h3>
+                <p>因为完整训练共有 $132$ 个滚动更新点，一页一页全塞进去只会把课讲成 Excel 苦役。课堂展示前几步，完整迭代交给程序，这才是正常人类教学流程。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 18: case convergence ==================== -->
+    <div class="slide" id="slide-18-case-converge">
+        <h2 class="slide-title"><i class="fas fa-chart-area"></i> 完整案例 (4/5)：迭代收敛与最终预测</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:235px;">
+                <table class="data-table" style="font-size:15px;">
+                    <thead><tr><th>迭代轮数</th><th>RMSE</th><th>$\phi_{11}$</th><th>$\phi_{12}$（去年同月）</th><th>权数结构解读</th></tr></thead>
+                    <tbody>
+                        <tr><td>1</td><td>14.74</td><td>0.1525</td><td>0.7580</td><td>季节项开始被强化</td></tr>
+                        <tr><td>10</td><td>11.75</td><td>0.1542</td><td>0.8609</td><td>去年同月的解释力明显上升</td></tr>
+                        <tr style="background:#ecfdf5; font-weight:bold;"><td>30</td><td>11.27</td><td>0.1424</td><td>0.9161</td><td>模型基本把主导信息押在“同月季节效应”上</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="step two-column" style="align-items:stretch; gap:18px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>最终权数特征</h3>
+                    <p>30 轮后，最近 11 个月的权数大多接近 0，个别月份略为负值；而“去年同月”权数达到 <strong>0.9161</strong>。这说明对这组数据而言，年内季节循环比短期波动更重要。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>1961 年滚动预测</h3>
+                    <p>用最终权数对 1961 年继续滚动预测：</p>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;">
+                        \[
+                        \hat{x}_{1961\text{-}01}\approx 446.75,\qquad
+                        \hat{x}_{1961\text{-}02}\approx 423.88
+                        \]
+                    </div></div>
+                    <p>可解释为 44.7 万与 42.4 万人次的量级预估，用来做航班班次、机位、票价策略都更有现实感。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 19: case decision ==================== -->
+    <div class="slide" id="slide-19-case-decision">
+        <h2 class="slide-title"><i class="fas fa-clipboard-check"></i> 完整案例 (5/5)：把预测结果转成业务动作</h2>
+        <div class="content-area">
+            <div class="step eval-grid">
+                <div class="eval-card eval-why"><h4><i class="fas fa-plane"></i> 航班运力</h4><p>若 1-2 月预测持续高位，应提前安排宽体机、热门航线加班和联程衔接，避免旺季前再临时补锅。</p></div>
+                <div class="eval-card eval-where"><h4><i class="fas fa-ticket"></i> 票价管理</h4><p>可在预计高峰月提前调整舱位配额和折扣策略，不必等到订座系统尖叫才想起需求管理。</p></div>
+                <div class="eval-card eval-caution"><h4><i class="fas fa-warehouse"></i> 资源配置</h4><p>机场值机柜台、地服排班、餐食准备、行李处理能力都能随预测值做滚动优化。</p></div>
+                <div class="eval-card eval-cons"><h4><i class="fas fa-chart-line"></i> 模型更新</h4><p>每新增一个月真实客运量，就继续更新权数。真实业务里，模型不是一次训练后封神，而是边跑边学。</p></div>
+            </div>
+            <div class="step info-box" style="background:#f5f3ff; border-left-color:#8b5cf6;">
+                <p style="color:#581c87;">完整逻辑：识别月度季节性 → 设 $p=12$ → 给去年同月更大初始权重 → 用 144 个月真实数据滚动训练 → 观察 RMSE 收敛 → 做未来月份预测 → 支撑航空运力与票价决策。</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== Slide 20: 总结 ==================== -->
+    <div class="slide" id="slide-20-summary">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 全章逻辑总结</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:430px;">
+                <table class="data-table" style="font-size:15px;">
+                    <thead><tr><th>阶段</th><th>核心问题</th><th>操作</th><th>提醒</th></tr></thead>
+                    <tbody>
+                        <tr><td>看数据</td><td>是否有滞后或季节规律？</td><td>画图、结合业务背景</td><td>先看图，后公式</td></tr>
+                        <tr><td>定 $p$</td><td>参考多少期？</td><td>一般由周期或样本量决定</td><td>别贪多</td></tr>
+                        <tr><td>给初值</td><td>权数从哪里开始？</td><td>等权或经验权重</td><td>初值只是起跑线</td></tr>
+                        <tr><td>预测历史</td><td>旧权数准不准？</td><td>逐期预测</td><td>这是训练，不是最终预测</td></tr>
+                        <tr><td>算误差</td><td>高估还是低估？</td><td>$e=x-\hat{x}$</td><td>误差就是反馈信号</td></tr>
+                        <tr><td>调权数</td><td>怎样改？</td><td>$\phi_i'=\phi_i+2ke x$</td><td>$k$ 不能乱取</td></tr>
+                        <tr><td>看收敛</td><td>是否还要继续？</td><td>比较 MSE/RMSE</td><td>误差稳定就停</td></tr>
+                        <tr><td>预测应用</td><td>结果怎么服务决策？</td><td>预测未来并解释</td><td>预测要落到库存、排班、预算</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== Slide 21: 本章小结 ==================== -->
+    <div class="slide section-slide" id="slide-21-summary-section">
+        <div class="glow-orb-2"></div>
+        <h2 style="color:white; border:none; margin-bottom:20px;">本章小结</h2>
+        <div class="content-area" style="max-width:980px; margin:0 auto; text-align:left;">
+            <div class="step tile" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white;">
+                <ul style="color:#cbd5e1; line-height:2.0; font-size:19px;">
+                    <li><strong>自适应过滤法</strong>是一种根据预测误差自动调整权数的短期预测方法。</li>
+                    <li>它的核心预测形式是历史数据的线性加权，核心学习机制是权数迭代公式。</li>
+                    <li>$p$ 决定模型参考多少期，$k$ 决定每次权数调整的步长。</li>
+                    <li>标准化可解决数据尺度过大导致的学习常数过小和收敛缓慢问题。</li>
+                    <li>在具有季节性的数据中，$p$ 常取周期长度，模型会通过迭代验证同季影响是否重要。</li>
+                    <li>实际使用时，预测不是终点，经营决策才是终点。统计预测不服务决策，就只是在表格里自娱自乐。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- 放映逻辑 -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const progressBar = document.getElementById('progress-bar');
+    const slideCounter = document.getElementById('slide-counter');
+    const presentationLauncher = document.getElementById('presentation-launcher');
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    const rollingDemoSlide = document.getElementById('slide-6b-rolling-demo');
+    const slidingWindow = document.getElementById('sliding-window');
+    const rollingWeightText = document.getElementById('weight-text');
+    const rollingErrorNode = document.getElementById('error-node');
+    const rollingInfo = document.getElementById('info-text');
+    let rollingDemoState = -1;
+    let rollingDemoEntered = false;
+
+    const rollingSteps = [
+        {
+            html: '<strong>【初始阶段】</strong>选取前3个数据 x1, x2, x3 作为输入。利用初始的随机权重组 [ ϕ1, ϕ2, ϕ3 ]，计算出第4期的初步预测值 x4估计。'
+        },
+        {
+            html: '<strong>【产生误差并更新】</strong>真实值 x4 发生！两者比对产生误差 e4。误差信号通过红色虚线反向回传，触发 LMS 算法。利用公式 ϕ1`=ϕi + 2ke4x{4-i}，权重被立刻更新为新的一组 <strong>[ ϕ1`, ϕ2`, ϕ3`]</strong>。',
+            weight: '更新后: [ ϕ1`, ϕ2`, ϕ3`]',
+            errorPulse: true
+        },
+        {
+            html: '<strong>【时间窗口滑动：t=5】</strong>时间来到下一期！绿色的抓取框向右滑动一格。此时输入数据变为 x2, x3, x4。模型使用<strong>刚刚更新过的最新权重 [ ϕ1, ϕ2, ϕ3 ]</strong>，计算对第5期的预测值 x5估计。',
+            animClass: 'anim-t1',
+            errorPulse: false
+        },
+        {
+            html: '<strong>【再次更新】</strong>真实值 x5 发生，产生误差 e5。系统再次自我纠错，权重进一步进化为 <strong>[ ϕ1``, ϕ2``, ϕ3``]</strong>。模型变得越来越聪明。',
+            weight: '更新后: [ ϕ1``, ϕ2``, ϕ3``]',
+            errorPulse: true
+        },
+        {
+            html: '<strong>【时间窗口滑动：t=6】</strong>窗口继续向右滚动，吸收最新的观测值 x5，丢弃最老的 x2。预测方程：x6估计= ϕ1``x5 +ϕ2``x4 + ϕ3``x3',
+            animClass: 'anim-t2',
+            errorPulse: false
+        },
+        {
+            html: '<strong>【总结】</strong>自适应过滤法就是这样像履带一样在时间轴上<strong>滚动前行</strong>。每经历一次“预测➡︎实测➡︎误差➡︎调权”的循环，模型对真实规律的刻画就越精准。当窗口扫过所有历史数据后，若误差足够小，最后这组权重就可以用于未来的真实预测了。',
+            animClass: 'anim-t3',
+            weight: '最终稳定权重: [ ϕ1*,ϕ2*, ϕ3*]',
+            errorPulse: false
+        }
+    ];
+    function refreshMath(targets) {
+        if (window.MathJax && MathJax.typesetPromise) {
+            const nodes = Array.isArray(targets) ? targets.filter(Boolean) : undefined;
+            MathJax.typesetPromise(nodes).catch(() => {});
+        }
+    }
+
+    function updateUI() {
+        if (slideCounter) slideCounter.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+        if (progressBar) progressBar.style.width = `${((currentSlideIndex + 1) / slides.length) * 100}%`;
+    }
+
+    function applyRollingStep(index) {
+        if (!rollingDemoSlide || !slidingWindow || !rollingWeightText || !rollingErrorNode || !rollingInfo) return;
+        const step = rollingSteps[Math.max(0, Math.min(index, rollingSteps.length - 1))];
+        rollingDemoState = Math.max(0, Math.min(index, rollingSteps.length - 1));
+
+        slidingWindow.classList.remove('anim-t1', 'anim-t2', 'anim-t3');
+        void slidingWindow.getBoundingClientRect();
+        if (step.animClass) slidingWindow.classList.add(step.animClass);
+
+        if (step.weight) {
+            rollingWeightText.innerHTML = step.weight;
+            rollingWeightText.classList.add('highlight-weight');
+        } else {
+            rollingWeightText.innerHTML = '当前权重: [ ϕ1, ϕ2, ϕ3 ]';
+            rollingWeightText.classList.remove('highlight-weight');
+        }
+
+        if (step.errorPulse) {
+            rollingErrorNode.classList.add('pulse-error');
+        } else {
+            rollingErrorNode.classList.remove('pulse-error');
+        }
+
+        rollingInfo.innerHTML = step.html;
+        refreshMath([rollingInfo, rollingWeightText]);
+    }
+
+    function isRollingDemoSlideActive() {
+        return !!(rollingDemoSlide && slides[currentSlideIndex] === rollingDemoSlide);
+    }
+
+    function resetRollingDemo() {
+        rollingDemoState = -1;
+        if (!rollingDemoSlide || !slidingWindow || !rollingWeightText || !rollingErrorNode || !rollingInfo) return;
+        slidingWindow.classList.remove('anim-t1', 'anim-t2', 'anim-t3');
+        slidingWindow.setAttribute('transform', 'translateX(0)');
+        rollingWeightText.innerHTML = '当前权重: [ ϕ1, ϕ2, ϕ3 ]';
+        rollingInfo.innerHTML = '滚动迭代过程';
+        rollingErrorNode.classList.remove('pulse-error');
+        rollingWeightText.classList.remove('highlight-weight');
+        refreshMath([rollingInfo, rollingWeightText]);
+    }
+
+    function detectNearestSlideIndex() {
+        let bestIndex = 0;
+        let minDist = Infinity;
+        slides.forEach((s, i) => {
+            const dist = Math.abs(s.getBoundingClientRect().top);
+            if (dist < minDist) {
+                minDist = dist;
+                bestIndex = i;
+            }
+        });
+        return bestIndex;
+    }
+
+    function showSlide(index) {
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+        if (isRollingDemoSlideActive()) {
+            resetRollingDemo();
+        }
+        updateUI();
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode');
+        body.classList.add('presentation-mode');
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.remove('visible')));
+        showSlide(startIndex);
+        resetRollingDemo();
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function exitPresentationMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode');
+        body.classList.add('browse-mode');
+        container.style.transform = 'none';
+        slides.forEach(s => s.classList.remove('active'));
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+        if (slides[currentSlideIndex]) {
+            slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        updateUI();
+        refreshMath();
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+
+        if (isRollingDemoSlideActive()) {
+            const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (hiddenSteps.length > 0) {
+                hiddenSteps[0].classList.add('visible');
+                resetRollingDemo();
+                applyRollingStep(0);
+                return;
+            }
+            if (rollingDemoState < rollingSteps.length - 1) {
+                applyRollingStep(rollingDemoState + 1);
+                return;
+            }
+            if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+            return;
+        }
+
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            refreshMath();
+            return;
+        }
+        if (currentSlideIndex < slides.length - 1) {
+            showSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        if (isRollingDemoSlideActive()) {
+            if (rollingDemoState > 0) {
+                applyRollingStep(rollingDemoState - 1);
+                return;
+            }
+            if (rollingDemoState === 0) {
+                resetRollingDemo();
+                const visibleSteps0 = currentSlide.querySelectorAll('.step.visible');
+                if (visibleSteps0.length > 0) visibleSteps0[visibleSteps0.length - 1].classList.remove('visible');
+                return;
+            }
+        }
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            if (isRollingDemoSlideActive()) resetRollingDemo();
+            refreshMath();
+        } else if (currentSlideIndex > 0) {
+            showSlide(currentSlideIndex - 1);
+            slides[currentSlideIndex].querySelectorAll('.step').forEach(st => st.classList.add('visible'));
+            if (isRollingDemoSlideActive()) {
+                applyRollingStep(rollingSteps.length - 1);
+            }
+        }
+    }
+
+    function launchPresentationFromViewport() {
+        const startIndex = isPresentationMode ? currentSlideIndex : detectNearestSlideIndex();
+        enterPresentationMode(startIndex);
+        const el = document.documentElement;
+        if (!document.fullscreenElement && el.requestFullscreen) {
+            el.requestFullscreen().catch(() => {});
+        }
+    }
+
+    if (!isPresentationMode) {
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+    updateUI();
+    refreshMath();
+    window.addEventListener('load', refreshMath);
+
+    if (presentationLauncher) {
+        presentationLauncher.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            launchPresentationFromViewport();
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        if (isPresentationMode && !e.target.closest('.hw-btn') && !e.target.closest('#presentation-launcher')) {
+            advance();
+        }
+    });
+
+    document.addEventListener('dblclick', (e) => {
+        if (!isPresentationMode && !e.target.closest('.hw-btn') && !e.target.closest('#presentation-launcher')) {
+            launchPresentationFromViewport();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        const cmdEnter = (e.key === 'Enter' || e.code === 'NumpadEnter') && (e.ctrlKey || e.metaKey);
+
+        if (e.key === 'F5') {
+            e.preventDefault();
+            e.stopPropagation();
+            launchPresentationFromViewport();
+            return;
+        }
+
+        if (cmdEnter && !isPresentationMode) {
+            e.preventDefault();
+            e.stopPropagation();
+            launchPresentationFromViewport();
+            return;
+        }
+
+        if (e.key === 'Escape' && isPresentationMode) {
+            e.preventDefault();
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+            exitPresentationMode();
+            return;
+        }
+
+        if (isPresentationMode) {
+            if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'Enter' || e.code === 'NumpadEnter' || e.key === 'PageDown') {
+                e.preventDefault();
+                advance();
+            }
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+                e.preventDefault();
+                goBack();
+            }
+            if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(0);
+            }
+            if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(slides.length - 1);
+            }
+        }
+    }, true);
+
+    window.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode) {
+            exitPresentationMode();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (isPresentationMode) {
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+    });
+});
+</script>
+
+</body>
+</html>
