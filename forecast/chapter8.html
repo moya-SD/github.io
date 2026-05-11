@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>统计预测与决策 - 第8章 干预分析模型预测法（逻辑重排版）</title>
+<!-- 引入字体与图标 -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&amp;family=Noto+Serif+SC:wght@700&amp;display=swap" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet"/>
+<!-- 引入 MathJax 渲染数学公式 -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: { scale: 1.05, displayAlign: 'center' }
+        };
+    </script>
+<script>
+    (function () {
+        const localSrc = "./mathjax/tex-mml-chtml.js";
+        const cdnSrc = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js";
+        const s = document.createElement("script");
+        s.id = "MathJax-script";
+        s.defer = true;
+        s.src = localSrc;
+        s.onerror = function () {
+            const c = document.createElement("script");
+            c.id = "MathJax-script-cdn";
+            c.defer = true;
+            c.src = cdnSrc;
+            document.head.appendChild(c);
+        };
+        document.head.appendChild(s);
+    })();
+</script>
+<style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; font-family: 'Noto Sans SC', sans-serif; background-color: #f1f5f9; scroll-behavior: smooth; }
+
+        /* ===================== 浏览模式（默认） ===================== */
+        body.browse-mode { overflow-y: auto; overflow-x: hidden; min-height: 100vh; }
+        body.browse-mode #presentation-container {
+            position: relative; width: 1280px; margin: 24px auto 60px auto;
+            transform: none !important; height: auto; background: transparent; overflow: visible;
+        }
+        body.browse-mode .slide {
+            position: relative; width: 1280px; height: 720px; margin: 0 auto 28px auto;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 1 !important; pointer-events: auto !important;
+            background: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;
+        }
+        body.browse-mode .step { opacity: 1 !important; transform: none !important; transition: none !important; }
+        body.browse-mode .progress-bar, body.browse-mode .slide-counter { display: none; }
+
+        /* ===================== 放映模式 ===================== */
+        body.presentation-mode { background-color: #0f172a; width: 100vw; height: 100vh; overflow: hidden; }
+        body.presentation-mode #presentation-container {
+            position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); background-color: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden;
+        }
+        body.presentation-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #f43f5e, #8b5cf6, #3b82f6); z-index: 100;
+        }
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            background-color: #ffffff;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* ===================== 动画 ===================== */
+        .step { opacity: 0; transform: translateY(20px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .step.visible { opacity: 1; transform: translateY(0); }
+
+        /* ===================== 内容排版 ===================== */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 34px; color: #1e293b;
+            margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+        }
+        .slide-title i { color: #f43f5e; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; overflow: visible; }
+        p { font-size: 19px; color: #334155; line-height: 1.6; margin: 0; }
+        ul { list-style: none; margin-left: 5px; }
+        li { position: relative; padding-left: 25px; margin-bottom: 8px; font-size: 18px; color: #475569; line-height: 1.5; }
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 3px; color: #f43f5e; font-size: 18px; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: stretch; }
+        .tile { background: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #cbd5e1; border-top: 5px solid #f43f5e; }
+        .tile h3 { font-size: 22px; color: #0f172a; margin-bottom: 10px; }
+
+        /* 浅色背景公式区 */
+        .math-center { text-align: center; width: 100%; margin: 5px 0; }
+        .math-box {
+            background: #fdf2f8; border-left: 5px solid #f43f5e; border-radius: 8px;
+            padding: 10px 20px; color: #000; font-size: 18px;
+            display: inline-block; width: fit-content; text-align: left; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: visible !important; white-space: normal;
+        }
+        mjx-container { overflow: visible !important; }
+
+        .info-box { background: #eff6ff; border-left: 6px solid #3b82f6; padding: 12px 20px; border-radius: 8px; margin: 5px 0; }
+        
+        /* 表格样式 */
+        .table-wrapper { width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; overflow-y: auto; background: white; margin: 5px 0; max-height: 280px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; color: #334155; }
+        .data-table th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; position: sticky; top: 0; z-index: 1; }
+        .data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+        .svg-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; position: relative;}
+
+        /* ===================== 封面 ===================== */
+        .title-slide { background: #020617 !important; color: white; justify-content: center !important; align-items: center !important; text-align: center; padding: 0; position: relative; }
+        .title-slide::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; z-index: 1; opacity: 0.3;}
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(244,63,94,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        .title-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.7); padding: 60px 80px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; color: #fff; }
+        .title-content h1 span { background: linear-gradient(to right, #fb7185, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .section-slide { background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important; color: #ffffff; justify-content: center !important; align-items: center !important; text-align: center; position: relative; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 48px; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 6px; background: #f43f5e; border: none; margin: 20px 0; }
+
+        body.browse-mode .title-slide, body.browse-mode .section-slide { min-height: 720px; display: flex !important; }
+
+        .hw-btn { background: linear-gradient(135deg, #f43f5e, #8b5cf6); color: white; padding: 12px 35px; border-radius: 50px; font-size: 22px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; border: none; cursor: pointer; margin-top: 20px; transition: transform 0.2s; box-shadow: 0 10px 20px rgba(244, 63, 94, 0.3);}
+        .hw-btn:hover { transform: translateY(-3px); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: #f43f5e; transition: width 0.3s ease; z-index: 200; }
+        .slide-counter { position: absolute; bottom: 20px; right: 30px; font-size: 18px; font-weight: bold; color: #94a3b8; z-index: 100; }
+
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide { width: 100vw !important; height: 100vh !important; margin: 0 !important; box-shadow: none !important; page-break-after: always; page-break-inside: avoid; border: 1px solid transparent; }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+    </style>
+</head>
+<body class="browse-mode">
+<div id="presentation-container"><div class="progress-bar" id="progress-bar"></div>
+    
+<!-- 逻辑重排版：已删除重复页，按 概念→变量→模型→步骤→案例→课堂应用→总结 排列 -->
+<div class="slide-counter" id="slide-counter"></div>
+
+<div class="slide title-slide active" id="slide-0">
+<div class="glow-orb-1"></div><div class="glow-orb-2"></div>
+<div class="title-content">
+<div class="badge" style="background:rgba(244,63,94,0.1); border:1px solid #f43f5e; color:#fb7185; padding:8px 20px; border-radius:50px; margin-bottom:20px; font-size:18px;">应用统计学专业课程</div>
+<h1><span>第八章 干预分析模型预测法</span></h1>
+<p style="color:#94a3b8; font-size:24px; margin-top:10px;">量化政策与突发事件的经济冲击 (Intervention Analysis)</p>
+<div class="step" style="margin-top: 30px; background: rgba(0,0,0,0.4); padding: 12px 25px; border-radius: 12px;">
+<p style="font-size: 18px; color: #fb7185; margin: 0;"><i class="fas fa-desktop"></i> <strong>F5</strong> 开启全屏放映 | 单击鼠标步进讲解</p>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-intro">
+<h2 class="slide-title"><i class="fas fa-meteor"></i> 章节导入：当平稳被打破</h2>
+<div class="content-area">
+<div class="step two-column">
+<div class="tile">
+<h3>突发事件如何扭曲现实轨迹？</h3>
+<p>在第七章中，我们假设序列的底层机制是“平稳”的。但在现实世界中，时间序列经常会受到特殊事件及态势的剧烈冲击，例如：</p>
+<ul style="font-size: 16px;">
+<li><strong>政策突变：</strong> 央行突然宣布降息/加息。</li>
+<li><strong>突发灾难：</strong> SARS疫情、911事件对航空与房地产的冲击。</li>
+<li><strong>商业事件：</strong> 竞争对手的恶意降价、企业罢工。</li>
+</ul>
+<p style="margin-top:10px;">这类外部事件在统计学中被称为<strong>“干预 (Intervention)”</strong>。</p>
+</div>
+<div class="svg-container" style="height: 260px; background: #0f172a;">
+<svg style="width: 100%; height: 100%;" viewbox="0 0 400 200">
+<!-- 正常波形 -->
+<path d="M 0 120 Q 20 100 40 120 T 80 120 T 120 120 T 160 120 T 200 120" fill="none" stroke="#3b82f6" stroke-width="3"></path>
+<!-- 冲击线 -->
+<line class="step" stroke="#f43f5e" stroke-dasharray="4,4" stroke-width="2" x1="200" x2="200" y1="20" y2="180"></line>
+<text class="step" fill="#f43f5e" font-size="12" font-weight="bold" x="180" y="15">突发干预 (T)</text>
+<circle class="step" cx="200" cy="120" fill="#f43f5e" r="5"></circle>
+<!-- 冲击后波形 -->
+<path class="step" d="M 200 120 Q 220 50 240 70 T 280 70 T 320 70 T 360 70 T 400 70" fill="none" stroke="#10b981" stroke-width="3"></path>
+<text class="step" fill="#10b981" font-size="12" font-weight="bold" x="280" y="50">新的平衡态</text>
+</svg>
+</div>
+</div>
+<div class="step info-box">
+<p><strong>干预分析的目的：</strong>由 Box &amp; Tiao (1975) 提出，通过定量分析，精确剥离并测算出“干预事件”造成的独立影响，然后剔除这些影响，还原序列的真实面貌以便进行科学预测。</p>
+</div>
+</div>
+</div>
+
+<div class="slide section-slide" id="slide-sec1">
+<div class="glow-orb-1"></div>
+<h2>第一节 干预分析模型概述</h2>
+<hr/><p class="step" style="font-size: 24px;">如何用数学语言描述“突发事件”？</p>
+</div>
+
+<div class="slide" id="slide-detail-intervention-big-picture">
+<h2 class="slide-title"><i class="fas fa-magnifying-glass-chart"></i> 干预分析的核心问题：事件到底带来了多少改变？</h2>
+<div class="content-area">
+<div class="step tile" style="border-top-color:#3b82f6; padding:18px 24px;">
+<h3 style="font-size:22px; color:#1d4ed8;">先把问题说清楚</h3>
+<p style="font-size:19px; line-height:1.65;">普通时间序列模型主要描述序列自身的惯性和随机波动；干预分析进一步问：当某个外部事件发生后，序列是否出现了超出自身规律的变化？如果有，这个变化有多大、持续多久、是否滞后、是否逐渐衰减？</p>
+</div>
+<div class="step two-column" style="align-items:stretch; margin-top:8px;">
+<div class="tile" style="border-top-color:#10b981;">
+<h3 style="font-size:20px; color:#047857;">没有干预时</h3>
+<div class="math-center"><div class="math-box" style="font-size:18px; border-left-color:#10b981; background:#f0fdf4;">
+                        \[x_t^{(0)}=\text{正常趋势}+\text{时间序列扰动}\]
+                    </div></div>
+<p style="font-size:16px;">这是“反事实基准线”：如果事件没有发生，序列本来会怎么走。</p>
+</div>
+<div class="tile" style="border-top-color:#f43f5e;">
+<h3 style="font-size:20px; color:#be123c;">发生干预后</h3>
+<div class="math-center"><div class="math-box" style="font-size:18px;">
+                        \[x_t=x_t^{(0)}+Z_t\]
+                    </div></div>
+<p style="font-size:16px;">其中 \(Z_t\) 就是事件带来的额外冲击。它不是凭感觉说“涨了”，而是和无干预基准作比较。</p>
+</div>
+</div>
+<div class="step info-box" style="margin-top:10px;">
+<p style="font-size:17px; font-weight:normal; color:#1e3a8a;">落点：干预分析的灵魂是<strong>反事实比较</strong>。先建立“没有事件时”的轨迹，再测量现实轨迹多出来的部分。否则看到上涨就说政策有效，科学味儿太薄得。</p>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-dummy-vs-intervention">
+<h2 class="slide-title"><i class="fas fa-not-equal"></i> 干预分析不是普通虚拟变量回归</h2>
+<div class="content-area">
+<div class="step table-wrapper" style="max-height:300px;">
+<table class="data-table" style="font-size:16px;">
+<tr><th>比较项目</th><th>普通虚拟变量回归</th><th>干预分析模型</th></tr>
+<tr><td>变量作用</td><td>表示某类状态是否存在</td><td>表示事件冲击如何随时间传播</td></tr>
+<tr><td>影响形式</td><td>通常是固定水平差异</td><td>可突然、滞后、逐渐释放、衰减或长期持续</td></tr>
+<tr><td>误差结构</td><td>常把误差当独立</td><td>允许误差具有 ARMA/ARIMA 自相关结构</td></tr>
+<tr><td>核心问题</td><td>某状态下均值是否不同</td><td>某事件对时间路径造成了什么动态影响</td></tr>
+<tr><td>适用例子</td><td>性别、地区、组别</td><td>政策出台、疫情爆发、促销开始、重大会议</td></tr>
+</table>
+</div>
+<div class="step two-column" style="align-items:stretch; margin-top:12px;">
+<div class="tile" style="border-top-color:#64748b;">
+<h3 style="font-size:20px;">虚拟变量的表达</h3>
+<div class="math-center"><div class="math-box" style="font-size:18px; border-left-color:#64748b; background:#f8fafc;">
+                        \[y_t=\beta_0+\beta_1D_t+e_t\]
+                    </div></div>
+<p style="font-size:16px;">重点是“状态差异”。</p>
+</div>
+<div class="tile" style="border-top-color:#f43f5e;">
+<h3 style="font-size:20px; color:#be123c;">干预模型的表达</h3>
+<div class="math-center"><div class="math-box" style="font-size:18px;">
+                        \[x_t=\psi(B)I_t^T+\frac{\theta(B)}{\varphi(B)}a_t\]
+                    </div></div>
+<p style="font-size:16px;">重点是“冲击过程”。</p>
+</div>
+</div>
+<div class="step info-box" style="margin-top:8px;"><p style="font-size:17px; font-weight:normal; color:#1e3a8a;">一句话：虚拟变量像开关，干预分析像带延迟和回声的开关。现实里的政策和突发事件通常不是按一下就结束，真要那么省事，经济学教材可以薄一半。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-choose-intervention-variable">
+<h2 class="slide-title"><i class="fas fa-toggle-on"></i> 干预变量怎么选：阶跃还是脉冲？</h2>
+<div class="content-area">
+<div class="step two-column" style="align-items:stretch;">
+<div class="tile" style="border-top-color:#f43f5e;">
+<h3 style="font-size:19px; color:#be123c;">阶跃函数 $S_t^T$：影响从此常驻</h3>
+<p style="font-size:15px;">适用于事件发生后制度环境永久改变，或者至少在研究期内持续有效的情形。</p>
+<div class="math-center"><div class="math-box" style="font-size:16px;">
+                        \[ S_t^T=\begin{cases}0,&amp;t\lt T\\1,&amp;t\geqslant T\end{cases} \]
+                    </div></div>
+<p style="font-size:14px; color:#64748b;">例：限购政策、新税率、长期补贴、央行降息后的利率水平改变。</p>
+</div>
+<div class="tile" style="border-top-color:#8b5cf6;">
+<h3 style="font-size:19px; color:#6d28d9;">脉冲函数 $P_t^T$：只在某点爆一下</h3>
+<p style="font-size:15px;">适用于一次性事件，事件本身只在某个时点发生，但它可以通过模型产生后续衰减影响。</p>
+<div class="math-center"><div class="math-box" style="font-size:16px; border-left-color:#8b5cf6; background:#faf5ff;">
+                        \[ P_t^T=\begin{cases}1,&amp;t=T\\0,&amp;t\neq T\end{cases} \]
+                    </div></div>
+<p style="font-size:14px; color:#64748b;">例：一天促销、一次停工、一次暴雨、一次重大公告。</p>
+</div>
+</div>
+<div class="step info-box" style="margin-top:12px;">
+<p style="font-size:16px; font-weight:normal; color:#1e3a8a;">选择原则：先问“事件本身是否持续”，再问“影响是否持续”。事件只发生一天，不代表影响只持续一天；人类对一次促销的记忆可能很短，但库存和口碑的后遗症不一定短，生活真是麻烦。</p>
+</div>
+<div class="step table-wrapper" style="max-height:180px;">
+<table class="data-table" style="font-size:15px;">
+<tr><th>实际情境</th><th>变量形式</th><th>影响模型建议</th><th>解释</th></tr>
+<tr><td>城市限购政策出台</td><td>阶跃</td><td>$\omega S_t^T$ 或 $\frac{\omega}{1-\delta B}S_t^T$</td><td>政策持续存在</td></tr>
+<tr><td>双十一当天促销</td><td>脉冲</td><td>$\frac{\omega}{1-\delta B}P_t^T$</td><td>当天爆发，后续可能回落</td></tr>
+<tr><td>疫情管控逐步放开</td><td>阶跃+滞后</td><td>$\frac{\omega B^b}{1-\delta B}S_t^T$</td><td>影响有滞后和逐步释放</td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-four-types-visual-detail">
+<h2 class="slide-title"><i class="fas fa-chart-line"></i> 四类干预效应：看形状选模型</h2>
+<div class="content-area">
+<div class="step" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; height:500px;">
+<div class="tile" style="padding:12px; border-top-color:#f43f5e;">
+<h3 style="font-size:16px; color:#be123c;">突然开始，长期持续</h3>
+<svg style="width:100%; height:125px;" viewbox="0 0 220 160"><line stroke="#94a3b8" x1="20" x2="200" y1="130" y2="130"></line><line stroke="#cbd5e1" stroke-dasharray="4 3" x1="80" x2="80" y1="20" y2="145"></line><path d="M20 120 L80 120 L80 55 L200 55" fill="none" stroke="#f43f5e" stroke-width="4"></path></svg>
+<div class="math-center"><div class="math-box" style="font-size:13px; padding:5px;">$Z_t=\omega S_t^T$</div></div>
+<p style="font-size:13px;">例：政策一出台，水平立刻抬高并保持。</p>
+</div>
+<div class="tile" style="padding:12px; border-top-color:#10b981;">
+<h3 style="font-size:16px; color:#047857;">逐渐开始，长期持续</h3>
+<svg style="width:100%; height:125px;" viewbox="0 0 220 160"><line stroke="#94a3b8" x1="20" x2="200" y1="130" y2="130"></line><line stroke="#cbd5e1" stroke-dasharray="4 3" x1="80" x2="80" y1="20" y2="145"></line><path d="M20 120 L80 120 C100 112 115 90 135 70 C155 55 175 48 200 45" fill="none" stroke="#10b981" stroke-width="4"></path></svg>
+<div class="math-center"><div class="math-box" style="font-size:13px; padding:5px; border-left-color:#10b981; background:#f0fdf4;">$Z_t=\frac{\omega}{1-\delta B}S_t^T$</div></div>
+<p style="font-size:13px;">例：口碑扩散、政策效应逐步释放。</p>
+</div>
+<div class="tile" style="padding:12px; border-top-color:#8b5cf6;">
+<h3 style="font-size:16px; color:#6d28d9;">突然开始，暂时影响</h3>
+<svg style="width:100%; height:125px;" viewbox="0 0 220 160"><line stroke="#94a3b8" x1="20" x2="200" y1="130" y2="130"></line><line stroke="#cbd5e1" stroke-dasharray="4 3" x1="80" x2="80" y1="20" y2="145"></line><path d="M20 120 L80 120 L80 45 C100 60 120 82 140 98 C160 110 180 116 200 120" fill="none" stroke="#8b5cf6" stroke-width="4"></path></svg>
+<div class="math-center"><div class="math-box" style="font-size:13px; padding:5px; border-left-color:#8b5cf6; background:#faf5ff;">$Z_t=\frac{\omega}{1-\delta B}P_t^T$</div></div>
+<p style="font-size:13px;">例：促销当天暴增，随后衰减。</p>
+</div>
+<div class="tile" style="padding:12px; border-top-color:#f59e0b;">
+<h3 style="font-size:16px; color:#b45309;">逐渐开始，暂时影响</h3>
+<svg style="width:100%; height:125px;" viewbox="0 0 220 160"><line stroke="#94a3b8" x1="20" x2="200" y1="130" y2="130"></line><line stroke="#cbd5e1" stroke-dasharray="4 3" x1="80" x2="80" y1="20" y2="145"></line><path d="M20 120 L80 120 C95 105 110 70 135 55 C155 55 180 95 200 120" fill="none" stroke="#f59e0b" stroke-width="4"></path></svg>
+<div class="math-center"><div class="math-box" style="font-size:13px; padding:5px; border-left-color:#f59e0b; background:#fffbeb;">$Z_t=\frac{\omega_0}{1-\delta_1B-\cdots}P_t^T$</div></div>
+<p style="font-size:13px;">例：舆论逐渐发酵，到峰值后退潮。</p>
+</div>
+</div>
+<div class="step info-box" style="margin-top:8px;">
+<p style="font-size:15px; font-weight:normal; color:#1e3a8a;">课堂判断口诀：先看“开始方式”，突然还是渐进；再看“结束方式”，持续还是消退。四个字：起点、尾巴。别把所有冲击都塞进一个虚拟变量，太粗暴，像拿拖把修钟表。</p>
+</div>
+</div>
+</div>
+
+<div class="slide section-slide" id="slide-sec2">
+<div class="glow-orb-2"></div>
+<h2>第二节 单变量干预分析模型的识别与估计</h2>
+<hr/><p class="step" style="font-size: 24px;">剥离噪音：还时间序列以本来面目</p>
+</div>
+
+<div class="slide" id="slide-model-struct">
+<h2 class="slide-title"><i class="fas fa-cut"></i> 一、单变量干预分析模型的构造</h2>
+<div class="content-area">
+<div class="step tile">
+<p style="font-size: 16px;"><strong>建模逻辑：</strong> 将现实观测到的序列 $x_t$ 拆分为两部分：<strong>干预影响的部分</strong> 和 <strong>剔除干预影响后的纯净时间序列部分 (ARMA)</strong>。</p>
+</div>
+<div class="step math-center" style="margin-top: 10px;">
+<div class="math-box" style="font-size: 20px; padding: 15px 30px;">
+                    \[ x_t = \underbrace{\frac{\omega(B)}{\delta(B)} I_t^T}_{\text{干预效应部分 } Z_t} + \underbrace{\frac{\theta(B)}{\varphi(B)} a_t}_{\text{纯净序列模型 } \varepsilon_t} \]
+                </div>
+</div>
+<div class="step math-center">
+<div class="math-box" style="font-size: 18px; border-left-color: transparent; background: transparent; box-shadow: none;">
+                    即： \[ x_t = \psi(B) I_t^T + \varepsilon_t \]
+                </div>
+</div>
+<div class="step info-box">
+<p style="font-size: 16px;"><strong>难点 (干预效应识别)：</strong> 现实中的数据 $x_t$ 是已经被“污染”的，如果直接求 ACF/PACF 会导致误判。必须通过分段处理或经验假设来分离两者。</p>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-identification-two-routes">
+<h2 class="slide-title"><i class="fas fa-code-branch"></i> 干预效应识别：两条路线</h2>
+<div class="content-area">
+<div class="step two-column" style="align-items:stretch;">
+<div class="tile" style="border-top-color:#3b82f6;">
+<h3 style="font-size:20px; color:#1d4ed8;">路线 A：利用无干预数据识别</h3>
+<ol style="font-size:16px; line-height:1.65; padding-left:22px; color:#334155;">
+<li>截取干预发生前的数据。</li>
+<li>对这段数据做平稳性分析。</li>
+<li>用 ACF/PACF 识别 ARIMA 模型。</li>
+<li>估计 \(\varphi(B),\theta(B)\)。</li>
+<li>再识别干预部分 \(\omega(B)/\delta(B)\)。</li>
+</ol>
+<p style="font-size:15px; color:#64748b;">适合样本较长、干预前数据充足的情况。</p>
+</div>
+<div class="tile" style="border-top-color:#10b981;">
+<h3 style="font-size:20px; color:#047857;">路线 B：先剔除已知干预影响</h3>
+<ol style="font-size:16px; line-height:1.65; padding-left:22px; color:#334155;">
+<li>先根据业务知识确定干预形式。</li>
+<li>估计干预参数。</li>
+<li>计算净化残差序列：</li>
+</ol>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#10b981; background:#f0fdf4;">
+                        \[\varepsilon_t=x_t-\frac{\hat{\omega}(B)}{\hat{\delta}(B)}I_t^T\]
+                    </div></div>
+<p style="font-size:15px; color:#64748b;">适合事件影响形式较明确的情况。</p>
+</div>
+</div>
+<div class="step info-box" style="margin-top:12px;"><p style="font-size:17px; font-weight:normal; color:#1e3a8a;">两条路线没有高低贵贱，只有数据条件是否允许。样本短却硬要识别复杂 ARIMA，那叫统计学胆大，不叫严谨。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-four-steps-expanded">
+<h2 class="slide-title"><i class="fas fa-list-check"></i> 单变量干预模型：详细建模步骤</h2>
+<div class="content-area">
+<div class="step table-wrapper" style="max-height:405px;">
+<table class="data-table" style="font-size:14px;">
+<tr><th>步骤</th><th>操作</th><th>公式/输出</th><th>课堂解释</th></tr>
+<tr><td>1</td><td>确定干预事件</td><td>确定 \(T\)、事件类型、是否滞后 \(b\)</td><td>先明确“谁在什么时候打断了序列”。</td></tr>
+<tr><td>2</td><td>选择干预变量</td><td>阶跃 \(S_t^T\) 或脉冲 \(P_t^T\)</td><td>持续影响用阶跃，瞬时事件用脉冲。</td></tr>
+<tr><td>3</td><td>建立无干预模型</td><td>用干预前数据拟合 \(\hat{x}_{0t}\)</td><td>得到“事件没发生时”的基准线。</td></tr>
+<tr><td>4</td><td>分离干预效应</td><td>\(Z_t=x_t-\hat{x}_{0t}\)</td><td>多出来的部分就是初步干预效应。</td></tr>
+<tr><td>5</td><td>估计干预参数</td><td>估计 \(\omega,\delta,b\)</td><td>判断强度、持续性、衰减速度。</td></tr>
+<tr><td>6</td><td>净化序列</td><td>\(y_t=x_t-\hat{Z}_t\)</td><td>从实际数据里扣掉事件影响。</td></tr>
+<tr><td>7</td><td>重建时间序列模型</td><td>对 \(y_t\) 识别 ARIMA/趋势模型</td><td>看剔除干预后序列本身怎么走。</td></tr>
+<tr><td>8</td><td>组合最终模型</td><td>\(x_t=\hat{Z}_t+\hat{y}_t+\varepsilon_t\)</td><td>既解释正常规律，又解释突发冲击。</td></tr>
+<tr><td>9</td><td>诊断和解释</td><td>参数显著性、残差白噪声、预测误差</td><td>模型不是写出来就算赢，要通过检查。</td></tr>
+</table>
+</div>
+<div class="step info-box" style="margin-top:8px;"><p style="font-size:16px; font-weight:normal; color:#1e3a8a;">记忆版流程：定事件 → 选变量 → 建基准 → 算冲击 → 净化 → 重建 → 组合 → 检验。八步走完，模型才有资格开口说话。</p></div>
+</div>
+</div>
+
+<div class="slide section-slide" id="slide-sec3">
+<div class="glow-orb-1"></div>
+<h2>第三节 干预分析模型的应用实例</h2>
+<hr/><p class="step" style="font-size: 24px;">SARS疫情冲击与政策调控的量化测度</p>
+</div>
+
+<div class="slide" id="slide-detail-sars-data-chain">
+<h2 class="slide-title"><i class="fas fa-building-circle-exclamation"></i> 例 8-1：SARS 与上海二手房指数，数据链条怎么看？</h2>
+<div class="content-area">
+<div class="step two-column" style="align-items:stretch;">
+<div class="tile" style="border-top-color:#f43f5e;">
+<h3 style="font-size:20px; color:#be123c;">研究对象</h3>
+<p style="font-size:16px; line-height:1.65;">上海二手房指数 \(x_t\)，样本从 2001 年 11 月到 2004 年 12 月，共 38 期。</p>
+<p style="font-size:16px; line-height:1.65; margin-top:8px;">干预事件为 SARS，设 2003 年 4 月为干预起点：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px;">
+                        \[T=18\]
+                    </div></div>
+</div>
+<div class="tile" style="border-top-color:#10b981;">
+<h3 style="font-size:20px; color:#047857;">为什么用阶跃渐进模型？</h3>
+<p style="font-size:16px; line-height:1.65;">SARS 不是让房价在某一天只跳一下，而是改变了市场认知、投资预期和城市吸引力，影响逐渐释放并持续存在。</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#10b981; background:#f0fdf4;">
+                        \[Z_t=\frac{\omega}{1-\delta B}S_t^{18}\]
+                    </div></div>
+</div>
+</div>
+<div class="step tile" style="border-top-color:#3b82f6; margin-top:12px;">
+<h3 style="font-size:20px; color:#1d4ed8;">分析目标</h3>
+<p style="font-size:17px; line-height:1.65;">不是简单证明“房价上涨了”，而是回答：扣除原本的自然上涨趋势后，SARS 之后是否存在额外上涨？额外上涨是否可以被动态干预模型解释？</p>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-sars-step1-baseline">
+<h2 class="slide-title"><i class="fas fa-chart-simple"></i> 例 8-1 第一步：建立无干预基准线</h2>
+<div class="content-area">
+<div class="step tile" style="border-top-color:#3b82f6;">
+<h3 style="font-size:20px; color:#1d4ed8;">只用干预前 17 期数据</h3>
+<p style="font-size:17px; line-height:1.65;">为了估计“如果没有 SARS，房价指数会怎么走”，只使用 2001 年 11 月到 2003 年 3 月的数据建立趋势模型。教材中选择二次曲线：</p>
+<div class="math-center"><div class="math-box" style="font-size:19px; border-left-color:#3b82f6; background:#eff6ff;">
+                    \[\hat{x}_{0t}=997.206+4.1391t+0.0998t^2\]
+                </div></div>
+<p style="font-size:16px; color:#475569;">拟合效果：\(R^2=0.985\)，\(F=455.78\)，说明干预前自然趋势拟合较好。</p>
+</div>
+<div class="step two-column" style="align-items:stretch; margin-top:10px;">
+<div class="tile"><h3 style="font-size:18px;">为什么不是用全部数据？</h3><p style="font-size:16px;">因为全部数据已经包含 SARS 后的异常上升。用被污染数据建基准线，会把干预效应误认为正常趋势。</p></div>
+<div class="tile" style="border-top-color:#f59e0b;"><h3 style="font-size:18px; color:#b45309;">这一步得到什么？</h3><p style="font-size:16px;">得到反事实预测 \(\hat{x}_{0t}\)：每个干预后月份在“无 SARS 情形”下的理论指数。</p></div>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-sars-step2-effect">
+<h2 class="slide-title"><i class="fas fa-scissors"></i> 例 8-1 第二步：分离 SARS 干预效应</h2>
+<div class="content-area">
+<div class="step tile" style="border-top-color:#f43f5e;">
+<h3 style="font-size:20px; color:#be123c;">实际值减去无干预预测值</h3>
+<p style="font-size:17px; line-height:1.65;">对 \(t=18,19,\ldots,38\)，计算：</p>
+<div class="math-center"><div class="math-box" style="font-size:19px;">
+                    \[Z_t=x_t-\hat{x}_{0t}\]
+                </div></div>
+<p style="font-size:16px;">\(Z_t\) 表示 SARS 之后相对自然趋势多出来的部分。教材中 \(Z_t\) 从 10.941 逐步增至 191.333，说明干预影响并非一次性，而是不断放大。</p>
+</div>
+<div class="step two-column" style="align-items:stretch; margin-top:10px;">
+<div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:18px; color:#047857;">估计递推关系</h3><div class="math-center"><div class="math-box" style="font-size:18px; border-left-color:#10b981; background:#f0fdf4;">\[Z_t=\delta Z_{t-1}+\omega\]</div></div></div>
+<div class="tile" style="border-top-color:#8b5cf6;"><h3 style="font-size:18px; color:#6d28d9;">参数结果</h3><div class="math-center"><div class="math-box" style="font-size:18px; border-left-color:#8b5cf6; background:#faf5ff;">\[\hat{\omega}=5.345,\quad \hat{\delta}=1.044\]</div></div></div>
+</div>
+<div class="step info-box" style="margin-top:8px;"><p style="font-size:16px; font-weight:normal; color:#1e3a8a;">解释：\(\omega\) 是每期新增推动，\(\delta\) 描述上一期冲击对下一期的传递。\(\delta\) 接近并略高于 1，说明样本期内干预效应表现为持续放大，而不是快速衰减。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-sars-step3-step4">
+<h2 class="slide-title"><i class="fas fa-puzzle-piece"></i> 例 8-1 第三、四步：净化序列与最终模型</h2>
+<div class="content-area">
+<div class="step two-column" style="align-items:stretch;">
+<div class="tile" style="border-top-color:#10b981;">
+<h3 style="font-size:20px; color:#047857;">第三步：构造净化序列</h3>
+<p style="font-size:16px; line-height:1.65;">从原始序列中扣除估计出来的 SARS 干预效应：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#10b981; background:#f0fdf4;">
+                        \[y_t=x_t-\frac{5.345}{1-1.044B}S_t^{18}\]
+                    </div></div>
+<p style="font-size:16px;">\(y_t\) 表示“剔除 SARS 影响后”的房地产指数轨迹。</p>
+</div>
+<div class="tile" style="border-top-color:#3b82f6;">
+<h3 style="font-size:20px; color:#1d4ed8;">第四步：重新拟合净化序列</h3>
+<p style="font-size:16px; line-height:1.65;">净化序列仍用二次曲线拟合：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#3b82f6; background:#eff6ff;">
+                        \[\hat{y}_t=997.206+4.1391t+0.0998t^2\]
+                    </div></div>
+<p style="font-size:16px;">拟合效果 \(R^2=0.999\)，说明扣除干预后，序列规律非常清晰。</p>
+</div>
+</div>
+<div class="step tile" style="border-top-color:#f43f5e; margin-top:12px;">
+<h3 style="font-size:20px; color:#be123c;">最终干预分析模型</h3>
+<div class="math-center"><div class="math-box" style="font-size:18px;">
+                    \[x_t=997.216+4.1391t+0.0998t^2+\frac{5.345}{1-1.044B}S_t^{18}\]
+                </div></div>
+<p style="font-size:16px;">模型由两部分组成：二次趋势解释自然增长，干预项解释 SARS 后额外上涨。这样讲，学生就不会只记公式而不知道它在干嘛了。</p>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-ex1-result">
+<h2 class="slide-title"><i class="fas fa-chart-area"></i> 【例 8-1】最终模型组合与效果展示 (3/3)</h2>
+<div class="content-area">
+<div class="step tile">
+<h3 style="font-size: 18px;">步骤4：组合成最终干预分析预测模型</h3>
+<div class="math-center"><div class="math-box" style="font-size: 16px; padding: 10px 20px; border-left-color:#10b981; background:#f0fdf4;">
+                    $x_t = \underbrace{997.216 + 4.1391t + 0.0998t^2}_{\text{原有自然增长轨迹}} + \underbrace{\frac{5.345}{1-1.044B}S_t^{18}}_{\text{SARS疫情带来的爆发式附加推力}}$
+                </div></div>
+</div>
+<div class="step two-column" style="margin-top: 10px;">
+<div class="table-wrapper" style="max-height: 180px;">
+<table class="data-table">
+<tr><th>$t$ (代表期)</th><th>原始指数 $x_t$</th><th>模型预测值 $\hat{x}_t$</th></tr>
+<tr><td>17 (前夕)</td><td>1102</td><td>1096.4</td></tr>
+<tr style="background:#fef2f2; font-weight:bold;"><td>18 (爆发)</td><td>1115</td><td>1109.4</td></tr>
+<tr><td>24</td><td>1215</td><td>1210.3</td></tr>
+<tr><td>38 (末期)</td><td>1490</td><td>1472.1</td></tr>
+</table>
+</div>
+<div class="svg-container" style="height: 180px;">
+<svg style="width: 100%; height: 100%;" viewbox="0 0 300 150">
+<path d="M 10 130 Q 100 110 140 90" fill="none" stroke="#3b82f6" stroke-width="2"></path>
+<path d="M 140 90 Q 200 80 280 60" fill="none" stroke="#3b82f6" stroke-dasharray="4,2" stroke-width="2"></path>
+<path class="path-anim" d="M 140 90 Q 180 50 220 20 L 280 0" fill="none" stroke="#f43f5e" stroke-width="3"></path>
+<line stroke="#64748b" stroke-dasharray="2,2" stroke-width="1" x1="140" x2="140" y1="140" y2="10"></line>
+<text fill="#64748b" font-size="10" x="135" y="150">T=18 (SARS)</text>
+<text fill="#3b82f6" font-size="10" x="220" y="80">基准预期 (无干预)</text>
+<text fill="#f43f5e" font-size="10" x="230" y="30">实际飙升轨迹</text>
+</svg>
+</div>
+</div>
+<div class="step info-box" style="padding: 8px 15px; margin-top:5px;">
+<p style="font-size: 14px; font-weight:normal;"><strong>结论：</strong> 预测值与原始指数高度吻合。定量证明了 SARS 不仅未打压房价，反而成为改变上海房地产上升斜率的强势“助推器”。</p>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-detail-rate-meeting-steps">
+<h2 class="slide-title"><i class="fas fa-landmark"></i> 例 8-2：降息与“两会”案例的详细建模路线</h2>
+<div class="content-area">
+<div class="step table-wrapper" style="max-height:370px;">
+<table class="data-table" style="font-size:14px;">
+<tr><th>步骤</th><th>做法</th><th>结果/解释</th></tr>
+<tr><td>1</td><td>选取深成指收盘价，共 144 个交易日</td><td>降息前 120 日 + 降息后 24 日</td></tr>
+<tr><td>2</td><td>观察原序列 ACF</td><td>自相关缓慢衰减，说明非平稳</td></tr>
+<tr><td>3</td><td>一阶差分</td><td>\(y_t=(1-B)x_t\)，序列趋于平稳</td></tr>
+<tr><td>4</td><td>比较 ARIMA 候选模型</td><td>ARIMA(0,1,1) 的 AIC 最小</td></tr>
+<tr><td>5</td><td>建立基础模型</td><td>\((1-B)\text{index}=-5.6802188+(1-0.0031371B)a_t\)</td></tr>
+<tr><td>6</td><td>加入降息阶跃变量</td><td>\(WS_t^{T_1}\)，表示长期政策影响</td></tr>
+<tr><td>7</td><td>加入“两会”脉冲变量</td><td>\(\sum_{i=1}^{11}W_iP_t^{T_2+i}\)，表示每日会议效应</td></tr>
+<tr><td>8</td><td>解释参数显著性</td><td>降息方向为正但不显著，“两会”前半程正效应较明显</td></tr>
+</table>
+</div>
+<div class="step info-box" style="margin-top:8px;"><p style="font-size:16px; font-weight:normal; color:#1e3a8a;">这个案例的重点不是公式更长，而是<strong>多个干预事件要分开建变量</strong>。降息是持续性政策，用阶跃；“两会”是短期会议窗口，用每日脉冲。混成一个变量就等于把锅里所有调料都叫“味道”，很不统计。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-ex2-result">
+<h2 class="slide-title"><i class="fas fa-balance-scale"></i> 【例 8-2】参数拟合与经济学解释 (2/2)</h2>
+<div class="content-area">
+<div class="step two-column">
+<div class="table-wrapper" style="max-height: 250px;">
+<table class="data-table">
+<tr><th>参数</th><th>估计值 (Estimate)</th><th>$t$ 检验值 (T Ratio)</th></tr>
+<tr style="background:#fef2f2;"><td><strong>$W$ (降息)</strong></td><td>50.706</td><td>0.75 (不显著)</td></tr>
+<tr><td>$W_1$ (两会D1)</td><td>54.219</td><td>0.80</td></tr>
+<tr><td>$W_2$ (两会D2)</td><td>84.143</td><td>1.25 (显著)</td></tr>
+<tr><td>$W_4$ (两会D4)</td><td>119.533</td><td>1.77 (极显著)</td></tr>
+<tr><td>$W_7$ (两会D7)</td><td>-68.686</td><td>-1.02</td></tr>
+<tr><td>$W_9$ (两会D9)</td><td>99.783</td><td>1.48 (尾声反弹)</td></tr>
+</table>
+</div>
+<div class="tile" style="border-top-color:#8b5cf6;">
+<h3 style="font-size: 18px; color:#5b21b6;">数据背后的经济学真相：</h3>
+<p style="font-size: 14px; line-height: 1.6;">
+<strong>1. 降息失效了？</strong><br/>
+                        模型显示降息系数 $W&gt;0$（正面影响），但 $t$ 值极小（影响极其微弱）。<br/>
+<span style="color:#ef4444;">真相：预期被提前透支。</span>当时全球大降息周期，市场早已形成预期并提前推高了股价，当利好真正兑现时，反而波澜不惊。
+                    </p>
+<p style="font-size: 14px; line-height: 1.6; margin-top: 8px;">
+<strong>2. “两会”行情规律：</strong><br/>
+                        $W_1$ 到 $W_6$ 多为正且显著，带动大盘上涨；后期 $W_7, W_8$ 转负（获利盘回吐）；会议结束前夕 $W_9$ 再度反弹拉升。<br/>
+                        证明了“两会”正效应能持续会议前半段的经典股市规律。
+                    </p>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-realcase-coffee-1">
+<h2 class="slide-title"><i class="fas fa-mug-hot"></i> 完整实际案例：奶茶店满减活动对日销量的影响（1/6）</h2>
+<div class="content-area">
+<div class="step info-box">
+<p style="font-size:16px; font-weight:normal; color:#1e3a8a;">场景：校园奶茶店第 16 天开始推出“第二杯半价”活动，持续执行。店长想知道：销量上涨到底是自然增长，还是活动真的有效？终于有人决定不用“感觉不错”来开会了，可喜可贺。</p>
+</div>
+<div class="step table-wrapper" style="max-height:250px;">
+<table class="data-table" style="font-size:13px;">
+<tr><th>天数</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th></tr>
+<tr><td>销量</td><td>186</td><td>190</td><td>193</td><td>197</td><td>199</td><td>202</td><td>205</td><td>209</td><td>211</td><td>215</td><td>218</td><td>220</td><td>224</td><td>226</td><td>230</td></tr>
+</table>
+<table class="data-table" style="font-size:13px; margin-top:3px;">
+<tr><th>天数</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th><th>24</th><th>25</th><th>26</th><th>27</th><th>28</th><th>29</th><th>30</th></tr>
+<tr><td>销量</td><td>245</td><td>259</td><td>272</td><td>284</td><td>293</td><td>301</td><td>308</td><td>314</td><td>319</td><td>323</td><td>327</td><td>330</td><td>333</td><td>335</td><td>337</td></tr>
+</table>
+</div>
+<div class="step two-column" style="align-items:stretch; margin-top:8px;">
+<div class="tile"><h3 style="font-size:18px;">干预变量</h3><p style="font-size:15px;">活动从第 16 天开始，且持续执行，所以取阶跃变量 $S_t^{16}$。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:18px; color:#047857;">影响形态判断</h3><p style="font-size:15px;">活动不是当天一次性结束，而是通过顾客传播逐渐释放，因此采用“逐渐开始、长期持续”的模型。</p></div>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-realcase-coffee-2">
+<h2 class="slide-title"><i class="fas fa-ruler-combined"></i> 完整实际案例：建立无活动基准线（2/6）</h2>
+<div class="content-area">
+<div class="step tile" style="border-top-color:#3b82f6;">
+<h3 style="font-size:18px; color:#1d4ed8;">第一步：只用活动前 15 天拟合自然增长趋势</h3>
+<p style="font-size:16px;">活动前销量基本线性增长，用线性趋势模型：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#3b82f6; background:#eff6ff;">
+                    \[ \hat{x}_{0t}=183.07+3.13t \]
+                </div></div>
+<p style="font-size:15px;">解释：如果没有满减活动，销量每天大约自然增加 3.13 杯。这个基准线就是“平行宇宙里的销量”，听起来玄学，但比拍脑袋靠谱。</p>
+</div>
+<div class="step table-wrapper" style="max-height:240px; margin-top:8px;">
+<table class="data-table" style="font-size:14px;">
+<tr><th>天数</th><th>16</th><th>17</th><th>18</th><th>19</th><th>20</th><th>21</th><th>22</th><th>23</th></tr>
+<tr><td>实际销量 $x_t$</td><td>245</td><td>259</td><td>272</td><td>284</td><td>293</td><td>301</td><td>308</td><td>314</td></tr>
+<tr><td>无活动预测 $\hat{x}_{0t}$</td><td>233.15</td><td>236.28</td><td>239.41</td><td>242.54</td><td>245.67</td><td>248.80</td><td>251.93</td><td>255.06</td></tr>
+<tr><td>活动效应 $Z_t$</td><td>11.85</td><td>22.72</td><td>32.59</td><td>41.46</td><td>47.33</td><td>52.20</td><td>56.07</td><td>58.94</td></tr>
+</table>
+</div>
+<div class="step info-box"><p style="font-size:15px; font-weight:normal; color:#1e3a8a;">$Z_t=x_t-\hat{x}_{0t}$，表示实际销量超过自然趋势的部分，也就是活动带来的净增量估计。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-realcase-coffee-3">
+<h2 class="slide-title"><i class="fas fa-gears"></i> 完整实际案例：估计干预效应模型（3/6）</h2>
+<div class="content-area">
+<div class="step tile" style="border-top-color:#10b981;">
+<h3 style="font-size:18px; color:#047857;">第二步：用 $Z_t$ 拟合逐渐释放的阶跃干预模型</h3>
+<p style="font-size:15px;">选择模型：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#10b981; background:#f0fdf4;">
+                    \[ Z_t=\frac{\omega}{1-\delta B}S_t^{16} \]
+                </div></div>
+<p style="font-size:15px;">递推形式可写为：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#10b981; background:#f0fdf4;">
+                    \[ Z_t=\omega+\delta Z_{t-1} \]
+                </div></div>
+</div>
+<div class="step table-wrapper" style="max-height:180px; margin-top:8px;">
+<table class="data-table" style="font-size:15px;">
+<tr><th>参数</th><th>估计值</th><th>含义</th></tr>
+<tr><td>$\omega$</td><td>12.10</td><td>活动启动后的即时新增推动量</td></tr>
+<tr><td>$\delta$</td><td>0.82</td><td>上一期干预效应向下一期延续的比例</td></tr>
+<tr><td>长期累计效应</td><td>$\omega/(1-\delta)=67.22$</td><td>活动成熟后每日销量相对基准线约增加 67 杯</td></tr>
+</table>
+</div>
+<div class="step info-box"><p style="font-size:15px; font-weight:normal; color:#1e3a8a;">结论：活动不是只让第 16 天多卖几杯，而是形成了持续性增量，并逐步接近稳定上限。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-realcase-coffee-4">
+<h2 class="slide-title"><i class="fas fa-filter"></i> 完整实际案例：净化序列与最终模型（4/6）</h2>
+<div class="content-area">
+<div class="step two-column" style="align-items:stretch;">
+<div class="tile" style="border-top-color:#8b5cf6;">
+<h3 style="font-size:18px; color:#6d28d9;">第三步：计算净化序列</h3>
+<p style="font-size:15px;">从真实销量中扣除活动效应：</p>
+<div class="math-center"><div class="math-box" style="font-size:16px; border-left-color:#8b5cf6; background:#faf5ff;">
+                        \[ y_t=x_t-\frac{12.10}{1-0.82B}S_t^{16} \]
+                    </div></div>
+<p style="font-size:15px;">净化序列表示“如果没有活动，销量大概会落在哪里”。</p>
+</div>
+<div class="tile" style="border-top-color:#3b82f6;">
+<h3 style="font-size:18px; color:#1d4ed8;">第四步：组合最终模型</h3>
+<p style="font-size:15px;">把自然趋势与干预效应相加：</p>
+<div class="math-center"><div class="math-box" style="font-size:16px; border-left-color:#3b82f6; background:#eff6ff;">
+                        \[ x_t=183.07+3.13t+\frac{12.10}{1-0.82B}S_t^{16}+\varepsilon_t \]
+                    </div></div>
+</div>
+</div>
+<div class="step tile" style="border-top-color:#10b981; margin-top:12px;">
+<h3 style="font-size:18px; color:#047857;">模型解释</h3>
+<ul style="font-size:15px; line-height:1.7;">
+<li>$183.07+3.13t$：原本的自然增长趋势。</li>
+<li>$\frac{12.10}{1-0.82B}S_t^{16}$：满减活动带来的逐步释放型长期影响。</li>
+<li>$\varepsilon_t$：未解释的随机波动，例如天气、考试周、奶茶师傅今天心情如何，当然最后一个变量通常没有记录。</li>
+</ul>
+</div>
+</div>
+</div>
+
+<div class="slide" id="slide-realcase-coffee-5">
+<h2 class="slide-title"><i class="fas fa-forward"></i> 完整实际案例：用模型预测与评估活动价值（5/6）</h2>
+<div class="content-area">
+<div class="step table-wrapper" style="max-height:230px;">
+<table class="data-table" style="font-size:15px;">
+<tr><th>预测天数</th><th>自然趋势基准</th><th>干预效应预测</th><th>总销量预测</th><th>运营建议</th></tr>
+<tr><td>第31天</td><td>280.10</td><td>67.0</td><td>347</td><td>备货至少 350 杯</td></tr>
+<tr><td>第32天</td><td>283.23</td><td>67.1</td><td>350</td><td>活动仍有效，可维持</td></tr>
+<tr><td>第33天</td><td>286.36</td><td>67.2</td><td>354</td><td>若边际利润为正，继续推广</td></tr>
+</table>
+</div>
+<div class="step two-column" style="align-items:stretch; margin-top:12px;">
+<div class="tile" style="border-top-color:#10b981;">
+<h3 style="font-size:18px; color:#047857;">活动效果评估</h3>
+<p style="font-size:15px;">长期成熟后，活动每天约多卖 67 杯。若每杯毛利 6 元，则每日新增毛利约：</p>
+<div class="math-center"><div class="math-box" style="font-size:17px; border-left-color:#10b981; background:#f0fdf4;">
+                        \[ 67\times 6=402\text{ 元/天} \]
+                    </div></div>
+</div>
+<div class="tile" style="border-top-color:#ef4444;">
+<h3 style="font-size:18px; color:#b91c1c;">是否继续活动？</h3>
+<p style="font-size:15px;">如果活动让第二杯利润下降、原料成本增加、排队导致服务变慢，就要比较新增毛利与新增成本。统计预测不是替老板拍板，而是让老板少拍脑袋。</p>
+</div>
+</div>
+<div class="step info-box" style="margin-top:10px;"><p style="font-size:15px; font-weight:normal; color:#1e3a8a;">决策结论：若活动每日额外成本低于 402 元，则从短期收益看值得继续；若还带来新客复购，可进一步延长观察期。</p></div>
+</div>
+</div>
+
+<div class="slide" id="slide-realcase-coffee-6">
+<h2 class="slide-title"><i class="fas fa-clipboard-check"></i> 完整实际案例：课堂讲解总结（6/6）</h2>
+<div class="content-area">
+<div class="step" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; align-items:stretch; margin-top:10px;">
+<div class="tile" style="padding:12px;"><h3 style="font-size:16px;">1. 先定事件</h3><p style="font-size:14px;">第 16 天开始满减，属于持续性干预。</p></div>
+<div class="tile" style="padding:12px; border-top-color:#3b82f6;"><h3 style="font-size:16px;">2. 建反事实</h3><p style="font-size:14px;">用活动前数据建立“无活动”销量基准线。</p></div>
+<div class="tile" style="padding:12px; border-top-color:#10b981;"><h3 style="font-size:16px;">3. 分离效应</h3><p style="font-size:14px;">实际销量减基准销量，得到活动净增量。</p></div>
+<div class="tile" style="padding:12px; border-top-color:#8b5cf6;"><h3 style="font-size:16px;">4. 服务决策</h3><p style="font-size:14px;">把统计结论转成备货、利润和活动延续建议。</p></div>
+</div>
+<div class="step math-center" style="margin-top:24px;">
+<div class="math-box" style="font-size:18px; padding:12px 28px;">
+                    \[ \text{活动是否有效}=\text{实际销量}-\text{无活动基准销量} \]
+                    \[ \text{是否值得继续}=\text{新增收益}-\text{新增成本} \]
+                </div>
+</div>
+<div class="step tile" style="border-top-color:#f43f5e; margin-top:16px;">
+<h3 style="font-size:18px; color:#be123c;">落点</h3>
+<p style="font-size:16px;">干预分析的灵魂是“反事实比较”。不是看到活动后销量涨了就说活动有效，因为销量本来可能也在涨。先估计没有活动时会怎样，再看多出来的部分，这才像个统计学家，而不是拿 Excel 截图施法。</p>
+</div>
+</div>
+</div>
+
+
+<div class="slide" id="slide-final">
+
+<h2 class="slide-title"><i class="fas fa-forward"></i> 本章小结</h2>
+
+<div class="content-area" style="max-width:900px; margin: 0 auto; text-align: left;">
+<div class="step tile" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+<ul style="color: #cbd5e1; line-height: 1.8; font-size: 16px;">
+<li><strong>干预分析的意义：</strong> 定量评估特殊政策或突发事件（干预）对经济系统运行轨迹的具体影响程度。</li>
+<li><strong>干预变量双煞：</strong> 阶跃函数 $S_t^T$（用于突发且持续的长期影响）与 脉冲函数 $P_t^{T'}$（用于瞬间发生即逝的短期冲击）。</li>
+<li><strong>四大影响组合：</strong> 无论是突然发生/逐渐显现，还是长期保持/暂时消退，均可用组合传递函数精妙表达。</li>
+<li><strong>分离与净化建模法：</strong> 不要对受污染的数据硬套 ARIMA。必须先建立无干预基准线，测算出干预参数，利用“净化序列”构建 ARMA，最后合并为总模型。</li>
+<li><strong>实战威力：</strong> 它是政策评估、灾难影响测算的高级统计武器，弥补了传统回归模型“动态响应不足”的致命缺陷。</li>
+</ul>
+</div>
+<div class="step math-center" style="margin-top: 30px;">
+<button class="hw-btn" onclick="alert('即将跳转至网络作业库：第8章 课后练习');">
+<i class="fas fa-laptop-code"></i> 本章作业 (Homework)
+                </button>
+</div>
+</div>
+</div>
+
+</div>
+<!-- 放映逻辑 -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    function refreshMath() { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise(); }
+
+    function showSlide(index) {
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        currentSlideIndex = index;
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        if (progress) progress.style.width = ((index + 1) / slides.length * 100) + '%';
+        if (counter) counter.textContent = (index + 1) + ' / ' + slides.length;
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode'); body.classList.add('presentation-mode');
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.remove('visible')));
+        showSlide(startIndex);
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function exitPresentationMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode'); body.classList.add('browse-mode');
+        container.style.transform = 'none';
+        slides.forEach(s => s.classList.remove('active'));
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            refreshMath();
+        } else if (currentSlideIndex < slides.length - 1) {
+            showSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            refreshMath();
+        } else if (currentSlideIndex > 0) {
+            showSlide(currentSlideIndex - 1);
+            slides[currentSlideIndex].querySelectorAll('.step').forEach(st => st.classList.add('visible'));
+        }
+    }
+
+    document.addEventListener('click', (e) => { if (isPresentationMode && !e.target.closest('.hw-btn')) advance(); });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5') { 
+            e.preventDefault(); 
+            let startIndex = currentSlideIndex;
+            if(!isPresentationMode) {
+                let bestIndex = 0, minDist = Infinity;
+                slides.forEach((s, i) => {
+                    const dist = Math.abs(s.getBoundingClientRect().top);
+                    if(dist < minDist) { minDist = dist; bestIndex = i; }
+                });
+                startIndex = bestIndex;
+            }
+            enterPresentationMode(startIndex); 
+            document.documentElement.requestFullscreen().catch(()=>{}); 
+        }
+        if (e.key === 'Escape' && isPresentationMode) { 
+            e.preventDefault();
+            document.exitFullscreen().catch(()=>{});
+            exitPresentationMode(); 
+        }
+        if (isPresentationMode) {
+            if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === 'Enter') { e.preventDefault(); advance(); }
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') { e.preventDefault(); goBack(); }
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (isPresentationMode) {
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+    });
+    
+
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode) {
+            exitPresentationMode();
+        }
+    });
+
+    // 初始化浏览模式下所有 step 可见
+    if(!isPresentationMode){
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+});
+</script>
+</body>
+</html>
