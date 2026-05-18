@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计预测与决策 - 第9章 景气预测法</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: { scale: 1.05, displayAlign: 'center' }
+        };
+    </script>
+   <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+
+        /* ===================== 浏览模式（默认） ===================== */
+        body.browse-mode { overflow-y: auto; overflow-x: hidden; min-height: 100vh; }
+        body.browse-mode #presentation-container {
+            position: relative; width: 1280px; margin: 24px auto 60px auto;
+            transform: none !important; height: auto; background: transparent; overflow: visible;
+        }
+        body.browse-mode .slide {
+            position: relative; width: 1280px; height: 720px; margin: 0 auto 28px auto;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 1 !important; pointer-events: auto !important;
+            background: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;
+        }
+        body.browse-mode .step { opacity: 1 !important; transform: none !important; transition: none !important; }
+        body.browse-mode .progress-bar, body.browse-mode .slide-counter { display: none; }
+
+        /* ===================== 放映模式 ===================== */
+        body.presentation-mode { background-color: #0f172a; width: 100vw; height: 100vh; overflow: hidden; }
+        body.presentation-mode #presentation-container {
+            position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); background-color: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden;
+        }
+        body.presentation-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #f59e0b, #ec4899, #8b5cf6); z-index: 100;
+        }
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            background-color: #ffffff;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* ===================== 动画 ===================== */
+        .step { opacity: 0; transform: translateY(20px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .step.visible { opacity: 1; transform: translateY(0); }
+
+        /* ===================== 内容排版 ===================== */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 34px; color: #1e293b;
+            margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+        }
+        .slide-title i { color: #ec4899; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; overflow: visible; }
+        p { font-size: 19px; color: #334155; line-height: 1.6; margin: 0; }
+        ul { list-style: none; margin-left: 5px; }
+        li { position: relative; padding-left: 25px; margin-bottom: 8px; font-size: 18px; color: #475569; line-height: 1.5; }
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 3px; color: #ec4899; font-size: 18px; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: stretch; }
+        .tile { background: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #cbd5e1; border-top: 5px solid #ec4899; }
+        .tile h3 { font-size: 22px; color: #0f172a; margin-bottom: 10px; }
+
+        /* 浅色背景公式区 */
+        .math-center { text-align: center; width: 100%; margin: 5px 0; }
+        .math-box {
+            background: #fdf2f8; border-left: 5px solid #ec4899; border-radius: 8px;
+            padding: 10px 20px; color: #000; font-size: 18px;
+            display: inline-block; width: fit-content; text-align: left; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: visible !important; white-space: normal;
+        }
+        mjx-container { overflow: visible !important; }
+
+        .info-box { background: #eff6ff; border-left: 6px solid #3b82f6; padding: 12px 20px; border-radius: 8px; margin: 5px 0; }
+        
+        /* 表格样式 */
+        .table-wrapper { width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; overflow-y: auto; background: white; margin: 5px 0; max-height: 280px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; color: #334155; }
+        .data-table th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; position: sticky; top: 0; z-index: 1; }
+        .data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+        .svg-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; position: relative;}
+        .path-anim { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawPath 3s ease-in-out forwards; }
+        @keyframes drawPath { to { stroke-dashoffset: 0; } }
+
+        /* ===================== 封面 ===================== */
+        .title-slide { background: #020617 !important; color: white; justify-content: center !important; align-items: center !important; text-align: center; padding: 0; position: relative; }
+        .title-slide::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; z-index: 1; opacity: 0.3;}
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(236,72,153,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(245,158,11,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        .title-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.7); padding: 60px 80px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; color: #fff; }
+        .title-content h1 span { background: linear-gradient(to right, #f472b6, #fbbf24); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .section-slide { background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important; color: #ffffff; justify-content: center !important; align-items: center !important; text-align: center; position: relative; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 48px; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 6px; background: #ec4899; border: none; margin: 20px 0; }
+
+        body.browse-mode .title-slide, body.browse-mode .section-slide { min-height: 720px; display: flex !important; }
+
+        .hw-btn { background: linear-gradient(135deg, #ec4899, #f59e0b); color: white; padding: 12px 35px; border-radius: 50px; font-size: 22px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; border: none; cursor: pointer; margin-top: 20px; transition: transform 0.2s; box-shadow: 0 10px 20px rgba(236, 72, 153, 0.3);}
+        .hw-btn:hover { transform: translateY(-3px); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: #ec4899; transition: width 0.3s ease; z-index: 200; }
+        .slide-counter { position: absolute; bottom: 20px; right: 30px; font-size: 18px; font-weight: bold; color: #94a3b8; z-index: 100; }
+
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide { width: 100vw !important; height: 100vh !important; margin: 0 !important; box-shadow: none !important; page-break-after: always; page-break-inside: avoid; border: 1px solid transparent; }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+    </style>
+</head>
+<body class="browse-mode">
+
+<div id="presentation-container">
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== Slide 0: 封面 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div><div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge" style="background:rgba(236,72,153,0.1); border:1px solid #ec4899; color:#f472b6; padding:8px 20px; border-radius:50px; margin-bottom:20px; font-size:18px;">应用统计学专业课程</div>
+            <h1><span>第九章 景气预测法</span></h1>
+            <p style="color:#94a3b8; font-size:24px; margin-top:10px;">洞悉经济周期的“晴雨表” (Business Cycle Forecasting)</p>
+            <div class="step" style="margin-top: 30px; background: rgba(0,0,0,0.4); padding: 12px 25px; border-radius: 12px;">
+                <p style="font-size: 18px; color: #f472b6; margin: 0;"><i class="fas fa-desktop"></i> <strong>F5</strong> 开启全屏放映 | 单击鼠标步进讲解</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 章节总导入 ==================== -->
+    <div class="slide" id="slide-intro">
+        <h2 class="slide-title"><i class="fas fa-cloud-sun-rain"></i> 章节导入：经济的“天气预报”</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile">
+                    <h3>寻找宏观经济的脉搏</h3>
+                    <p>“经济过热了吗？”“复苏何时到来？” 这是企业投资和政府决策最关心的问题。</p>
+                    <p style="margin-top:10px;">早在1909年，美国就出现了通过分析股票、商品和货币曲线来判断经济走势的<strong>“哈佛晴雨表”</strong>。虽然它没能预测出1929年的大萧条，但拉开了人类定量测度“经济景气”的序幕。</p>
+                </div>
+                <div class="svg-container" style="height: 240px; background: #0f172a;">
+                    <svg viewBox="0 0 400 200" style="width: 100%; height: 100%;">
+                        <!-- 背景网格 -->
+                        <line x1="0" y1="50" x2="400" y2="50" stroke="#334155" stroke-dasharray="2,2"/>
+                        <line x1="0" y1="100" x2="400" y2="100" stroke="#334155" stroke-dasharray="2,2"/>
+                        <line x1="0" y1="150" x2="400" y2="150" stroke="#334155" stroke-dasharray="2,2"/>
+                        
+                        <!-- 经济周期曲线 -->
+                        <path d="M 0 100 Q 50 20 100 100 T 200 100 T 300 100 T 400 100" fill="none" stroke="#f43f5e" stroke-width="4" class="path-anim"/>
+                        
+                        <!-- 天气图标指示 -->
+                        <text x="85" y="30" font-family="FontAwesome" fill="#f59e0b" font-size="24">&#xf185;</text> <!-- 太阳 -->
+                        <text x="185" y="180" font-family="FontAwesome" fill="#3b82f6" font-size="24">&#xf0e7;</text> <!-- 闪电 -->
+                        <text x="285" y="30" font-family="FontAwesome" fill="#f59e0b" font-size="24">&#xf185;</text>
+                        
+                        <text x="350" y="90" fill="#f43f5e" font-size="12" font-weight="bold" class="step">景气循环波</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="step info-box">
+                <p><strong>本章目标：</strong> 学习如何建立现代的“经济晴雨表”。通过选取先行、同步、滞后三类指标，编制<strong>扩散指数</strong>与<strong>合成指数</strong>，构建宏观经济预警系统。</p>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 新增：章节逻辑总览 ==================== -->
+    <div class="slide" id="slide-chapter-logic">
+        <h2 class="slide-title"><i class="fas fa-map"></i> 本章逻辑总览：从经济现象到预警信号</h2>
+        <div class="content-area">
+            <p class="step" style="font-size:22px; line-height:1.75;">
+                景气预测法不是把几个经济指标机械相加，而是按照“<strong>经济循环是什么</strong> → <strong>选哪些指标</strong> → <strong>怎样判断转折</strong> → <strong>怎样发出预警</strong>”的顺序建立一套监测系统。
+            </p>
+
+            <div class="step svg-container" style="height:300px; background:#f8fafc;">
+                <svg viewBox="0 0 980 280" style="width:100%;height:100%;">
+                    <defs>
+                        <marker id="arrow-logic" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#64748b" />
+                        </marker>
+                    </defs>
+                    <rect x="30" y="70" width="180" height="120" rx="18" fill="#fdf2f8" stroke="#ec4899" stroke-width="3"/>
+                    <text x="120" y="112" text-anchor="middle" font-size="22" fill="#be185d" font-weight="700">景气循环</text>
+                    <text x="120" y="145" text-anchor="middle" font-size="16" fill="#475569">复苏・高涨</text>
+                    <text x="120" y="170" text-anchor="middle" font-size="16" fill="#475569">衰退・萧条</text>
+
+                    <rect x="280" y="70" width="180" height="120" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"/>
+                    <text x="370" y="112" text-anchor="middle" font-size="22" fill="#1d4ed8" font-weight="700">指标体系</text>
+                    <text x="370" y="145" text-anchor="middle" font-size="16" fill="#475569">先行・同步</text>
+                    <text x="370" y="170" text-anchor="middle" font-size="16" fill="#475569">滞后指标</text>
+
+                    <rect x="530" y="70" width="180" height="120" rx="18" fill="#ecfdf5" stroke="#10b981" stroke-width="3"/>
+                    <text x="620" y="105" text-anchor="middle" font-size="22" fill="#047857" font-weight="700">指数编制</text>
+                    <text x="620" y="140" text-anchor="middle" font-size="16" fill="#475569">DI：扩张范围</text>
+                    <text x="620" y="165" text-anchor="middle" font-size="16" fill="#475569">CI：波动幅度</text>
+
+                    <rect x="780" y="70" width="170" height="120" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="3"/>
+                    <text x="865" y="112" text-anchor="middle" font-size="22" fill="#b45309" font-weight="700">预警系统</text>
+                    <text x="865" y="145" text-anchor="middle" font-size="16" fill="#475569">红黄绿蓝</text>
+                    <text x="865" y="170" text-anchor="middle" font-size="16" fill="#475569">辅助决策</text>
+
+                    <line x1="215" y1="130" x2="275" y2="130" stroke="#64748b" stroke-width="3" marker-end="url(#arrow-logic)"/>
+                    <line x1="465" y1="130" x2="525" y2="130" stroke="#64748b" stroke-width="3" marker-end="url(#arrow-logic)"/>
+                    <line x1="715" y1="130" x2="775" y2="130" stroke="#64748b" stroke-width="3" marker-end="url(#arrow-logic)"/>
+
+                    <text x="120" y="230" text-anchor="middle" font-size="16" fill="#64748b">先理解经济怎么波动</text>
+                    <text x="370" y="230" text-anchor="middle" font-size="16" fill="#64748b">再找能提前反应的变量</text>
+                    <text x="620" y="230" text-anchor="middle" font-size="16" fill="#64748b">再把多指标压缩成指数</text>
+                    <text x="865" y="230" text-anchor="middle" font-size="16" fill="#64748b">最后转成可执行信号</text>
+                </svg>
+            </div>
+
+            <div class="step info-box">
+                <p class="small"><strong>学习抓手：</strong>本章所有公式都围绕两个问题展开：第一，多少指标在扩张？这就是扩散指数 $DI_t$。第二，综合景气水平变动了多大？这就是合成指数 $CI_t$。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第一节 过渡 ==================== -->
+    <div class="slide section-slide" id="slide-sec1">
+        <div class="glow-orb-1"></div>
+        <h2>第一节 景气循环概述</h2>
+        <hr><p class="step" style="font-size: 24px;">经济波动的四乐章：复苏、高涨、衰退、萧条</p>
+    </div>
+
+
+
+    <!-- ==================== 第一节导入实例 ==================== -->
+    <div class="slide" id="slide-sec1-intro-example">
+        <h2 class="slide-title"><i class="fas fa-store"></i> 导入实例：一家奶茶店也有“景气循环”</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3>从小店看大经济</h3>
+                    <p class="small">假设校园奶茶店连续 12 个月记录订单量、原料采购量、库存和招聘人数。你会发现：订单并不是一直涨，也不是一直跌，而是会经历恢复、爆满、降温、低迷。</p>
+                    <p class="small" style="margin-top:8px;">宏观经济也类似，只是把“奶茶订单”换成生产、消费、投资、就业、信贷等指标。人类把喝糖水的起伏扩大到整个经济系统，居然还挺像。</p>
+                </div>
+                <div class="svg-container" style="height:330px;background:#fff7ed;">
+                    <svg viewBox="0 0 520 280" style="width:100%;height:100%;">
+                        <line x1="45" y1="215" x2="490" y2="215" stroke="#334155" stroke-width="2"/>
+                        <line x1="45" y1="35" x2="45" y2="215" stroke="#334155" stroke-width="2"/>
+                        <line x1="45" y1="125" x2="490" y2="125" stroke="#cbd5e1" stroke-dasharray="6,5"/>
+                        <path d="M55 205 C105 190, 120 145, 160 118 C215 80, 270 45, 330 72 C385 98, 405 160, 465 190" fill="none" stroke="#ec4899" stroke-width="5" stroke-linecap="round" class="path-anim"/>
+                        <circle cx="70" cy="200" r="6" fill="#3b82f6"/><text x="52" y="235" font-size="15" fill="#1d4ed8">萧条</text>
+                        <circle cx="165" cy="116" r="6" fill="#10b981"/><text x="145" y="102" font-size="15" fill="#047857">复苏</text>
+                        <circle cx="305" cy="55" r="6" fill="#f59e0b"/><text x="283" y="38" font-size="15" fill="#b45309">高涨</text>
+                        <circle cx="440" cy="178" r="6" fill="#64748b"/><text x="420" y="205" font-size="15" fill="#475569">衰退</text>
+                        <text x="60" y="28" font-size="15" fill="#334155">订单活跃程度</text>
+                        <text x="410" y="255" font-size="15" fill="#334155">时间</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="step info-box"><p class="small"><strong>本节任务：</strong>先理解“景气”是什么，再理解经济周期为什么要分阶段。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 景气循环与周期 ==================== -->
+    <div class="slide" id="slide-cycle">
+        <h2 class="slide-title"><i class="fas fa-sync-alt"></i> 一、景气循环的概念及其阶段</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 16px;"><strong>经济景气：</strong> 总体经济呈上升发展趋势，市场繁荣，总量增长。<br>
+                <strong>经济不景气：</strong> 总体经济下滑，市场疲软，企业破产失业增加。<br>
+                这种经济活动水平的交替升降被称为<strong>景气循环 (经济周期)</strong>。</p>
+            </div>
+
+            <div class="step two-column" style="margin-top: 10px;">
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 18px; color: #6d28d9;">经济周期的四种长度</h3>
+                    <ul style="font-size: 14px;">
+                        <li><strong>基钦周期 (短周期)：</strong> 约 40 个月（库存周期）。</li>
+                        <li><strong>尤格拉周期 (中周期)：</strong> 约 9~10 年（设备投资周期）。</li>
+                        <li><strong>库兹涅茨周期 (中长)：</strong> 15~22 年（建筑业周期）。</li>
+                        <li><strong>康德拉提耶夫周期 (长)：</strong> 50~60 年（技术创新周期）。</li>
+                    </ul>
+                </div>
+                
+                <div class="svg-container" style="flex-direction: column; background: #fdf2f8; border-color: #f43f5e;">
+                    <h3 style="font-size: 16px; margin-bottom: 5px; color: #be123c;">图 9-1 景气循环四阶段示意图</h3>
+                    <svg viewBox="0 0 400 150" style="width: 100%; height: 100%;">
+                        <line x1="20" y1="75" x2="380" y2="75" stroke="#94a3b8" stroke-dasharray="4,2"/>
+                        <path d="M 20 75 Q 60 140 100 75 T 180 75 T 260 75 T 340 75" fill="none" stroke="#f43f5e" stroke-width="3"/>
+                        
+                        <circle cx="60" cy="115" r="4" fill="#3b82f6"/> <text x="50" y="135" font-size="10" fill="#3b82f6">萧条 (谷底)</text>
+                        <circle cx="100" cy="75" r="4" fill="#10b981"/> <text x="105" y="85" font-size="10" fill="#10b981">复苏</text>
+                        <circle cx="140" cy="35" r="4" fill="#f59e0b"/> <text x="125" y="25" font-size="10" fill="#f59e0b">高涨 (峰顶)</text>
+                        <circle cx="180" cy="75" r="4" fill="#64748b"/> <text x="185" y="70" font-size="10" fill="#64748b">衰退</text>
+                        
+                        <text x="15" y="70" font-size="10" fill="#64748b">长期趋势线</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 景气分析发展脉络 ==================== -->
+    <div class="slide" id="slide-history-logic">
+        <h2 class="slide-title"><i class="fas fa-clock-rotate-left"></i> 景气分析为什么会发展成指数方法？</h2>
+        <div class="content-area">
+            <p class="step small">早期景气分析像“看云识天气”：用颜色、曲线和经验判断经济冷热。后来才逐渐走向多指标综合和定量指数。</p>
+            <div class="step svg-container" style="height:310px;background:#f8fafc;">
+                <svg viewBox="0 0 1050 300" style="width:100%;height:100%;">
+                    <line x1="80" y1="150" x2="980" y2="150" stroke="#94a3b8" stroke-width="4"/>
+                    <g font-size="16" fill="#334155">
+                        <circle cx="120" cy="150" r="10" fill="#ec4899"/><text x="80" y="115" font-weight="700">1888</text><text x="45" y="185">彩色评价经济状态</text>
+                        <circle cx="300" cy="150" r="10" fill="#f59e0b"/><text x="260" y="115" font-weight="700">1909</text><text x="230" y="185">巴布森晴雨表</text>
+                        <circle cx="480" cy="150" r="10" fill="#3b82f6"/><text x="440" y="115" font-weight="700">20世纪初</text><text x="410" y="185">哈佛指数</text>
+                        <circle cx="660" cy="150" r="10" fill="#ef4444"/><text x="620" y="115" font-weight="700">1929</text><text x="570" y="185">大危机预测失败</text>
+                        <circle cx="825" cy="150" r="10" fill="#10b981"/><text x="785" y="115" font-weight="700">NBER</text><text x="735" y="185">扩散指数 DI</text>
+                        <circle cx="965" cy="150" r="10" fill="#8b5cf6"/><text x="910" y="115" font-weight="700">20世纪60年代</text><text x="880" y="185">合成指数 CI</text>
+                    </g>
+                </svg>
+            </div>
+            <div class="step three-column">
+                <div class="tile" style="border-top-color:#ec4899;"><h3>经验判断</h3><p class="tiny">用图形和颜色描述经济状态，直观但不够定量。</p></div>
+                <div class="tile" style="border-top-color:#3b82f6;"><h3>扩散指数</h3><p class="tiny">统计多少指标在扩张，擅长捕捉转折方向。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3>合成指数</h3><p class="tiny">综合变化幅度，补足 DI 不能反映强弱的缺陷。</p></div>
+            </div>
+            <div class="step warn-box"><p class="small"><strong>逻辑结论：</strong>哈佛指数失败的教训不是“指数没用”，而是单一或少量指标不够稳健。现代景气预测才会强调指标体系、扩散指数与合成指数配合使用。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 第二节 过渡 ==================== -->
+    <div class="slide section-slide" id="slide-sec2">
+        <div class="glow-orb-2"></div>
+        <h2>第二节 景气指标体系</h2>
+        <hr><p class="step" style="font-size: 24px;">先行、同步与滞后：寻找经济的信使</p>
+    </div>
+
+
+
+    <!-- ==================== 第二节导入实例 ==================== -->
+    <div class="slide" id="slide-sec2-intro-example">
+        <h2 class="slide-title"><i class="fas fa-bell"></i> 导入实例：为什么“新订单”比“产值”更早报警？</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>企业生产的时间顺序</h3>
+                    <ol>
+                        <li>客户先下订单，需求开始变化。</li>
+                        <li>企业采购原材料，准备生产。</li>
+                        <li>生产线开工，产值和用电量变化。</li>
+                        <li>卖不出去时，库存开始增加。</li>
+                    </ol>
+                </div>
+                <div class="svg-container" style="height:320px;background:#f8fafc;">
+                    <svg viewBox="0 0 560 280" style="width:100%;height:100%;">
+                        <defs><marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
+                        <rect x="35" y="90" width="115" height="80" rx="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="3"/><text x="92" y="137" text-anchor="middle" font-size="18" fill="#1d4ed8" font-weight="700">新订单</text>
+                        <rect x="190" y="90" width="115" height="80" rx="14" fill="#fdf2f8" stroke="#ec4899" stroke-width="3"/><text x="247" y="137" text-anchor="middle" font-size="18" fill="#be185d" font-weight="700">采购</text>
+                        <rect x="345" y="90" width="115" height="80" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="3"/><text x="402" y="137" text-anchor="middle" font-size="18" fill="#047857" font-weight="700">产值/用电</text>
+                        <rect x="205" y="205" width="145" height="52" rx="14" fill="#fff7ed" stroke="#f59e0b" stroke-width="3"/><text x="278" y="238" text-anchor="middle" font-size="18" fill="#b45309" font-weight="700">库存/失业</text>
+                        <line x1="155" y1="130" x2="185" y2="130" stroke="#64748b" stroke-width="3" marker-end="url(#arr2)"/>
+                        <line x1="310" y1="130" x2="340" y2="130" stroke="#64748b" stroke-width="3" marker-end="url(#arr2)"/>
+                        <line x1="405" y1="174" x2="332" y2="205" stroke="#64748b" stroke-width="3" marker-end="url(#arr2)"/>
+                        <text x="92" y="70" text-anchor="middle" font-size="15" fill="#1d4ed8">先行</text>
+                        <text x="402" y="70" text-anchor="middle" font-size="15" fill="#047857">同步</text>
+                        <text x="278" y="198" text-anchor="middle" font-size="15" fill="#b45309">滞后</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="step info-box"><p class="small"><strong>本节任务：</strong>根据经济活动的先后顺序和数据质量，建立先行、同步、滞后三类指标体系。指标选错，后面的预测就像拿体重秤测气温，技术动作很认真，结果很离谱。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 景气指标选择 ==================== -->
+    <div class="slide" id="slide-indicators">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 一、景气指标的三大分类与选择原则</h2>
+        <div class="content-area">
+            <div class="step three-column">
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 18px; color: #1d4ed8;">1. 先行指标</h3>
+                    <p style="font-size: 14px;">领先于总体经济变化的指标，用于预测未来的转折点。<br>
+                    <em>例：股票价格指数、新订单、货币供应量 M2。</em></p>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 18px; color: #047857;">2. 同步指标</h3>
+                    <p style="font-size: 14px;">与总体经济变化基本一致的指标，反映当前的经济状态。<br>
+                    <em>例：工业总产值、社会商品零售额、发电量。</em></p>
+                </div>
+                <div class="tile" style="border-top-color: #f59e0b;">
+                    <h3 style="font-size: 18px; color: #b45309;">3. 滞后指标</h3>
+                    <p style="font-size: 14px;">落后于总体经济变化的指标，用于确认趋势是否真的发生改变。<br>
+                    <em>例：商业库存、物价指数、企业破产数。</em></p>
+                </div>
+            </div>
+            
+            <div class="step tile" style="margin-top: 10px;">
+                <h3 style="font-size: 18px;">选择原则</h3>
+                <ul style="font-size: 15px;">
+                    <li><strong>重要性和代表性：</strong> 在经济总量中居重要地位。</li>
+                    <li><strong>可靠性和充分性：</strong> 数据准确，历史时间序列足够长以供季节调整。</li>
+                    <li><strong>一致性和稳定性：</strong> 与经济波动的时差（领先或滞后）要相对稳定。</li>
+                    <li><strong>及时性和光滑性：</strong> 能快速获取数据，且不规则随机噪音少。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 景气指标体系案例补充 ==================== -->
+    <div class="slide" id="slide-indicator-system-cases">
+        <h2 class="slide-title"><i class="fas fa-globe-asia"></i> 景气指标体系案例：不同地区为什么选不同指标？</h2>
+        <div class="content-area">
+            <p class="step small">景气指标不是固定菜单。美国、中国大陆、台湾地区的经济结构不同，指标体系也会不同，但分类逻辑始终围绕“先行、同步、滞后”。</p>
+            <div class="step table-wrapper" style="max-height:360px;">
+                <table class="data-table">
+                    <tr><th>地区</th><th>先行指标例子</th><th>同步指标例子</th><th>滞后指标例子</th><th>逻辑说明</th></tr>
+                    <tr><td>美国</td><td>新订单、建筑许可、股票价格、$M_2$</td><td>非农就业、工业生产、个人收入</td><td>失业时间、存销比、优惠利率</td><td>金融市场和订单常领先实体经济。</td></tr>
+                    <tr><td>中国大陆</td><td>外贸出口收汇、财政支出、工业贷款</td><td>工业总产值、零售额、发电量、铁路货运量</td><td>商业库存、财政收入、商业贷款</td><td>生产、投资和货运反映实体经济活跃度。</td></tr>
+                    <tr><td>台湾地区</td><td>建筑面积、进口单价、货币供给、工作时数</td><td>工业生产、制造业销售、货运量</td><td>建筑生产指数、消费水准、票据交换</td><td>外向型制造业特征更明显。</td></tr>
+                </table>
+            </div>
+            <div class="step good-box"><p class="small"><strong>课堂结论：</strong>指标体系没有“万能模板”。统计建模要服从经济机制，不能拿一套指标到处贴，仿佛给所有病人开同一种感冒药。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 第三节 过渡 ==================== -->
+    <div class="slide section-slide" id="slide-sec3">
+        <div class="glow-orb-1"></div>
+        <h2>第三节 扩散指数 (Diffusion Index)</h2>
+        <hr><p class="step" style="font-size: 24px;">量化经济波动的普及面与转折点</p>
+    </div>
+
+
+
+    <!-- ==================== 第三节导入实例 ==================== -->
+    <div class="slide" id="slide-sec3-intro-example">
+        <h2 class="slide-title"><i class="fas fa-people-arrows"></i> 导入实例：经济转暖不是一个指标说了算</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>一个指标上升，能说明经济变好吗？</h3>
+                    <p class="small">如果只有发电量上升，但零售额、货运量、工业销售收入都在下降，我们不能轻易说经济全面转暖。</p>
+                    <p class="small" style="margin-top:8px;">扩散指数的思想很朴素：<strong>不是看某一个指标涨得多猛，而是看有多少指标一起变好。</strong></p>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3>DI 的直觉</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:22px;">\[
+                    DI_t=\frac{\text{扩张指标个数}}{\text{指标总数}}\times100\%
+                    \]</div></div>
+                    <p class="small">如果 10 个指标中有 8 个在扩张，$DI_t=80\%$，说明扩张面较广；如果只有 2 个扩张，$DI_t=20\%$，说明经济系统大部分仍偏冷。</p>
+                </div>
+            </div>
+            <div class="step warn-box"><p class="small"><strong>本节任务：</strong>先确定基准循环，再把候选指标分成先行、同步、滞后，然后分别编制扩散指数，用来判断景气转折。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 指标分类方法 ==================== -->
+    <div class="slide" id="slide-classify">
+        <h2 class="slide-title"><i class="fas fa-sort-amount-down"></i> 一、如何判定一个指标是“先行”的？</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 16px;">首先要确立一个<strong>基准循环（基准日期）</strong>，然后比较备选指标的峰谷时间。主要依靠数学方法与主观判断结合：</p>
+            
+            <div class="step two-column">
+                <div class="tile">
+                    <h3 style="font-size: 18px;">时差相关法</h3>
+                    <p style="font-size: 14px;">设基准指标为 $Y$，备选指标为 $X$。计算滞后 $k$ 期的相关系数 $r_k$，使 $r_k$ 最大的 $k$ 即为时差：</p>
+                    <div class="math-center"><div class="math-box" style="font-size: 23px; padding: 5px;">
+                        $r_k=\frac{\sum(Y_t-\bar{Y})(X_{t-k}-\bar{X})}{\sqrt{\sum(Y_t-\bar{Y})^2} \sqrt{\sum(X_{t-k}-\bar{X})^2}}$
+                    </div></div>
+                </div>
+                <div class="tile">
+                    <h3 style="font-size: 18px;">其他主流分类法</h3>
+                    <ul style="font-size: 14px; margin:0;">
+                        <li><strong>峰谷对应法：</strong> 直观画图比对波峰波谷。</li>
+                        <li><strong>KL 信息量法：</strong> 计算两分布的测度距离。</li>
+                        <li><strong>马场法：</strong> 将循环分为九个阶段求均值比对。</li>
+                        <li><strong>循环聚类与三角函数法。</strong></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step info-box"><p style="font-size: 14px; font-weight:normal;">*先行指标的硬标准：在最近的连续3次周期中，至少有两次峰值领先基准循环 3 个月以上。</p></div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 基准循环补充 ==================== -->
+    <div class="slide" id="slide-benchmark-cycle-detail">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 先有基准循环，才谈先行、同步、滞后</h2>
+        <div class="content-area">
+            <p class="step small">所谓“先行”不是凭感觉说谁跑得快，而是相对于一个<strong>基准循环</strong>而言。基准循环相当于经济周期研究中的参照尺。</p>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>确定基准循环的常用方法</h3>
+                    <ul>
+                        <li>以 GDP、工业总产值等重要经济指标的周期为基准。</li>
+                        <li>结合专家意见和经济大事记修正峰谷日期。</li>
+                        <li>初选若干同步指标，计算历史扩散指数。</li>
+                        <li>以一致合成指数的转折点作为辅助依据。</li>
+                    </ul>
+                </div>
+                <div class="svg-container" style="height:300px;background:#f8fafc;">
+                    <svg viewBox="0 0 560 260" style="width:100%;height:100%;">
+                        <line x1="50" y1="130" x2="520" y2="130" stroke="#cbd5e1" stroke-dasharray="6,5"/>
+                        <path d="M55 190 C105 170, 120 85, 190 75 C260 65, 285 185, 350 190 C420 195, 435 80, 510 72" fill="none" stroke="#ec4899" stroke-width="4"/>
+                        <line x1="190" y1="40" x2="190" y2="220" stroke="#f59e0b" stroke-width="3" stroke-dasharray="5,4"/>
+                        <line x1="350" y1="40" x2="350" y2="220" stroke="#3b82f6" stroke-width="3" stroke-dasharray="5,4"/>
+                        <line x1="510" y1="40" x2="510" y2="220" stroke="#f59e0b" stroke-width="3" stroke-dasharray="5,4"/>
+                        <text x="175" y="35" font-size="16" fill="#b45309">峰</text><text x="335" y="235" font-size="16" fill="#1d4ed8">谷</text><text x="495" y="35" font-size="16" fill="#b45309">峰</text>
+                        <text x="175" y="105" font-size="15" fill="#334155">基准日期</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="step info-box"><p class="small"><strong>逻辑关系：</strong>如果某指标的峰值通常比基准循环峰值早 3 个月以上，它才可能被认定为先行指标；若峰谷基本同时出现，则更可能是同步指标。</p></div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 指标数据处理补充 ==================== -->
+    <div class="slide" id="slide-di-data-processing">
+        <h2 class="slide-title"><i class="fas fa-filter"></i> 计算 DI 之前：为什么要先处理数据？</h2>
+        <div class="content-area">
+            <p class="step small">经济时间序列通常同时包含趋势、周期、季节和随机扰动。直接拿原始数据判断扩张或收缩，很容易把春节、暑假、促销季误判成经济周期，统计学不会替人类的粗心背锅。</p>
+            <div class="step three-column">
+                <div class="tile" style="border-top-color:#3b82f6;"><h3>乘法模型</h3><div class="math-center"><div class="math-box">\[Y_t=T_t\times C_t\times S_t\times I_t\]</div></div><p class="tiny">常用于波动幅度随水平扩大而扩大的序列。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3>加法模型</h3><div class="math-center"><div class="math-box">\[Y_t=T_t+C_t+S_t+I_t\]</div></div><p class="tiny">适合季节波动幅度大致稳定的序列。</p></div>
+                <div class="tile" style="border-top-color:#f59e0b;"><h3>混合模型</h3><div class="math-center"><div class="math-box">\[Y_t=T_t\times C_t+S_t\times I_t\]</div></div><p class="tiny">用于趋势周期与季节随机结构不同的场景。</p></div>
+            </div>
+            <div class="step tile" style="border-top-color:#8b5cf6;">
+                <h3>DI 编制前的标准流程</h3>
+                <ol>
+                    <li>补齐缺失值，保证月度或季度序列连续。</li>
+                    <li>进行季节调整，剔除季节因素 $S_t$。</li>
+                    <li>根据研究目标提取 $TC_t$ 或 $C_t$。</li>
+                    <li>计算增长率，并判断每个指标当期是扩张还是收缩。</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 扩散指数的计算 ==================== -->
+    <div class="slide" id="slide-di-calc">
+        <h2 class="slide-title"><i class="fas fa-percentage"></i> 二、扩散指数 (DI) 的计算与意义</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <h3 style="font-size: 18px;">计算公式</h3>
+                <p style="font-size: 15px;">先进行季节调整，然后判定每个指标的特征。若本期增长率为正，记为扩张(+)。</p>
+                <div class="math-center"><div class="math-box" style="font-size: 16px; padding: 10px 20px;">
+                    \[ DI_t = \frac{t \text{ 期序列出现扩张的个数}}{\text{属于该类指标的序列总数}} \times 100\% \]
+                </div></div>
+            </div>
+
+            <div class="step two-column" style="margin-top: 10px;">
+                <div class="svg-container" style="flex-direction: column; background:#fdf2f8;">
+                    <h3 style="font-size: 16px; margin-bottom: 5px;">图 9-3 同步指标 DI 与经济总量的关系</h3>
+                    <svg viewBox="0 0 400 150" style="width: 100%; height: 100%;">
+                        <!-- 50% 临界线 -->
+                        <line x1="20" y1="75" x2="380" y2="75" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,4"/>
+                        <text x="350" y="70" font-size="10" fill="#ef4444">DI = 50%</text>
+                        <!-- DI 曲线 -->
+                        <path d="M 20 75 Q 60 10 100 75 T 180 75" fill="none" stroke="#3b82f6" stroke-width="2"/>
+                        <text x="110" y="20" font-size="10" fill="#3b82f6">DI 曲线</text>
+                        <!-- 经济总量曲线 -->
+                        <path d="M 20 140 Q 100 140 100 75 T 180 10" fill="none" stroke="#10b981" stroke-width="2"/>
+                        <text x="140" y="140" font-size="10" fill="#10b981">经济总量</text>
+                        
+                        <!-- 转折对应线 -->
+                        <line x1="100" y1="10" x2="100" y2="140" stroke="#64748b" stroke-dasharray="2,2"/>
+                        <circle cx="100" cy="75" r="4" fill="#ef4444"/>
+                    </svg>
+                </div>
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3 style="font-size: 18px; color: #b91c1c;">景气转折线与累积效应</h3>
+                    <ul style="font-size: 14px; line-height: 1.6;">
+                        <li><strong>DI > 50%：</strong> 扩张指标数多于收缩数，经济向上。</li>
+                        <li><strong>DI < 50%：</strong> 经济全面降温，步入不景气空间。</li>
+                        <li><strong>核心定理：</strong> 同步指标扩散指数 DI 曲线<strong>下降到与 50% 线相交</strong>的时间，恰好是<strong>经济总量达到最大值（峰顶）</strong>的时间！</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== DI 与峰谷关系证明 ==================== -->
+    <div class="slide" id="slide-di-peak-proof">
+        <h2 class="slide-title"><i class="fas fa-square-root-variable"></i> 重要结论：同步 DI 与经济总量峰谷的关系</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#ec4899;">
+             
+                <p class="small">同步指标扩散指数 $DI_t$ 下降并穿过 $50\%$ 时，通常对应经济总量达到峰点；同步 $DI_t$ 上升并穿过 $50\%$ 时，通常对应经济总量达到谷点。</p>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>直观证明：峰点</h3>
+                    <ol>
+                        <li>在上升阶段，超过一半同步指标处于扩张，$DI_t\gt50\%$。</li>
+                        <li>当扩张指标数量减少，$DI_t$ 开始下降，说明增长动力扩散面收窄。</li>
+                        <li>当 $DI_t$ 下降到 $50\%$，扩张与收缩指标数量大致相当。</li>
+                        <li>此后收缩面占优，总量由升转降，所以交点附近对应总量峰点。</li>
+                    </ol>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>直观证明：谷点</h3>
+                    <ol>
+                        <li>在低迷阶段，多数同步指标收缩，$DI_t\lt50\%$。</li>
+                        <li>当越来越多指标转为扩张，$DI_t$ 上升。</li>
+                        <li>当 $DI_t$ 上升到 $50\%$，收缩力量与扩张力量接近均衡。</li>
+                        <li>此后扩张面占优，总量由降转升，所以交点附近对应总量谷点。</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:20px;">\[
+            \text{经济总量峰点}\approx DI_t\text{ 下穿 }50\%\text{ 的时点},\qquad
+            \text{经济总量谷点}\approx DI_t\text{ 上穿 }50\%\text{ 的时点}
+            \]</div></div>
+            <div class="step warn-box"><p class="small"><strong>注意：</strong>这是经验性判断，不是数学恒等式。DI 擅长提示转折方向，但不能精确测定峰谷位置，也不能反映波动强弱。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 第四节 过渡 ==================== -->
+    <div class="slide section-slide" id="slide-sec4">
+        <div class="glow-orb-2"></div>
+        <h2>第四节 合成指数与预警系统</h2>
+        <hr><p class="step" style="font-size: 24px;">从“定性方向”到“定量测度”</p>
+    </div>
+
+
+
+    <!-- ==================== 第四节导入实例 ==================== -->
+    <div class="slide" id="slide-sec4-intro-example">
+        <h2 class="slide-title"><i class="fas fa-gauge-high"></i> 导入实例：DI 说“多少人在涨”，CI 说“涨得有多猛”</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3>两个地区的 DI 都是 100%</h3>
+                    <table class="data-table" style="font-size:17px;">
+                        <tr><th>地区</th><th>指标1</th><th>指标2</th><th>指标3</th><th>DI</th></tr>
+                        <tr><td>A</td><td>+0.1%</td><td>+0.2%</td><td>+0.1%</td><td>100%</td></tr>
+                        <tr><td>B</td><td>+8%</td><td>+10%</td><td>+7%</td><td>100%</td></tr>
+                    </table>
+                    <p class="tiny" style="margin-top:10px;">DI 都是 100%，但 A 是微弱扩张，B 是强劲扩张。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3>为什么需要 CI？</h3>
+                    <p class="small">扩散指数只数“有多少指标在上升”，不管每个指标上升幅度。合成指数则通过对称变化率和标准化，把多个指标的变动幅度合成为一个指数。</p>
+                    <div class="math-center"><div class="math-box">\[DI_t\Rightarrow \text{扩张范围},\qquad CI_t\Rightarrow \text{综合强度}\]</div></div>
+                </div>
+            </div>
+            <div class="step info-box"><p class="small"><strong>本节任务：</strong>学习合成指数如何从单个指标变化率出发，经过标准化、加权平均、递推和中心化，形成能反映经济波动幅度的综合指数；再把指数转成预警灯号。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 合成指数 CI ==================== -->
+    <div class="slide" id="slide-ci">
+        <h2 class="slide-title"><i class="fas fa-chart-pie"></i> 一、合成指数 (CI) 的编制</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 15px;">扩散指数只能指明方向，无法反映波动的强弱幅度。<strong>合成指数 (Composite Index)</strong> 通过测度各指标的变动率解决了这一缺陷。</p>
+            </div>
+            
+            <div class="step tile" style="margin-top: 10px;">
+                <h3 style="font-size: 18px;">核心计算步骤</h3>
+                <ul style="font-size: 20px;">
+                    <li style="font-size: 20px;"><strong>1. 求对称变化率 $C_i(t)$：</strong> 以本期与上期的平均数为基数，使上升与下降量在数学上均等。<br>
+                        <span style="display:inline-block; padding:10px 8px; background:#fdf2f8; margin:5px 0;">$C_i(t)=200[d_i(t)-d_i(t-1)] / [d_i(t)+d_i(t-1)]$</span>
+                    </li>
+                    <li style="font-size: 20px;"><strong>2. 求标准化平均变化率 $V(t)$：</strong> 算出各序列的标准化因子 $A_i$，防止数值庞大的指标掩盖了微小但敏感的指标。</li>
+                    <li style="font-size: 20px;"><strong>3. 初始指标累加：</strong> 递推计算 $I(t)=\frac{I(t-1)[200+V(t)]}{200-V(t)}$，并将不同周期的历史趋势 $T$ 剥离调整。</li>
+                    <li style="font-size: 20px;"><strong>4. 中心化：</strong> 以基年均值为100，生成最终的合成指数 $CI$。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 合成指数步骤细化 ==================== -->
+    <div class="slide" id="slide-ci-formula-chain">
+        <h2 class="slide-title"><i class="fas fa-code-branch"></i> 合成指数 CI 的公式链条：每一步在干什么？</h2>
+        <div class="content-area">
+            <div class="step four-column">
+                <div class="tile" style="border-top-color:#3b82f6;"><h3>1. 对称变化率</h3><div class="math-center"><div class="math-box" style="font-size:17px;">\[C_i(t)=\frac{200[d_i(t)-d_i(t-1)]}{d_i(t)+d_i(t-1)}\]</div></div><p class="tiny">消除基数差异，使上升和下降可比。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3>2. 组内标准化</h3><div class="math-center"><div class="math-box" style="font-size:17px;">\[A_i=\frac{\sum |C_i(t)|}{N-1},\quad S_i(t)=\frac{C_i(t)}{A_i}\]</div></div><p class="tiny">防止大尺度指标支配整体指数。</p></div>
+            </div>
+            <div class="step info-box"><p class="small"><strong>统一符号：</strong>$d_i(t)$ 表示第 $i$ 个季节调整后指标在 $t$ 期的值；$C_i(t)$ 是对称变化率；$A_i$ 是标准化因子；$S_i(t)$ 是标准化变化率；$R(t)$ 是组内平均变化率；$V(t)$ 是组间标准化后的平均变化率；$I(t)$ 是初始合成指数。</p></div>
+
+        </div>
+    </div>
+
+
+
+      <!-- ==================== 合成指数步骤细化 ==================== -->
+    <div class="slide" id="slide-ci-formula-chain">
+        <h2 class="slide-title"><i class="fas fa-code-branch"></i> 合成指数 CI 的公式链条：每一步在干什么？</h2>
+        <div class="content-area">
+            <div class="step four-column">
+                <div class="tile" style="border-top-color:#f59e0b;"><h3>3. 加权平均</h3><div class="math-center"><div class="math-box" style="font-size:17px;">\[R(t)=\frac{\sum_{i=1}^k S_i(t)W_i}{\sum_{i=1}^kW_i}\]</div></div><p class="tiny">把组内多个指标合成一个变化率。</p></div>
+                <div class="tile" style="border-top-color:#8b5cf6;"><h3>4. 递推指数</h3><div class="math-center"><div class="math-box" style="font-size:17px;">\[I(t)=\frac{I(t-1)[200+V(t)]}{200-V(t)}\]</div></div><p class="tiny">把变化率转成连续的指数序列。</p></div>
+            </div>
+                        <div class="step warn-box"><p class="small"><strong>理解：</strong>CI 的计算看起来长，但逻辑只有一句：先让每个指标“同尺度说话”，再把它们平均起来，最后累积成一条指数曲线。</p></div>
+        </div>
+    </div>
+    <!-- ==================== 预警系统 ==================== -->
+    <div class="slide" id="slide-warning">
+        <h2 class="slide-title"><i class="fas fa-traffic-light"></i> 二、宏观经济的“交通信号灯”</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile">
+                    <h3 style="font-size: 18px;">预警系统原理</h3>
+                    <p style="font-size: 14px;">将多个敏感指标合并，赋予不同权重。通过设定“检查值”，为当前的经济体温亮起不同颜色的信号灯。</p>
+                    <ul style="font-size: 14px; margin-top:10px;">
+                        <li style="color:#ef4444;"><i class="fas fa-circle"></i> <strong>红灯 (5分)：</strong> 经济发展过热。</li>
+                        <li style="color:#f59e0b;"><i class="fas fa-circle"></i> <strong>黄灯 (4分)：</strong> 略有过热。</li>
+                        <li style="color:#10b981;"><i class="fas fa-circle"></i> <strong>绿灯 (3分)：</strong> 经济很稳定。</li>
+                        <li style="color:#60a5fa;"><i class="fas fa-circle"></i> <strong>浅蓝 (2分)：</strong> 有萎缩转冷趋势。</li>
+                        <li style="color:#1d4ed8;"><i class="fas fa-circle"></i> <strong>蓝灯 (1分)：</strong> 经济处于萧条。</li>
+                    </ul>
+                </div>
+
+                <div class="svg-container" style="flex-direction: column; background:#f8fafc;">
+                    <h3 style="font-size: 16px; margin-bottom: 5px;">图 9-4 综合景气评分图原理</h3>
+                    <svg viewBox="0 0 300 200" style="width: 100%; height: 100%;">
+                        <!-- 刻度线 -->
+                        <line x1="40" y1="20" x2="300" y2="20" stroke="#ef4444" stroke-dasharray="2,2"/> <text x="10" y="25" font-size="10">80%</text>
+                        <line x1="40" y1="60" x2="300" y2="60" stroke="#f59e0b" stroke-dasharray="2,2"/> <text x="10" y="65" font-size="10">70%</text>
+                        <line x1="40" y1="120" x2="300" y2="120" stroke="#10b981" stroke-dasharray="2,2"/> <text x="10" y="125" font-size="10">50%</text>
+                        <line x1="40" y1="160" x2="300" y2="160" stroke="#60a5fa" stroke-dasharray="2,2"/> <text x="10" y="165" font-size="10">40%</text>
+                        
+                        <!-- 区域色块模拟 -->
+                        <rect x="50" y="0" width="20" height="20" fill="#ef4444" opacity="0.3"/>
+                        <rect x="50" y="20" width="20" height="40" fill="#f59e0b" opacity="0.3"/>
+                        <rect x="50" y="60" width="20" height="60" fill="#10b981" opacity="0.3"/>
+                        
+                        <!-- 波动曲线 -->
+                        <path d="M 40 180 L 100 130 L 160 50 L 220 10 L 280 140" fill="none" stroke="#1e293b" stroke-width="3" class="path-anim"/>
+                        
+                        <circle cx="220" cy="10" r="5" fill="#ef4444"/> <text x="230" y="15" font-size="10" fill="#ef4444">红灯警告:过热</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+    <!-- ==================== 预警系统细化 ==================== -->
+    <div class="slide" id="slide-warning-boundary-detail">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 预警系统：从指标值到灯号的完整逻辑</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3>第一步：单个指标亮灯</h3>
+                    <p class="small">对每个敏感指标设置 4 个检查值，把指标当前值划入 5 个区间。</p>
+                    <table class="data-table" style="font-size:16px;margin-top:8px;">
+                        <tr><th>灯号</th><th>含义</th><th>得分</th></tr>
+                        <tr><td style="color:#ef4444;font-weight:700;">红灯</td><td>过热</td><td>5</td></tr>
+                        <tr><td style="color:#f59e0b;font-weight:700;">黄灯</td><td>偏热</td><td>4</td></tr>
+                        <tr><td style="color:#10b981;font-weight:700;">绿灯</td><td>稳定</td><td>3</td></tr>
+                        <tr><td style="color:#60a5fa;font-weight:700;">浅蓝</td><td>偏冷</td><td>2</td></tr>
+                        <tr><td style="color:#1d4ed8;font-weight:700;">蓝灯</td><td>萧条</td><td>1</td></tr>
+                    </table>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3>第二步：综合得分亮总灯</h3>
+                    <p class="small">若有 $M$ 个预警指标，最高分为 $5M$，最低分为 $M$。综合得分 $Q_t$ 的区间决定总灯号。</p>
+                    <div class="math-center"><div class="math-box" style="font-size:19px;">\[
+                    Q_t=\sum_{j=1}^{M}q_{jt},\qquad q_{jt}\in\{1,2,3,4,5\}
+                    \]</div></div>
+                    <ul>
+                        <li>$Q_t\ge0.8(5M)$：红灯区。</li>
+                        <li>$0.7(5M)\le Q_t\lt0.8(5M)$：黄灯区。</li>
+                        <li>$0.5(5M)\le Q_t\lt0.7(5M)$：绿灯区。</li>
+                        <li>$0.4(5M)\le Q_t\lt0.5(5M)$：浅蓝区。</li>
+                        <li>$Q_t\lt0.4(5M)$：蓝灯区。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step good-box"><p class="small"><strong>逻辑：</strong>DI 和 CI 用来分析经济方向与强度，预警系统把这些复杂信息转成“能不能扩产、该不该控库存、是否需要调控”的直观信号。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：概念目的与应用场景 ==================== -->
+    <div class="slide" id="slide-purpose-extended">
+        <h2 class="slide-title"><i class="fas fa-compass"></i> 景气预测法到底要解决什么问题？</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#ec4899;">
+                <h3>一句话目的</h3>
+                <p style="font-size:16px;">景气预测法不是预测某一个指标明天涨不涨，而是把一组经济指标合成“经济体温计”，判断宏观经济处在<strong>复苏、高涨、衰退、萧条</strong>中的哪一段，并提前识别转折点。</p>
+            </div>
+            <div class="step three-column" style="margin-top:8px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:18px;color:#1d4ed8;">看未来</h3>
+                    <p style="font-size:14px;">先行指标像“前方探路猫”，提前反映订单、投资、金融市场的变化，用来预判经济是否即将转暖或转冷。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:18px;color:#047857;">看现在</h3>
+                    <p style="font-size:14px;">同步指标像“体温计”，反映当前生产、消费、就业、运输等实际活跃程度。</p>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3 style="font-size:18px;color:#b45309;">看确认</h3>
+                    <p style="font-size:14px;">滞后指标像“验尸报告”，虽然慢，但能确认景气变化是否真正发生。现实就是这么不浪漫。</p>
+                </div>
+            </div>
+            <div class="step info-box" style="margin-top:8px;">
+                <p style="font-size:15px;"><strong>典型应用场景：</strong>政府宏观调控、企业库存与产能安排、银行信贷风险监测、行业景气度判断、投资时点选择、区域经济运行预警。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：景气循环直观解释 ==================== -->
+    <div class="slide" id="slide-cycle-story">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 景气循环四阶段：把经济当成一家奶茶店</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="svg-container" style="height:330px;background:#fff7ed;">
+                    <svg viewBox="0 0 520 260" style="width:100%;height:100%;">
+                        <line x1="30" y1="130" x2="490" y2="130" stroke="#94a3b8" stroke-width="2" stroke-dasharray="5,4"/>
+                        <path d="M 40 200 C 100 190, 110 120, 160 95 C 220 60, 260 35, 315 65 C 365 95, 380 155, 430 180 C 460 195, 480 190, 500 160" fill="none" stroke="#ec4899" stroke-width="5" stroke-linecap="round"/>
+                        <circle cx="60" cy="195" r="7" fill="#3b82f6"/><text x="38" y="225" font-size="14" fill="#1d4ed8">萧条</text>
+                        <circle cx="165" cy="94" r="7" fill="#10b981"/><text x="145" y="78" font-size="14" fill="#047857">复苏</text>
+                        <circle cx="280" cy="45" r="7" fill="#f59e0b"/><text x="258" y="28" font-size="14" fill="#b45309">高涨</text>
+                        <circle cx="405" cy="168" r="7" fill="#64748b"/><text x="386" y="196" font-size="14" fill="#475569">衰退</text>
+                        <text x="35" y="30" font-size="14" fill="#334155">纵轴：经济活跃程度</text>
+                        <text x="390" y="245" font-size="14" fill="#334155">横轴：时间</text>
+                    </svg>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3 style="font-size:18px;">课堂直观版</h3>
+                    <ul style="font-size:14px;line-height:1.55;">
+                        <li><strong>萧条：</strong>奶茶店没人排队，店员开始研究人生，老板开始研究成本。</li>
+                        <li><strong>复苏：</strong>新品上线，有人开始回购，订单逐渐恢复。</li>
+                        <li><strong>高涨：</strong>排队爆满，原料紧张，店员怀疑人类为什么这么爱喝糖水。</li>
+                        <li><strong>衰退：</strong>热度下降，库存开始积压，促销救场。</li>
+                    </ul>
+                    <p style="font-size:14px;margin-top:8px;">宏观经济也是类似循环，只是把“奶茶订单”换成生产、消费、投资、就业、信贷等指标。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：指标体系例题 ==================== -->
+    <div class="slide" id="slide-indicator-example">
+        <h2 class="slide-title"><i class="fas fa-sitemap"></i> 例题 9-1：给景气指标分类</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <h3 style="font-size:18px;">问题</h3>
+                <p style="font-size:15px;">某地区希望建立工业经济景气监测系统，备选指标如下：新订单指数、工业总产值、发电量、企业库存、银行短期贷款、失业持续时间。请判断它们更可能属于先行、同步还是滞后指标，并说明理由。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:320px;">
+                <table class="data-table">
+                    <tr><th>指标</th><th>分类</th><th>理由</th><th>课堂解释</th></tr>
+                    <tr><td>新订单指数</td><td>先行</td><td>订单先于生产发生</td><td>先有人下单，工厂才开始卷机器。</td></tr>
+                    <tr><td>银行短期贷款</td><td>先行或同步</td><td>融资扩张常领先生产扩张</td><td>钱先动，产能后动。</td></tr>
+                    <tr><td>工业总产值</td><td>同步</td><td>直接反映当前生产活动</td><td>这是经济正在干活的声音。</td></tr>
+                    <tr><td>发电量</td><td>同步</td><td>生产越活跃，用电越多</td><td>工厂开不开工，电表最诚实。</td></tr>
+                    <tr><td>企业库存</td><td>滞后</td><td>销售转弱后库存才显著积压</td><td>卖不动之后，仓库才开始尖叫。</td></tr>
+                    <tr><td>失业持续时间</td><td>滞后</td><td>企业通常在衰退确认后才裁员</td><td>就业市场反应慢，像下载失败的校园网。</td></tr>
+                </table>
+            </div>
+            <div class="step info-box"><p style="font-size:14px;">判断规则：不要只看指标名称，要看它在经济循环中<strong>领先、同步还是落后于总体经济转折点</strong>。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：扩散指数详细例题 ==================== -->
+    <div class="slide" id="slide-di-example-1">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 例题 9-2：扩散指数 DI 的完整计算 (1/2)</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <h3 style="font-size:18px;">问题背景</h3>
+                <p style="font-size:15px;">某地区选取 6 个同步指标，用来判断 2024 年 1—6 月经济景气面。若某指标本月增长率为正，记为扩张“+”；为负，记为收缩“-”。计算每月同步指标扩散指数，并判断景气阶段。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:330px;">
+                <table class="data-table">
+                    <tr><th>月份</th><th>工业产值</th><th>发电量</th><th>铁路货运</th><th>零售额</th><th>工业销售收入</th><th>M1</th><th>扩张个数</th><th>DI</th></tr>
+                    <tr><td>1月</td><td>+</td><td>+</td><td>-</td><td>-</td><td>+</td><td>-</td><td>3</td><td>50.0%</td></tr>
+                    <tr><td>2月</td><td>+</td><td>+</td><td>+</td><td>-</td><td>+</td><td>-</td><td>4</td><td>66.7%</td></tr>
+                    <tr><td>3月</td><td>+</td><td>+</td><td>+</td><td>+</td><td>+</td><td>-</td><td>5</td><td>83.3%</td></tr>
+                    <tr><td>4月</td><td>+</td><td>+</td><td>+</td><td>+</td><td>+</td><td>+</td><td>6</td><td>100.0%</td></tr>
+                    <tr><td>5月</td><td>+</td><td>-</td><td>+</td><td>+</td><td>-</td><td>+</td><td>4</td><td>66.7%</td></tr>
+                    <tr><td>6月</td><td>-</td><td>-</td><td>+</td><td>-</td><td>-</td><td>+</td><td>2</td><td>33.3%</td></tr>
+                </table>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:16px;">例如 3 月：$DI_3=\frac{5}{6}\times 100\%=83.3\%$</div></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-di-example-2">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例题 9-2：扩散指数 DI 的解释 (2/2)</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="svg-container" style="height:300px;background:#f8fafc;">
+                    <svg viewBox="0 0 520 280" style="width:100%;height:100%;">
+                        <line x1="55" y1="230" x2="490" y2="230" stroke="#334155"/>
+                        <line x1="55" y1="30" x2="55" y2="230" stroke="#334155"/>
+                        <line x1="55" y1="130" x2="490" y2="130" stroke="#ef4444" stroke-width="2" stroke-dasharray="5,5"/>
+                        <text x="465" y="125" fill="#ef4444" font-size="13">50%</text>
+                        <polyline points="80,130 150,96 220,63 290,30 360,96 430,163" fill="none" stroke="#ec4899" stroke-width="4" stroke-linejoin="round"/>
+                        <circle cx="80" cy="130" r="5" fill="#ec4899"/><circle cx="150" cy="96" r="5" fill="#ec4899"/><circle cx="220" cy="63" r="5" fill="#ec4899"/><circle cx="290" cy="30" r="5" fill="#ec4899"/><circle cx="360" cy="96" r="5" fill="#ec4899"/><circle cx="430" cy="163" r="5" fill="#ec4899"/>
+                        <text x="73" y="250" font-size="12">1月</text><text x="143" y="250" font-size="12">2月</text><text x="213" y="250" font-size="12">3月</text><text x="283" y="250" font-size="12">4月</text><text x="353" y="250" font-size="12">5月</text><text x="423" y="250" font-size="12">6月</text>
+                        <text x="15" y="35" font-size="12" fill="#334155">100%</text><text x="25" y="135" font-size="12" fill="#334155">50%</text><text x="35" y="230" font-size="12" fill="#334155">0</text>
+                    </svg>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3 style="font-size:18px;">分步骤解释</h3>
+                    <ul style="font-size:14px;line-height:1.6;">
+                        <li><strong>1月：</strong>DI=50%，扩张与收缩势力打平，经济站在十字路口装深沉。</li>
+                        <li><strong>2—4月：</strong>DI持续高于50%，越来越多指标扩张，景气扩散加快。</li>
+                        <li><strong>4月：</strong>DI=100%，所有同步指标扩张，经济过热风险开始冒头。</li>
+                        <li><strong>5—6月：</strong>DI快速下降并跌破50%，说明扩张面收缩，可能进入景气回落阶段。</li>
+                    </ul>
+                    <div class="info-box" style="padding:8px;margin-top:8px;"><p style="font-size:13px;">注意：DI 反映“扩张范围”，不反映“扩张力度”。6 个指标都微涨和都暴涨，DI 都可能是 100%。</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：合成指数例题 ==================== -->
+    <div class="slide" id="slide-ci-example">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 例题 9-3：合成指数 CI 的分步骤计算</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:15px;">某地区有 3 个同步指标，已经季节调整。以第 1 期 CI=100 为基准，计算第 2 期的初始合成指数。为简化课堂计算，设三个指标权重均为 1，组间标准化因子 $F=1$。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:210px;">
+                <table class="data-table">
+                    <tr><th>指标</th><th>$d_i(1)$</th><th>$d_i(2)$</th><th>对称变化率 $C_i(2)$</th><th>标准化因子 $A_i$</th><th>$S_i(2)=C_i/A_i$</th></tr>
+                    <tr><td>工业产值</td><td>100</td><td>106</td><td>5.83</td><td>5.83</td><td>1.00</td></tr>
+                    <tr><td>发电量</td><td>80</td><td>84</td><td>4.88</td><td>4.88</td><td>1.00</td></tr>
+                    <tr><td>零售额</td><td>120</td><td>126</td><td>4.88</td><td>4.88</td><td>1.00</td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:17px;">步骤1：求平均变化率</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:15px;">$R(2)=\frac{1+1+1}{3}=1$</div></div>
+                    <p style="font-size:13px;">因为是同步组，$F=1$，所以 $V(2)=R(2)=1$。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:17px;">步骤2：递推初始综合指标</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:15px;">$I(2)=\frac{100(200+1)}{200-1}=101.005$</div></div>
+                    <p style="font-size:13px;">CI 从 100 升至约 101.01，说明综合景气水平小幅上行。</p>
+                </div>
+            </div>
+            <div class="step info-box"><p style="font-size:14px;">DI 看“多少指标在涨”，CI 看“综合涨了多少”。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：预警系统例题 ==================== -->
+    <div class="slide" id="slide-warning-example">
+        <h2 class="slide-title"><i class="fas fa-traffic-light"></i> 例题 9-4：经济预警灯号怎么判定？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:15px;">某地区选取 10 个预警指标。每个指标红灯5分、黄灯4分、绿灯3分、浅蓝2分、蓝灯1分。某月各指标得分如下：</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:180px;">
+                <table class="data-table">
+                    <tr><th>指标</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>10</th><th>合计</th></tr>
+                    <tr><td>得分</td><td>4</td><td>4</td><td>3</td><td>5</td><td>4</td><td>3</td><td>4</td><td>3</td><td>5</td><td>4</td><td><strong>39</strong></td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3 style="font-size:18px;">判定过程</h3>
+                    <ul style="font-size:14px;">
+                        <li>最高分：$5M=5\times10=50$。</li>
+                        <li>红灯边界：$80\%\times50=40$。</li>
+                        <li>绿灯上界：$70\%\times50=35$。</li>
+                        <li>绿灯下界：$50\%\times50=25$。</li>
+                        <li>蓝灯上界：$40\%\times50=20$。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899;">
+                    <h3 style="font-size:18px;">结论</h3>
+                    <p style="font-size:15px;">本月综合得分为 39，满足：</p>
+                    <div class="math-center"><div class="math-box" style="font-size:16px;">$35 \lt 39 \lt 40$</div></div>
+                    <p style="font-size:15px;">因此经济运行处于<strong style="color:#f59e0b;">黄灯区</strong>：略有过热，需要关注投资、信贷、价格和库存是否继续升温。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：完整实际案例 ==================== -->
+    <div class="slide section-slide" id="slide-case-sec">
+        <div class="glow-orb-1"></div>
+        <h2>完整实际案例</h2>
+        <hr><p class="step" style="font-size:24px;">某市新能源汽车产业景气监测与预警</p>
+    </div>
+
+    <div class="slide" id="slide-case-1">
+        <h2 class="slide-title"><i class="fas fa-car-battery"></i> 案例：新能源汽车产业景气监测 (1/4)</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <h3 style="font-size:18px;">业务问题</h3>
+                <p style="font-size:15px;">某市政府想判断新能源汽车产业链是继续扩张、已经过热，还是正在降温。企业也想知道是否该扩大产能、增加库存、招聘员工。于是建立一套月度景气监测系统。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:320px;">
+                <table class="data-table">
+                    <tr><th>指标类型</th><th>指标</th><th>经济含义</th><th>为什么放这里</th></tr>
+                    <tr><td>先行</td><td>新车订单指数</td><td>未来销量需求</td><td>订单领先产量。</td></tr>
+                    <tr><td>先行</td><td>动力电池采购计划</td><td>企业备产意愿</td><td>采购先于生产。</td></tr>
+                    <tr><td>先行</td><td>充电桩建设审批量</td><td>基础设施扩张预期</td><td>建设审批常领先使用需求。</td></tr>
+                    <tr><td>同步</td><td>新能源汽车产量</td><td>当前生产活跃度</td><td>直接反映产业运行。</td></tr>
+                    <tr><td>同步</td><td>整车销售量</td><td>当前市场成交</td><td>需求实现端。</td></tr>
+                    <tr><td>同步</td><td>用电量</td><td>工厂开工强度</td><td>生产活动的电表证词。</td></tr>
+                    <tr><td>滞后</td><td>库存周转天数</td><td>销售压力</td><td>需求走弱后才积压。</td></tr>
+                    <tr><td>滞后</td><td>售后维修量</td><td>存量车辆累积效应</td><td>慢变量，用于确认行业成熟度。</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-case-2">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 案例：计算先行与同步扩散指数 (2/4)</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:260px;">
+                <table class="data-table">
+                    <tr><th>月份</th><th>先行扩张数/3</th><th>先行DI</th><th>同步扩张数/3</th><th>同步DI</th><th>初步解释</th></tr>
+                    <tr><td>1月</td><td>1</td><td>33.3%</td><td>2</td><td>66.7%</td><td>当前尚可，但未来偏弱</td></tr>
+                    <tr><td>2月</td><td>2</td><td>66.7%</td><td>2</td><td>66.7%</td><td>未来与当前均较好</td></tr>
+                    <tr><td>3月</td><td>3</td><td>100.0%</td><td>3</td><td>100.0%</td><td>全面扩张</td></tr>
+                    <tr><td>4月</td><td>2</td><td>66.7%</td><td>3</td><td>100.0%</td><td>当前热，但未来开始降温</td></tr>
+                    <tr><td>5月</td><td>1</td><td>33.3%</td><td>2</td><td>66.7%</td><td>先行指标跌破50%，警惕拐点</td></tr>
+                    <tr><td>6月</td><td>1</td><td>33.3%</td><td>1</td><td>33.3%</td><td>当前与未来同步转冷</td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:17px;">先行DI的信号</h3>
+                    <p style="font-size:14px;">3月达到100%，4月回落，5月跌破50%。这通常提示：景气上升面正在收窄，未来 1—2 个月同步指标可能转弱。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:17px;">同步DI的确认</h3>
+                    <p style="font-size:14px;">同步DI在6月才跌破50%，说明经济活跃度的真实降温滞后于先行指标。先行指标负责“提醒”，同步指标负责“确认”。</p>
+                </div>
+            </div>
+            <div class="step info-box"><p style="font-size:14px;">决策含义：4月不宜盲目扩产；5月应控制库存；6月需要重新评估排产计划。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-case-3">
+        <h2 class="slide-title"><i class="fas fa-thermometer-half"></i> 案例：构建预警灯号 (3/4)</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:15px;">选取 8 个敏感预警指标，每个指标按红、黄、绿、浅蓝、蓝分别记 5、4、3、2、1 分。某月评分如下：</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:210px;">
+                <table class="data-table">
+                    <tr><th>指标</th><th>订单</th><th>采购</th><th>审批</th><th>产量</th><th>销量</th><th>用电</th><th>库存</th><th>资金</th><th>总分</th></tr>
+                    <tr><td>得分</td><td>2</td><td>2</td><td>3</td><td>3</td><td>2</td><td>3</td><td>2</td><td>3</td><td><strong>20</strong></td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#64748b;">
+                    <h3 style="font-size:17px;">边界计算</h3>
+                    <ul style="font-size:14px;">
+                        <li>最高分：$5M=40$。</li>
+                        <li>红灯下限：$0.8\times40=32$。</li>
+                        <li>绿灯上限：$0.7\times40=28$。</li>
+                        <li>绿灯下限：$0.5\times40=20$。</li>
+                        <li>蓝灯上限：$0.4\times40=16$。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color:#60a5fa;">
+                    <h3 style="font-size:17px;color:#1d4ed8;">预警结果</h3>
+                    <p style="font-size:15px;">总分为 20，刚好位于绿灯下界。若下月继续下降，则将进入<strong>浅蓝灯区</strong>，表示产业景气有转弱风险。</p>
+                    <p style="font-size:14px;margin-top:8px;"><strong>建议：</strong>暂缓新增产线，减少高价原材料库存，关注经销商库存和订单取消率。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-case-4">
+        <h2 class="slide-title"><i class="fas fa-clipboard-check"></i> 案例：完整逻辑过程总结 (4/4)</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#ec4899;">
+                <h3 style="font-size:18px;">景气预测实际应用的 7 步流程</h3>
+                <ol style="font-size:15px;line-height:1.6;color:#475569;padding-left:26px;">
+                    <li>明确预测对象：宏观经济、行业景气、区域经济，还是企业所在产业链。</li>
+                    <li>确定基准循环：用工业总产值、GDP、销售额等代表总体波动。</li>
+                    <li>筛选指标：按重要性、可靠性、一致性、及时性选出候选指标。</li>
+                    <li>指标分类：用峰谷对应、时差相关、专家判断等方法划分先行、同步、滞后。</li>
+                    <li>编制扩散指数 DI：判断扩张范围和转折信号。</li>
+                    <li>编制合成指数 CI：衡量景气波动幅度。</li>
+                    <li>建立预警系统：把复杂指标转化为红、黄、绿、浅蓝、蓝五类信号，服务决策。</li>
+                </ol>
+            </div>
+            <div class="step info-box" style="margin-top:10px;">
+                <p style="font-size:15px;"><strong>一句话收束：</strong>DI 是“多少指标在变好”，CI 是“整体变好了多少”，预警系统是“现在该不该踩刹车或油门”。这三个放在一起，才像一套能上路的经济仪表盘。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 本章小结 ==================== -->
+    <div class="slide " id="slide-final">
+        <div class="glow-orb-2"></div>
+        <h2 class="slide-title"><i class="fas fa-clipboard-check"></i> 本章小结</h2>
+        <div class="content-area" style="max-width:900px; margin: 0 auto; text-align: left;">
+            <div class="step tile" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                <ul style="color: #cbd5e1; line-height: 1.8; font-size: 16px;">
+                    <li><strong>景气循环：</strong> 国民经济活动水平的交替升降，分为复苏、高涨、衰退和萧条四个阶段。</li>
+                    <li><strong>指标体系：</strong> 为了预测经济转折点，将众多经济变量按照与基准循环的时差关系划分为<strong>先行、同步和滞后</strong>三类指标。</li>
+                    <li><strong>扩散指数 (DI)：</strong> 通过计算处于扩张期的指标比例，判断经济升降面。当同步指标 $DI$ 下穿 $50\%$ 时，意味着经济总量达到峰顶开始下行。</li>
+                    <li><strong>合成指数 (CI)：</strong> 利用对称变化率与标准化，不仅指示周期方向，更能测定经济波动的具体幅度。</li>
+                    <li><strong>预警系统：</strong> 综合敏感指标打分，亮起“交通信号灯”，为宏观调控与企业经营提供直观及时的决策情报。</li>
+                </ul>
+            </div>
+            <div class="step math-center" style="margin-top: 30px;">
+                <a class="hw-btn" href="https://www.example.com/chapter9-homework" target="_blank" rel="noopener">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 放映逻辑 -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    function refreshMath() { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise(); }
+
+    function updateUI() {
+        const bar = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        if (bar) bar.style.width = ((currentSlideIndex + 1) / slides.length * 100) + '%';
+        if (counter) counter.textContent = (currentSlideIndex + 1) + ' / ' + slides.length;
+    }
+
+    function showSlide(index) {
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        currentSlideIndex = index;
+        updateUI();
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode'); body.classList.add('presentation-mode');
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.remove('visible')));
+        showSlide(startIndex);
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function exitPresentationMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode'); body.classList.add('browse-mode');
+        container.style.transform = 'none';
+        slides.forEach(s => s.classList.remove('active'));
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            refreshMath();
+        } else if (currentSlideIndex < slides.length - 1) {
+            showSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            refreshMath();
+        } else if (currentSlideIndex > 0) {
+            showSlide(currentSlideIndex - 1);
+            slides[currentSlideIndex].querySelectorAll('.step').forEach(st => st.classList.add('visible'));
+        }
+    }
+
+    document.addEventListener('click', (e) => { if (isPresentationMode && !e.target.closest('.hw-btn')) advance(); });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5') { 
+            e.preventDefault(); 
+            let startIndex = currentSlideIndex;
+            if(!isPresentationMode) {
+                let bestIndex = 0, minDist = Infinity;
+                slides.forEach((s, i) => {
+                    const dist = Math.abs(s.getBoundingClientRect().top);
+                    if(dist < minDist) { minDist = dist; bestIndex = i; }
+                });
+                startIndex = bestIndex;
+            }
+            enterPresentationMode(startIndex); 
+            document.documentElement.requestFullscreen().catch(()=>{}); 
+        }
+        if (e.key === 'Escape' && isPresentationMode) { 
+            e.preventDefault();
+            document.exitFullscreen().catch(()=>{});
+            exitPresentationMode(); 
+        }
+        if (isPresentationMode) {
+            if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter' || e.key === 'NumpadEnter' || e.key === 'PageDown') advance();
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') goBack();
+            if (e.key === 'Home') showSlide(0);
+            if (e.key === 'End') showSlide(slides.length - 1);
+        }
+    });
+
+    window.addEventListener('resize', () => { if(isPresentationMode) enterPresentationMode(currentSlideIndex); });
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode) exitPresentationMode();
+    });
+    
+    // 初始化浏览模式下所有 step 可见
+    if(!isPresentationMode){
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+});
+</script>
+
+</body>
+</html>
