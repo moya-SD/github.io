@@ -1,0 +1,2214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用随机过程 - 第8章 随机积分</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+     <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05 /* 略微放大公式整体比例 */
+            }
+        };
+    </script>
+       <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            background-color: #f1f5f9;
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        .slide-container {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background-color: #ffffff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .slide-container::after {
+            content: '点击显示下一部分';
+            position: absolute;
+            right: 18px;
+            bottom: 14px;
+            font-size: 14px;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.92);
+            padding: 6px 11px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            z-index: 20;
+        }
+
+        .slide-container.all-shown::after {
+            content: '本页内容已全部显示';
+        }
+
+        .title-slide {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-container:first-child::before { display: none; }
+        .slide-container.title-slide::after { display: none; }
+
+        .title-slide::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: 1;
+        }
+
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+
+        .title-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 80px 100px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin-bottom: 20px; letter-spacing: 2px; }
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 42px;
+            color: #1e293b;
+            margin: 50px 80px 20px 80px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 2;
+        }
+        .slide-title i { color: #3b82f6; }
+
+        .content-area {
+            flex-grow: 1;
+            padding: 0 80px 50px 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        p { font-size: 24px; color: #334155; line-height: 1.7; margin-bottom: 20px; }
+        .bullet-list { list-style: none; margin-left: 10px; }
+        .bullet-list li { font-size: 22px; color: #475569; margin-bottom: 15px; position: relative; padding-left: 35px; line-height: 1.5; }
+        .bullet-list li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 5px; color: #3b82f6; font-size: 22px; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; width: 100%; height: 100%; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: flex-start; width: 100%; height: 100%; }
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; width: 100%; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; }
+
+        .tile {
+            background: #f8fafc;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            border: 1px solid #e2e8f0;
+            border-top: 5px solid #3b82f6;
+        }
+        .tile h3 { font-size: 26px; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; }
+
+        .math-wrapper {
+            text-align: center;
+            width: 100%;
+            overflow: visible;
+        }
+
+        .math-box {
+            background: #f8fafc;
+            color: #1e293b;
+            border-radius: 12px;
+            font-family: monospace;
+            box-shadow: inset 0 1px 2px rgba(148,163,184,0.18);
+            text-align: center;
+            border: 1px solid #dbeafe;
+            overflow: visible !important;
+            white-space: normal;
+            word-break: normal;
+            font-size: 24px;
+            padding: 14px 20px;
+            margin: 16px auto;
+            line-height: 1.5;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            max-width: min(100%, 1120px);
+            min-width: 0;
+        }
+
+        .math-box mjx-container {
+            font-size: 118% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            white-space: normal !important;
+            color: #1e293b !important;
+            margin: 0 !important;
+        }
+
+        .math-box mjx-container[display="true"] {
+            display: block !important;
+            width: auto !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            margin: 0 !important;
+        }
+
+        .math-box mjx-container * {
+            color: inherit !important;
+        }
+
+        .math-box-short {
+            padding: 8px 14px !important;
+            font-size: 20px !important;
+            line-height: 1.25 !important;
+            margin: 8px auto !important;
+        }
+
+        .math-box-short mjx-container {
+            margin: 0 !important;
+            font-size: 110% !important;
+        }
+
+        .math-box.light-formula,
+        .math-box.transparent-formula {
+            color: #1e293b !important;
+        }
+
+        .math-box.light-formula mjx-container,
+        .math-box.transparent-formula mjx-container,
+        .math-box.light-formula mjx-container *,
+        .math-box.transparent-formula mjx-container * {
+            color: #1e293b !important;
+        }
+
+        .btn-corner {
+            position: absolute;
+            right: 42px;
+            bottom: 34px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            background: #3b82f6;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 8px 18px rgba(59,130,246,0.22);
+            z-index: 25;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .btn-corner:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn-corner i {
+            color: #ffffff !important;
+        }
+
+
+        .fragment {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.42s ease, transform 0.42s ease;
+            pointer-events: none;
+        }
+
+        .fragment.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        body.presentation-mode {
+            padding: 0;
+            gap: 0;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            display: block;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slide-container {
+            width: 1280px;
+            height: 720px;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slide-container.active-slide {
+            display: flex;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        @media print {
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                display: block !important;
+                overflow: visible !important;
+            }
+
+            .slide-container {
+                width: 297mm !important;
+                height: 210mm !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-after: always !important;
+                break-after: page !important;
+                overflow: hidden !important;
+            }
+
+            .slide-container:last-child {
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+
+            .slide-container::after {
+                display: none !important;
+            }
+
+            .fragment {
+                opacity: 1 !important;
+                transform: none !important;
+                pointer-events: auto !important;
+            }
+
+            .slide-title {
+                margin: 32px 48px 14px 48px !important;
+                font-size: 30px !important;
+            }
+
+            .content-area {
+                padding: 0 48px 32px 48px !important;
+            }
+
+            .math-box {
+                background: #f8fafc !important;
+                color: #1e293b !important;
+                border: 1px solid #dbeafe !important;
+                box-shadow: inset 0 1px 2px rgba(148,163,184,0.18) !important;
+            }
+
+            .math-box mjx-container,
+            .math-box mjx-container * {
+                color: #1e293b !important;
+            }
+        }
+
+
+        /* Enhanced browser/presentation behavior: 浏览模式直接显示全部内容 */
+        body:not(.presentation-mode) .fragment {
+            opacity: 1 !important;
+            transform: none !important;
+            pointer-events: auto !important;
+        }
+        body:not(.presentation-mode) .slide-container::after {
+            content: '浏览模式：全部内容已显示';
+        }
+        body:not(.presentation-mode) .slide-container.title-slide::after {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+ <!-- Slide 1: 标题页 -->
+    <div class="slide-container title-slide" id="slide1">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-water"></i> 第8章 </div>
+            <h1>随机积分<span>随机噪声的累积</span></h1>
+            <p class="subtitle"></p>
+        
+            <div class="course-info" style="margin-top: 80px;">
+                <div><i class="fas fa-book"></i> 应用随机过程</div>
+                <div><i class="fas fa-university"></i> 计算机科学与技术</div>
+            </div>
+        </div>
+       
+    </div>
+
+
+<!-- Enhanced Insert：第8章学习地图 -->
+<div class="slide-container" id="enhanced-map-8">
+    <h2 class="slide-title"><i class="fas fa-map-signs"></i> 第8章学习地图：从“下注收益”到 Itô 公式</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:34px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:28px;">
+                <h3 style="font-size:24px;"><i class="fas fa-shoe-prints"></i> 先看离散</h3>
+                <p style="font-size:21px; line-height:1.75;">随机游动中，每一步收益是</p>
+                <div class="math-wrapper"><div class="math-box math-box-short">\[B_i\Delta S_i\]</div></div>
+                <p style="font-size:20px; line-height:1.7;">赌注必须在第 \(i\) 次结果出来前决定，这就是“不能偷看未来”。</p>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:28px; background:#faf5ff;">
+                <h3 style="font-size:24px; color:#6d28d9;"><i class="fas fa-water"></i> 再到连续</h3>
+                <p style="font-size:21px; line-height:1.75; color:#4c1d95;">把随机游动的增量 \(\Delta S_i\) 换成 Brown 增量：</p>
+                <div class="math-wrapper"><div class="math-box math-box-short">\[\xi_i\bigl(B(t_{i+1})-B(t_i)\bigr)\]</div></div>
+                <p style="font-size:20px; line-height:1.7; color:#4c1d95;">极限形式就是 Itô 积分。</p>
+            </div>
+        </div>
+        <div class="tile fragment" data-step="3" style="border-top-color:#10b981; margin-top:24px; padding:24px; background:#f0fdf4;">
+            <p style="font-size:22px; line-height:1.75; color:#166534; text-align:center;">
+                本章主线：\(\text{离散随机积分}\to\text{Brown 运动积分}\to\text{Itô 等距性}\to\text{Itô 积分过程}\to\text{Itô 公式}\)。
+            </p>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 2: 8.1 关于随机游动的积分 -->
+    <div class="slide-container" id="slide2">
+        <h2 class="slide-title"><i class="fas fa-dice"></i> 8.1 关于随机游动的积分</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">我们从讨论关于简单的随机游动的积分开始。设 \(X_1, X_2, \cdots\) 是独立的随机变量序列，</p>
+            <div class="math-wrapper">
+                <div class="math-box">\[P\{X_i = 1\} = P\{X_i = -1\} = \frac{1}{2}\]</div>
+            </div>
+            <p style="font-size: 24px;">令 \(S_n\) 表示相应的游动，有</p>
+            <div class="math-wrapper">
+                <div class="math-box">\[S_n = X_1 + X_2 + \cdots + X_n\]</div>
+            </div>
+            <p style="font-size: 22px;">我们可以把 \(X_n\) 视为第 \(n\) 次公平赌博的结果（\(X_n=1\) 为赢 1 元，\(X_n=-1\) 为输掉 1 元）。 \(\mathscr{F}_n=\sigma(X_1, X_2, \cdots, X_n)\)（由 \(\{X_i, 1 \leqslant i \leqslant n\}\) 生成的 \(\sigma\) 代数流）可以理解为包含 \(X_1, X_2, \cdots, X_n\) 的信息。</p>
+        </div>
+    </div>
+
+    <!-- Slide 3: 8.1 收益的定义 -->
+    <div class="slide-container" id="slide3">
+        <h2 class="slide-title"><i class="fas fa-coins"></i> 收益 \(Z_n\) 与离散随机积分</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">令 \(B_n\) 是 \(\mathscr{F}_{n-1}\) 可测的随机变量，比如它表示第 \(n\) 次赌博时所下的赌注，则它只能利用第 \(n-1\) 次及之前的信息，而不能利用第 \(n\) 次赌博的结果。</p>
+            <p style="font-size: 22px;">于是到时刻 \(n\) 的收益 \(Z_n\) 为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 26px; border-left: 6px solid #3b82f6;">
+                    \[Z_n = \sum_{i=1}^n B_i X_i = \sum_{i=1}^n B_i(S_i - S_{i-1}) = \sum_{i=1}^n B_i \Delta S_i\]
+                </div>
+            </div>
+            <p style="font-size: 22px;">式中，\(\Delta S_i = S_i - S_{i-1}, S_0 = 0\)。称 \(Z_n\) 为 \(B_n\) 关于 \(S_n\) 的积分。</p>
+        </div>
+    </div>
+
+
+<!-- Enhanced Insert：随机游动积分图解 -->
+<div class="slide-container" id="enhanced-discrete-integral-graph">
+    <h2 class="slide-title"><i class="fas fa-chart-column"></i> 图解：离散随机积分就是“每一步下注收益”</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:30px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:24px;">
+                <h3 style="font-size:24px;"><i class="fas fa-dice"></i> 每一步发生什么？</h3>
+                <ul class="bullet-list" style="line-height:1.8;">
+                    <li style="font-size:20px;">先根据过去信息决定赌注 \(B_i\)；</li>
+                    <li style="font-size:20px;">再观察本步结果 \(X_i=\Delta S_i\)；</li>
+                    <li style="font-size:20px;">本步收益为 \(B_iX_i\)。</li>
+                </ul>
+                <div class="math-wrapper"><div class="math-box" style="font-size:24px; border-left:6px solid #3b82f6;">\[Z_n=\sum_{i=1}^{n}B_i\Delta S_i\]</div></div>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:20px;">
+                <h3 style="font-size:24px;"><i class="fas fa-diagram-project"></i> 时间线</h3>
+                <svg width="100%" height="330" viewBox="0 0 520 330" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="520" height="330" rx="18" fill="#f8fafc" stroke="#dbeafe"/>
+                    <line x1="50" y1="155" x2="470" y2="155" stroke="#94a3b8" stroke-width="3"/>
+                    <g font-size="15" fill="#334155" text-anchor="middle">
+                        <circle cx="80" cy="155" r="8" fill="#3b82f6"/><text x="80" y="188">0</text>
+                        <circle cx="180" cy="155" r="8" fill="#3b82f6"/><text x="180" y="188">1</text>
+                        <circle cx="280" cy="155" r="8" fill="#3b82f6"/><text x="280" y="188">2</text>
+                        <circle cx="380" cy="155" r="8" fill="#3b82f6"/><text x="380" y="188">3</text>
+                        <circle cx="460" cy="155" r="8" fill="#3b82f6"/><text x="460" y="188">n</text>
+                    </g>
+                    <g font-size="16" fill="#1e293b" text-anchor="middle">
+                        <rect x="122" y="68" width="116" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd"/><text x="180" y="97">先定 \(B_1\)</text>
+                        <rect x="222" y="68" width="116" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd"/><text x="280" y="97">先定 \(B_2\)</text>
+                        <rect x="322" y="68" width="116" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd"/><text x="380" y="97">先定 \(B_3\)</text>
+                    </g>
+                    <g font-size="16" fill="#831843" text-anchor="middle">
+                        <rect x="122" y="218" width="116" height="46" rx="10" fill="#fff7fb" stroke="#f9a8d4"/><text x="180" y="247">后见 \(X_1\)</text>
+                        <rect x="222" y="218" width="116" height="46" rx="10" fill="#fff7fb" stroke="#f9a8d4"/><text x="280" y="247">后见 \(X_2\)</text>
+                        <rect x="322" y="218" width="116" height="46" rx="10" fill="#fff7fb" stroke="#f9a8d4"/><text x="380" y="247">后见 \(X_3\)</text>
+                    </g>
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Insert：为什么要求可预见 -->
+<div class="slide-container" id="enhanced-predictable-why">
+    <h2 class="slide-title"><i class="fas fa-eye-slash"></i> 为什么 \(B_i\) 必须是 \(\mathscr F_{i-1}\) 可测？</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:32px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#10b981; padding:30px; background:#f0fdf4;">
+                <h3 style="font-size:25px; color:#047857;"><i class="fas fa-check-circle"></i> 合法策略</h3>
+                <p style="font-size:22px; line-height:1.8; color:#166534;">第 \(i\) 次下注 \(B_i\) 只能由 \(X_1,\dots,X_{i-1}\) 决定。</p>
+                <div class="math-wrapper"><div class="math-box math-box-short">\[B_i\in\mathscr F_{i-1}\]</div></div>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#ef4444; padding:30px; background:#fff5f5;">
+                <h3 style="font-size:25px; color:#b91c1c;"><i class="fas fa-ban"></i> 非法策略</h3>
+                <p style="font-size:22px; line-height:1.8; color:#7f1d1d;">若下注前已经知道 \(X_i\)，就可以令 \(B_i=X_i\)，于是</p>
+                <div class="math-wrapper"><div class="math-box math-box-short">\[B_iX_i=X_i^2=1\]</div></div>
+                <p style="font-size:20px; line-height:1.7; color:#7f1d1d;">每次稳赚，鞅性质直接阵亡。公平赌博变成开挂，数学警察已经在路上。</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 4: 8.1 积分的性质 (均值与方差) -->
+    <div class="slide-container" id="slide4">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 积分的鞅性质与方差</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">容易看出 \(\{Z_n\}\) 是关于 \(\mathscr{F}_n\) 的鞅，即若 \(m < n\)，则</p>
+            <div class="math-wrapper">
+                <div class="math-box">\[E(Z_n \mid \mathscr{F}_m) = Z_m\]</div>
+            </div>
+            <p style="font-size: 24px;">特别地，\(E(Z_n) = 0\)。</p>
+            <p style="font-size: 24px;">此外，如果假定 \(E(B_n^2) < \infty\)，则</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 26px; border-left: 6px solid #10b981;">
+                    \[\operatorname{Var}(Z_n) = E(Z_n^2) = \sum_{i=1}^n E(B_i^2)\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: 8.1 方差的证明 -->
+    <div class="slide-container" id="slide5">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 离散积分方差的证明</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">事实上</p>
+            <div class="math-wrapper">
+                <div class="math-box">
+                    \[Z_n^2 = \sum_{i=1}^n B_i^2 X_i^2 + 2 \sum_{1 \leqslant i < j \leqslant n} B_i B_j X_i X_j\]
+                </div>
+            </div>
+            <p style="font-size: 22px;">再注意到 \(X_i^2=1\)，如果 \(i < j\)，则 \(B_i, X_i, B_j\) 都是 \(\mathscr{F}_{j-1}\) 可测的，且 \(X_j\) 独立于 \(\mathscr{F}_{j-1}\)。</p>
+            <p style="font-size: 22px;">于是由定理1.5.5，得：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="text-align: left;">
+                    \[
+                    E(B_i B_j X_i X_j) = E[E(B_i B_j X_i X_j \mid \mathscr{F}_{j-1})] = E[B_i B_j X_i E(X_j)] = 0
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: 8.2 关于 Brown 运动的积分：非随机情形 -->
+    <div class="slide-container" id="slide6">
+        <h2 class="slide-title"><i class="fas fa-water"></i> 8.2 关于 Brown 运动的积分</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">本节定义关于 Brown 运动的积分 \(\int_0^T X(t) \mathrm{d} B(t)\)（或简记为 \(\int X \mathrm{~d} B\)），这里 \(\{B(t)\}\) 是一维标准 Brown 运动，有时也记为 \(\{W_t\}\)。</p>
+            <p style="font-size: 22px;">首先考虑一个非随机的简单过程 \(\{X(t)\}\)，即 \(X(t)\) 是一个简单函数（不依赖于 \(B(t)\)）。存在 \([0, T]\) 的分割 \(0=t_0 < t_1 < \cdots < t_n=T\) 及常数 \(c_0, c_1, \cdots, c_{n-1}\)，使得：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="padding: 8px 16px;">
+                    \[
+                    X(t) = c_0 I_0(t) + \sum_{i=0}^{n-1} c_i I_{(t_i, t_{i+1}]}(t) 
+                    \]
+                </div>
+            </div>
+            <div class="math-wrapper">
+                <div class="math-box" style="border-left: 6px solid #3b82f6;">
+                    \[
+                    \text{于是，可定义其积分为:} \qquad \int_0^T X(t) \mathrm{d} B(t) = \sum_{i=0}^{n-1} c_i[B(t_{i+1}) - B(t_i)]
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: 8.2 非随机简单函数的方差 -->
+    <div class="slide-container" id="slide7">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 非随机简单过程积分的方差</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">由 Brown 运动的独立增量性可知，所定义的积分是 Gauss 分布的随机变量，其均值为 0，方差为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="text-align: left; padding: 15px 30px;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{Var}\left(\int X \mathrm{~d} B\right) &= E\left\{\sum_{i=0}^{n-1} c_i[B(t_{i+1}) - B(t_i)]\right\}^2 \\
+                    &= E\left\{\sum_{i=0}^{n-1} \sum_{j=0}^{n-1} c_i c_j[B(t_{i+1}) - B(t_i)][B(t_{j+1}) - B(t_j)]\right\} \\
+                    &= \sum_{i=0}^{n-1} \sum_{j=0}^{n-1} c_i c_j E\{[B(t_{i+1}) - B(t_i)][B(t_{j+1}) - B(t_j)]\} \\
+                    &= \sum_{i=0}^{n-1} c_i^2(t_{i+1} - t_i)
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: 8.2 引入随机性：简单随机过程 -->
+    <div class="slide-container" id="slide8">
+        <h2 class="slide-title"><i class="fas fa-random"></i> 引入随机性：简单随机过程</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">用取极限的方法可以将这一定义推广到一般的非随机函数 \(X(t)\)。但我们要定义的是随机过程的积分，因此将简单函数中的常数 \(c_i\) 用随机变量 \(\xi_i\) 来代替，并要求 \(\xi_i\) 是 \(\mathscr{F}_{t_i}\) 可测的，这里 \(\mathscr{F}_t = \sigma\{B(u), 0 \leqslant u \leqslant t\}\)。</p>
+            <p style="font-size: 22px;">于是，由 Brown 运动的鞅性质得：</p>
+            <div class="math-wrapper">
+                <div class="math-box">
+                    \[E\{\xi_i[B(t_{i+1}) - B(t_i)] \mid \mathscr{F}_{t_i}\} = \xi_i E[B(t_{i+1}) - B(t_i) \mid \mathscr{F}_{t_i}] = 0\]
+                </div>
+            </div>
+            <p style="font-size: 22px;">因此：</p>
+            <div class="math-wrapper">
+                <div class="math-box">\[E\{\xi_i[B(t_{i+1}) - B(t_i)]\} = 0\]</div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- Enhanced Insert：从离散到 Itô 积分 -->
+<div class="slide-container" id="enhanced-random-walk-to-ito">
+    <h2 class="slide-title"><i class="fas fa-arrow-right-arrow-left"></i> 从随机游动积分到 Brown 运动积分</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:34px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:28px;">
+                <h3 style="font-size:24px;"><i class="fas fa-shoe-prints"></i> 离散版本</h3>
+                <div class="math-wrapper"><div class="math-box" style="font-size:24px;">\[\sum_i B_i\Delta S_i\]</div></div>
+                <p style="font-size:21px; line-height:1.8;">每段收益 = 下注额 × 随机游动增量。</p>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:28px; background:#faf5ff;">
+                <h3 style="font-size:24px; color:#6d28d9;"><i class="fas fa-water"></i> 连续版本</h3>
+                <div class="math-wrapper"><div class="math-box" style="font-size:24px;">\[\sum_i \xi_i\Delta B_i\]</div></div>
+                <p style="font-size:21px; line-height:1.8; color:#4c1d95;">每段收益 = 事先决定的随机系数 × Brown 增量。</p>
+            </div>
+        </div>
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; margin-top:24px; padding:26px; background:#fff7fb;">
+            <p style="font-size:22px; line-height:1.8; color:#831843; text-align:center;">Itô 积分的核心不是“普通面积”，而是把随机增量 \(\Delta B_i\) 按可预见系数加权累积。</p>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Insert：简单随机过程图解 -->
+<div class="slide-container" id="enhanced-simple-process-diagram">
+    <h2 class="slide-title"><i class="fas fa-stairs"></i> 图解：简单随机过程像“随机高度的阶梯函数”</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:30px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:24px;">
+                <p style="font-size:22px; line-height:1.8;">在区间 \((t_i,t_{i+1}]\) 上，被积函数保持常数 \(\xi_i\)。但这个“常数”可以随机，只要它在 \(t_i\) 时刻已经知道。</p>
+                <div class="math-wrapper"><div class="math-box" style="font-size:24px; border-left:6px solid #3b82f6;">\[X(t)=\sum_{i=0}^{n-1}\xi_i I_{(t_i,t_{i+1}]}(t)\]</div></div>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:18px;">
+                <svg width="100%" height="350" viewBox="0 0 520 350" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="520" height="350" rx="18" fill="#f8fafc" stroke="#dbeafe"/>
+                    <line x1="60" y1="300" x2="475" y2="300" stroke="#94a3b8" stroke-width="2"/>
+                    <line x1="60" y1="300" x2="60" y2="45" stroke="#94a3b8" stroke-width="2"/>
+                    <text x="482" y="306" font-size="15" fill="#475569">t</text><text x="28" y="42" font-size="15" fill="#475569">X(t)</text>
+                    <g stroke="#cbd5e1" stroke-width="1" stroke-dasharray="6 6"><line x1="140" y1="55" x2="140" y2="300"/><line x1="220" y1="55" x2="220" y2="300"/><line x1="300" y1="55" x2="300" y2="300"/><line x1="380" y1="55" x2="380" y2="300"/></g>
+                    <path d="M60 235 L140 235 L140 120 L220 120 L220 185 L300 185 L300 92 L380 92 L380 155 L460 155" fill="none" stroke="#3b82f6" stroke-width="5" stroke-linejoin="round"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 9: 8.2 定义 8.2.1 -->
+    <div class="slide-container" id="slide9">
+        <h2 class="slide-title"><i class="fas fa-book"></i> 定义 8.2.1：简单随机过程的积分</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #8b5cf6;">
+                <p style="font-size: 22px;">设 \(\{X(t), 0 \leqslant t \leqslant T\}\) 是一个简单随机过程，即存在 \([0, T]\) 的分割 \(0=t_0 < t_1 < \cdots < t_n=T\)，随机变量 \(\xi_{-1}, \xi_0, \cdots, \xi_{n-1}\)，其中 \(\xi_{-1}\) 是常数，\(\xi_i\) 依赖于 \(B(t) (t \leqslant t_i)\)，但不依赖于 \(B(t)(t > t_i ; i=0,1, \cdots, n-1)\)，并且：</p>
+                <div class="math-wrapper">
+                    <div class="math-box">
+                        \[X(t) = \xi_{-1} I_0(t) + \sum_{i=0}^{n-1} \xi_i I_{(t_i, t_{i+1}]}(t)\]
+                    </div>
+                </div>
+                <p style="font-size: 22px;">此时，Itô 积分 \(\int_0^T X \mathrm{~d} B\) 定义为：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="border-left: 6px solid #8b5cf6;">
+                        \[\int_0^T X(t) \mathrm{d} B(t) = \sum_{i=0}^{n-1} \xi_i[B(t_{i+1}) - B(t_i)]\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 10: 8.2 性质 8.2.1 (1)-(2) -->
+    <div class="slide-container" id="slide10">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 性质 8.2.1：简单过程积分的性质 (1/3)</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">简单过程的积分是一个随机变量，满足下述性质。</p>
+           
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 22px;">（1）线性</h3>
+                    <p style="font-size: 18px;">如果 \(X(t), Y(t)\) 是简单过程，则</p>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 23px;">
+                            \[\int_0^T[\alpha X(t) + \beta Y(t)] \mathrm{d} B(t) = \alpha \int_0^T X(t) \mathrm{d} B(t) + \beta \int_0^T Y(t) \mathrm{d} B(t)\]
+                        </div>
+                    </div>
+                    <p style="font-size: 18px;">式中，\(\alpha, \beta\) 是常数。</p>
+                </div>
+          
+        </div>
+    </div>
+<!-- Slide 10: 8.2 性质 8.2.1 (1)-(2) -->
+    <div class="slide-container" id="slide10">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 性质 8.2.1：简单过程积分的性质 (2/3)</h2>
+        <div class="content-area">
+            
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 22px;">（2）示性函数积分</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 23px;">
+                            \[\int_0^T I_{[a, b]}(t) \mathrm{d} B(t) = B(\min \{b, T\}) - B(\max \{a, 0\})\]
+                        </div>
+                    </div>
+                    <p style="font-size: 18px;">式中，\(I_{[a, b]}(t)\) 是区间 \([a, b]\) 上的示性函数。</p>
+                </div>
+            
+        </div>
+    </div>
+    <!-- Slide 11: 8.2 性质 8.2.1 (3)-(4) -->
+    <div class="slide-container" id="slide11">
+        <h2 class="slide-title"><i class="fas fa-list-ul"></i> 性质 8.2.1：简单过程积分的性质 (3/3)</h2>
+        <div class="content-area">
+            <div class="two-column-top">
+                <div class="tile" style="border-top-color: #f59e0b;">
+                    <h3 style="font-size: 22px;">（3）零均值性</h3>
+                    <p style="font-size: 18px;">如果 \(E[\xi_i^2] < \infty (i=0,1, \cdots, n-1)\)，则</p>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 22px;">
+                            \[E\left[\int_0^T X(t) \mathrm{d} B(t)\right] = 0\]
+                        </div>
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ec4899;">
+                    <h3 style="font-size: 22px;">（4）等距性</h3>
+                    <p style="font-size: 18px;">如果 \(E[\xi_i^2] < \infty (i=0,1, \cdots, n-1)\)，则</p>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 22px;">
+                            \[E\left[\int_0^T X(t) \mathrm{d} B(t)\right]^2 = \int_0^T E[X^2(t)] \mathrm{d} t\]
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 12: 8.2 Itô 等距性的证明 (1/2) -->
+    <div class="slide-container" id="slide12">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> Itô 等距性的证明 (1/2)</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">利用 Cauchy-Schwarz 不等式，得到：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 20px;">
+                    \[E\{|\xi_i[B(t_{i+1}) - B(t_i)]|\} \leqslant \sqrt{E(\xi_i^2) E[B(t_{i+1}) - B(t_i)]^2} < \infty\]
+                </div>
+            </div>
+            <p style="font-size: 22px;">于是：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px; text-align: left; padding: 15px;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{Var}\left(\int_0^T X \mathrm{~d} B\right) &= E\left\{\sum_{i=0}^{n-1} \xi_i[B(t_{i+1}) - B(t_i)]\right\}^2 \\
+                    &= \sum_{i=0}^{n-1} E\{\xi_i^2[B(t_{i+1}) - B(t_i)]^2\} \\
+                    &\quad + 2 \sum_{i \le j} E\{\xi_i \xi_j[B(t_{i+1}) - B(t_i)][B(t_{j+1}) - B(t_j)]\}
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 13: 8.2 Itô 等距性的证明 (2/2) -->
+    <div class="slide-container" id="slide13">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> Itô 等距性的证明 (2/2)</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">由 Brown 运动的独立增量性以及关于 \(\xi_i\) 的假定，利用定理 1.5.5(1)，交叉项为零：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px;">
+                    \[E\{\xi_i \xi_j[B(t_{i+1}) - B(t_i)][B(t_{j+1}) - B(t_j)]\} = 0\]
+                </div>
+            </div>
+            <p style="font-size: 20px; margin-top: 10px;">由 Brown 运动的鞅性质，得：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px; text-align: left; padding: 15px;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{Var}\left(\int_0^T X \mathrm{~d} B\right) &= \sum_{i=0}^{n-1} E\{\xi_i^2[B(t_{i+1}) - B(t_i)]^2\} \\
+                    &= \sum_{i=0}^{n-1} E\{E[\xi_i^2(B(t_{i+1}) - B(t_i))^2 \mid \mathscr{F}_{t_i}]\} \\
+                    &= \sum_{i=0}^{n-1} E\{\xi_i^2 E[(B(t_{i+1}) - B(t_i))^2 \mid \mathscr{F}_{t_i}]\} \\
+                    &= \sum_{i=0}^{n-1} E(\xi_i^2)(t_{i+1} - t_i) 
+                    = \int_0^T E[X^2(t)] \mathrm{d} t
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- Enhanced Insert：Itô 等距性的图解理解 -->
+<div class="slide-container" id="enhanced-ito-isometry-intuition">
+    <h2 class="slide-title"><i class="fas fa-ruler-combined"></i> Itô 等距性：随机积分的“能量守恒”</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:30px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#8b5cf6; padding:8px; background:#faf5ff;">
+                <h3 style="font-size:24px; color:#6d28d9;"><i class="fas fa-bolt"></i> 随机积分端</h3>
+                <div class="math-wrapper"><div class="math-box" style="font-size:24px;">\[E\left[\int_0^T X(t)\,\mathrm dB(t)\right]^2\]</div></div>
+                <p style="font-size:21px; line-height:1.8; color:#4c1d95;">看起来是随机对象，很难直接算。</p>
+            </div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:8px; background:#f0fdf4;">
+                <h3 style="font-size:24px; color:#047857;"><i class="fas fa-equals"></i> 普通积分端</h3>
+                <div class="math-wrapper"><div class="math-box" style="font-size:24px;">\[\int_0^T E[X^2(t)]\,\mathrm dt\]</div></div>
+                <p style="font-size:21px; line-height:1.8; color:#166534;">转化成普通积分，算起来亲切很多。</p>
+            </div>
+        </div>
+        <div class="math-wrapper fragment" data-step="3"><div class="math-box" style="font-size:18px; border-left:8px solid #3b82f6;">\[E\left[\int_0^T X(t)\,\mathrm dB(t)\right]^2=\int_0^T E[X^2(t)]\,\mathrm dt\]</div></div>
+        <div class="tile fragment" data-step="4" style="border-top-color:#f59e0b; background:#fffaf0; padding:5px;"><p style="font-size:21px; line-height:1.75; color:#78350f; text-align:center;">它告诉我们：随机噪声累计后的平方平均，可以由被积过程的平方平均面积控制。</p></div>
+    </div>
+</div>
+
+<!-- Enhanced Insert：交叉项为什么为 0 -->
+<div class="slide-container" id="enhanced-cross-term-zero">
+    <h2 class="slide-title"><i class="fas fa-scissors"></i> 证明难点：为什么交叉项为 0？</h2>
+    <div class="content-area">
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:28px;"><p style="font-size:22px; line-height:1.8;">对 \(i\lt j\)，交叉项形如</p><div class="math-wrapper"><div class="math-box" style="font-size:24px;">\[E\{\xi_i\xi_j\Delta B_i\Delta B_j\}\]</div></div></div>
+        <div class="two-column-top" style="gap:30px; align-items:stretch; margin-top:18px;">
+            <div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:26px; background:#f0fdf4;"><h3 style="font-size:23px; color:#047857;"><i class="fas fa-lock-open"></i> 已知过去</h3><p style="font-size:21px; line-height:1.75; color:#166534;">\(\xi_i,\xi_j,\Delta B_i\) 在 \(\mathscr F_{t_j}\) 前已经确定。</p></div>
+            <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; padding:26px; background:#fff7fb;"><h3 style="font-size:23px; color:#9d174d;"><i class="fas fa-dice"></i> 新增噪声</h3><p style="font-size:21px; line-height:1.75; color:#831843;">\(\Delta B_j\) 与过去独立，且均值为 0。</p></div>
+        </div>
+        <div class="math-wrapper fragment" data-step="4"><div class="math-box" style="font-size:23px; text-align:left; border-left:6px solid #8b5cf6;">\[E\{\xi_i\xi_j\Delta B_i\Delta B_j\}=E\{\xi_i\xi_j\Delta B_i E(\Delta B_j\mid\mathscr F_{t_j})\}=0\]</div></div>
+    </div>
+</div>
+
+    <!-- Slide 14: 8.2 定义 8.2.2 与 V 空间 -->
+    <div class="slide-container" id="slide14">
+        <h2 class="slide-title"><i class="fas fa-expand-arrows-alt"></i> 定义 8.2.2 与 \(V\) 空间</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">有了前面的准备，我们现在可以将上述随机积分的定义扩展到更一般的可测适应随机过程类。</p>
+            <div class="tile" style="border-top-color: #3b82f6;">
+                <p style="font-size: 24px;">设 \(\{X(t), t \geqslant 0\}\) 是随机过程，\(\{\mathscr{F}_t, t \geqslant 0\}\) 是 \(\sigma\) 代数流，如果 \(\forall t, X(t)\) 是 \(\mathscr{F}_t\) 可测的，则称 \(\{X(t)\}\) 是 \(\{\mathscr{F}_t\}\) 适应的。</p>
+            </div>
+            <p style="font-size: 24px; margin-top: 20px;">记</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 24px; padding: 25px;">
+                    \[V = \left\{h: h \text{ 是定义在 } [0, T] \text{ 上的可测适应过程, 满足 } E\left[\int_0^T h^2(s) \mathrm{d} s\right] < \infty\right\}\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 15: 8.2 逼近步骤 -->
+    <div class="slide-container" id="slide15">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 扩展定义到 \(V\) 空间的步骤</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">我们将随机积分的定义按下述步骤扩展到 \(V\)：</p>
+            <div class="tiled-content-3">
+                <div class="tile" style="padding: 20px;">
+                    <h3 style="font-size: 20px;">首先</h3>
+                    <p style="font-size: 16px;">令 \(h \in V\) 有界且连续，则存在简单过程 \(\phi_n = \sum_j h(t_j, \omega) \cdot I_{[t_j, t_{j+1})}(t) \in V\) ，使得 \(E\left[\int_0^T(h-\phi_n)^2 \mathrm{~d} t\right] \rightarrow 0\)。</p>
+                </div>
+                <div class="tile" style="padding: 20px;">
+                    <h3 style="font-size: 20px;">其次</h3>
+                    <p style="font-size: 16px;">令 \(h \in V\) 有界，存在 \(h_n \in V\) 有界且连续，使得 \(E\left[\int_0^T(h-h_n)^2 \mathrm{~d} t\right] \rightarrow 0\)。(通过积分函数 \(\psi_n\) 构造逼近)</p>
+                </div>
+                <div class="tile" style="padding: 20px;">
+                    <h3 style="font-size: 20px;">最后</h3>
+                    <p style="font-size: 16px;">对任意的 \(f \in V\)，存在有界列 \(h_n \in V\)，通过截断函数构造使得 \(E\left\{\int_0^T[f(t, \omega)-h_n(t, \omega)]^2 \mathrm{~d} t\right\} \rightarrow 0\)。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- Enhanced Insert：V 空间直观解释 -->
+<div class="slide-container" id="enhanced-v-space-intuition">
+    <h2 class="slide-title"><i class="fas fa-box-open"></i> \(V\) 空间到底在筛选什么？</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:30px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;"><h3 style="font-size:24px;"><i class="fas fa-user-check"></i> 适应性</h3><p style="font-size:22px; line-height:1.8;">\(h(t)\) 在时刻 \(t\) 只能依赖 \(t\) 之前的信息。</p><div class="math-wrapper"><div class="math-box math-box-short">\[h(t)\text{ 是 }\mathscr F_t\text{ 可测}\]</div></div></div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:30px; background:#f0fdf4;"><h3 style="font-size:24px; color:#047857;"><i class="fas fa-weight-scale"></i> 平方可积</h3><p style="font-size:22px; line-height:1.8; color:#166534;">\(h(t)\) 不能太野，否则随机积分二阶矩可能炸掉。</p><div class="math-wrapper"><div class="math-box math-box-short">\[E\int_0^T h^2(t)\,\mathrm dt\lt\infty\]</div></div></div>
+        </div>
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:24px; margin-top:24px;"><p style="font-size:22px; line-height:1.75; color:#831843; text-align:center;">一句话：\(V\) 空间收纳的是“看得见过去、能量不爆炸”的被积过程。</p></div>
+    </div>
+</div>
+
+<!-- Enhanced Insert：逼近步骤示意图 -->
+<div class="slide-container" id="enhanced-approximation-ladder">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> Itô 积分定义为什么要靠逼近？</h2>
+    <div class="content-area">
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:24px;"><p style="font-size:22px; line-height:1.8;">一般过程太复杂，不能一口吞。先对简单过程定义积分，再用 \(L^2\) 极限扩展到一般过程。</p></div>
+        <svg class="fragment" data-step="2" width="100%" height="280" viewBox="0 0 1000 280" xmlns="http://www.w3.org/2000/svg">
+            <rect x="70" y="90" width="190" height="90" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="3"/><rect x="405" y="90" width="190" height="90" rx="16" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="3"/><rect x="740" y="90" width="190" height="90" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="3"/>
+            <text x="165" y="126" text-anchor="middle" font-size="23" fill="#1e293b">简单过程</text><text x="165" y="158" text-anchor="middle" font-size="18" fill="#475569">分段常数</text><text x="500" y="126" text-anchor="middle" font-size="23" fill="#1e293b">逼近序列</text><text x="500" y="158" text-anchor="middle" font-size="18" fill="#475569">\(\phi_n\to f\)</text><text x="835" y="126" text-anchor="middle" font-size="23" fill="#1e293b">一般积分</text><text x="835" y="158" text-anchor="middle" font-size="18" fill="#475569">\(L^2\) 极限</text>
+            <path d="M270 135 L390 135" stroke="#64748b" stroke-width="4"/><path d="M605 135 L725 135" stroke="#64748b" stroke-width="4"/>
+            <text x="500" y="225" text-anchor="middle" font-size="22" fill="#334155">\(E\int_0^T(f-\phi_n)^2\mathrm dt\to0\Rightarrow \int\phi_n\mathrm dB\to\int f\mathrm dB\)</text>
+        </svg>
+    </div>
+</div>
+
+    <!-- Slide 16: 8.2 定义 8.2.3 -->
+    <div class="slide-container" id="slide16">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 定义 8.2.3：Itô 积分的最终定义</h2>
+        <div class="content-area">
+            <p style="font-size: 21px;">现在，我们可以对 Itô 积分 \(\int_0^T f(t) \mathrm{d} B(t) (f \in V)\) 作如下定义。</p>
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 40px; margin-top: 20px;">
+                <p style="font-size: 21px;">设 \(f \in V(0, T)\)，则 \(f\) 的 Itô 积分（\(L^2(P)\) 中极限）定义为：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 23px; padding: 5px; border-left: 6px solid #8b5cf6;">
+                        \[\int_0^T f(t, \omega) \mathrm{d} B_t(w) = \lim_{n \rightarrow \infty} \int_0^T \phi_n(t, \omega) \mathrm{d} B_t(\omega)\]
+                    </div>
+                </div>
+            </div>
+            <p style="font-size: 22px; margin-top: 20px;">这里 \(\{\phi_n\}\) 是初等随机过程的序列，使得当 \(n \rightarrow \infty\) 时，有：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 22px;">
+                    \[E\left\{\int_0^T[f(t, \omega) - \phi_n(t, \omega)]^2 \mathrm{~d} t\right\} \rightarrow 0\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 17: 8.2 例 8.2.1 -->
+    <div class="slide-container" id="slide17">
+        <h2 class="slide-title"><i class="fas fa-exclamation-circle"></i> 例 8.2.1：积分的二阶矩存在性</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">设 \(f\) 是连续函数，考虑 \(\int_0^1 f[B(t)] \mathrm{d} B(t)\)。因为 \(B(t)\) 有连续路径，所以 \(f[B(t)]\) 也在 \([0,1]\) 上连续，从而积分有定义。但根据 \(f\) 的不同，这个积分可以有（或没有）有限的矩。例如：</p>
+            <div class="two-column-top" style="margin-top: 15px;">
+                <div class="tile" style="border-top-color: #10b981; padding: 25px;">
+                    <h3 style="font-size: 20px;">(1) 取 \(f(t)=t\)</h3>
+                    <p style="font-size: 16px;">由于 \(\int_0^1 E[B^2(t)] \mathrm{d} t < \infty\)，期望为 0，并且由性质 8.2.1 (3) 和 (4) 有：</p>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 16px; padding: 10px;">
+                            \[E\left[\int_0^1 B(t) \mathrm{d} B(t)\right]^2 = \int_0^1 E[B^2(t)] \mathrm{d} t = \frac{1}{2}\]
+                        </div>
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color: #ef4444; padding: 25px;">
+                    <h3 style="font-size: 20px;">(2) 取 \(f(t)=\mathrm{e}^{t^2}\)</h3>
+                    <p style="font-size: 16px;">此时考虑 \(\int_0^1 \mathrm{e}^{B^2(t)} \mathrm{d} B(t)\)。虽然积分存在，但由于当 \(t \geqslant \frac{1}{4}\) 时，\(E[\mathrm{e}^{2 B^2(t)}] = \infty\)，所以：</p>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 16px; padding: 10px;">
+                            \[\int_0^1 E[\mathrm{e}^{2 B^2(t)}] \mathrm{d} t = \infty\]
+                        </div>
+                    </div>
+                    <p style="font-size: 16px;">即 \(\int_0^1 E\{f^2[B(t)]\} \mathrm{d} t < \infty\) 不成立，说明积分的二阶矩不存在。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 18: 8.2 例 8.2.2 -->
+    <div class="slide-container" id="slide18">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 8.2.2 </h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #3b82f6; margin-bottom: 30px;">
+                <h3 style="font-size: 24px;">例 8.2.2</h3>
+                <p style="font-size: 20px;">求积分 \(J=\int_0^1 t \mathrm{~d} B(t)\) 的均值与方差。</p>
+                <p style="font-size: 20px;">因为 \(\int_0^1 t^2 \mathrm{~d} t < \infty\)，且 \(t\) 是 \(\mathscr{F}_t=\sigma\{B(s), 0 \leqslant s \leqslant t\}\) 适应的，所以 Itô 积分 \(J\) 是适定的，并且其均值为 \(E(J)=0\)，方差为：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 20px;">\[E(J^2) = \int_0^1 t^2 \mathrm{~d} t = \frac{1}{3}\]</div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+    <!-- Slide 18: 8.2  & 8.2.3 -->
+    <div class="slide-container" id="slide18">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 8.2.3</h2>
+        <div class="content-area">
+            
+            <div class="tile" style="border-top-color: #f59e0b;">
+                <h3 style="font-size: 24px;">例 8.2.3</h3>
+                <p style="font-size: 20px;">估计使得积分 \(\int_0^1(1-t)^{-\alpha} \mathrm{d} B(t)\) 适定的 \(\alpha\) 的值。</p>
+                <p style="font-size: 20px;">因为只要 \(\int_0^1(1-t)^{-2 \alpha} \mathrm{~d} t < \infty\)，上述 Itô 积分就适定。所以只要 \(\alpha < \frac{1}{2}\) 即可。</p>
+            </div>
+        </div>
+    </div>
+
+<!-- Enhanced Insert：例 8.2.2 详细解释 -->
+<div class="slide-container" id="enhanced-example-822-explain">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 8.2.2 详细解释：\(J=\int_0^1 t\,\mathrm dB(t)\)</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:30px; align-items:stretch;">
+            <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:28px;"><h3 style="font-size:24px;"><i class="fas fa-check"></i> 先判断能不能积</h3><p style="font-size:21px; line-height:1.8;">被积函数 \(t\) 是确定函数，而且</p><div class="math-wrapper"><div class="math-box math-box-short">\[\int_0^1 t^2\,\mathrm dt=\frac13\lt\infty\]</div></div></div>
+            <div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:28px; background:#f0fdf4;"><h3 style="font-size:24px; color:#047857;"><i class="fas fa-square-root-variable"></i> 再算均值方差</h3><div class="math-wrapper"><div class="math-box" style="font-size:23px;">\[E(J)=0,\qquad E(J^2)=\int_0^1t^2\,\mathrm dt=\frac13\]</div></div></div>
+        </div>
+        <div class="math-wrapper fragment" data-step="3"><div class="math-box" style="font-size:28px; border-left:8px solid #8b5cf6;">\[J\sim N\left(0,\frac13\right)\]</div></div>
+    </div>
+</div>
+
+<!-- Enhanced Insert：例 8.2.3 详细解释 -->
+<div class="slide-container" id="enhanced-example-823-explain">
+    <h2 class="slide-title"><i class="fas fa-fire"></i> 例 8.2.3 详细解释：奇异被积函数什么时候可积？</h2>
+    <div class="content-area">
+        <div class="tile fragment" data-step="1" style="border-top-color:#f59e0b; padding:28px; background:#fffaf0;"><p style="font-size:22px; line-height:1.8; color:#78350f;">危险点在 \(t=1\) 附近，因为 \((1-t)^{-\alpha}\) 可能爆炸。</p><div class="math-wrapper"><div class="math-box" style="font-size:25px;">\[\int_0^1(1-t)^{-\alpha}\,\mathrm dB(t)\]</div></div></div>
+        <div class="two-column-top" style="gap:30px; margin-top:18px; align-items:stretch;">
+            <div class="tile fragment" data-step="2" style="border-top-color:#3b82f6; padding:26px;"><h3 style="font-size:23px;">Itô 可积条件</h3><div class="math-wrapper"><div class="math-box math-box-short">\[\int_0^1(1-t)^{-2\alpha}\,\mathrm dt\lt\infty\]</div></div></div>
+            <div class="tile fragment" data-step="3" style="border-top-color:#10b981; padding:26px; background:#f0fdf4;"><h3 style="font-size:23px; color:#047857;">判别结果</h3><p style="font-size:21px; line-height:1.75; color:#166534;">收敛当且仅当 \(2\alpha\lt1\)。</p><div class="math-wrapper"><div class="math-box math-box-short">\[\alpha\lt\frac12\]</div></div></div>
+        </div>
+        <div class="tile fragment" data-step="4" style="border-top-color:#ec4899; background:#fff7fb; padding:22px; margin-top:18px;"><p style="font-size:21px; line-height:1.75; color:#831843; text-align:center;">口诀：Itô 积分看平方，平方后还能积才算过关。</p></div>
+    </div>
+</div>
+
+    <!-- Slide 19: 8.3 Itô 积分过程 -->
+    <div class="slide-container" id="slide19">
+        <h2 class="slide-title"><i class="fas fa-chart-area"></i> 8.3 Itô 积分过程</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">假设对任意实数 \(T>0, X \in V^*\)，那么对 \(\forall t \leqslant T\)，积分 \(\int_0^t X(s) \mathrm{d} B(s)\) 是适定的。作为上限 \(t\) 的函数，它定义了一个随机过程 \(\{Y(t)\}\)，其中：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 28px; padding: 25px;">
+                    \[Y(t) = \int_0^t X(s) \mathrm{d} B(s)\]
+                </div>
+            </div>
+            <p style="font-size: 24px; margin-top: 20px;">可以证明，Itô 积分 \(Y(t)\) 存在连续的样本路径，即存在一个连续随机过程 \(\{Z(t)\}\)，使得对所有的 \(t\)，有 \(Y(t)=Z(t)\)，a.s. 因此，从现在起我们所讨论的积分都假定其有连续的样本路径。</p>
+        </div>
+    </div>
+
+    <!-- Slide 20: 8.3 定理 8.3.1 -->
+    <div class="slide-container" id="slide20">
+        <h2 class="slide-title"><i class="fas fa-shield-alt"></i> 定理 8.3.1：积分过程的鞅性质</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #10b981; padding: 40px;">
+                <p style="font-size: 24px;">设 \(X(t) \in V^*\)，并且 \(\int_0^{+\infty} E[X^2(s)] \mathrm{d} s < \infty\)，则</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 26px; border-left: 6px solid #10b981;">
+                        \[Y(t) = \int_0^t X(s) \mathrm{d} B(s), \quad 0 \leqslant t \leqslant T\]
+                    </div>
+                </div>
+                <p style="font-size: 24px; text-align: center; font-weight: bold; margin-top: 20px;">
+                    是零均值的连续的平方可积鞅（即 \(\sup_{t \leqslant T} E[Y^2(t)] < \infty\)）。
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 21: 8.3 定理 8.3.1 的证明 -->
+    <div class="slide-container" id="slide21">
+        <h2 class="slide-title"><i class="fas fa-pencil-ruler"></i> 定理 8.3.1 证明解析</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">由定义 8.2.3 后注，可知 \(Y(t)\) 是适定的。如果 \(\{X(t)\}\) 是简单过程，则由 8.2 节同样的证明方法可得：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px; padding: 5px;">
+                    \[E\left[\int_s^t X(u) \mathrm{d} B(u) \mid \mathscr{F}_s\right] = 0, \quad \forall s \lt t\]
+                </div>
+            </div>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px; text-align: left; padding: 5px;">
+                    \[
+                    \begin{aligned}
+                    E[Y(t) \mid \mathscr{F}_s] &= E\left[\int_0^t X(u) \mathrm{d} B(u) \mid \mathscr{F}_s\right] 
+                    = \int_0^s X(u) \mathrm{d} B(u) + E\left[\int_s^t X(u) \mathrm{d} B(u) \mid \mathscr{F}_s\right] \\
+                    &= \int_0^s X(u) \mathrm{d} B(u) = Y(s)
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+            <p style="font-size: 20px; margin-top: 15px;">所以 \(\{Y(t)\}\) 是鞅。由等距性可得其二阶矩：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px;">
+                    \[E\left[\int_0^t X(s) \mathrm{d} B(s)\right]^2 = \int_0^t E[X^2(s)] \mathrm{d} s\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 22: 8.3 推论 8.3.1 -->
+    <div class="slide-container" id="slide22">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 推论 8.3.1</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #8b5cf6; padding: 50px;">
+                <p style="font-size: 26px;">对任意有界的 Borel 可测函数 \(f\)（即对任意 \(a \in \mathbb{R}\)，有 \(\{x \in \mathbb{R}, f(x) \leqslant a\} \in \mathscr{B}(\mathbb{R})\)），有以下<span class="highlight-blue"><strong>平方可积鞅</strong></span>：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 32px; padding: 30px; margin-top: 30px; border-left: 6px solid #8b5cf6;">
+                        \[\int_0^t f[B(s)] \mathrm{d} B(s)
+                        \] 
+                    </div>
+                </div>
+            </div>
+            <p style="font-size: 22px; margin-top: 30px;">上述定理提供了构造鞅的方法。在 8.2 节中我们已经证明，非随机的简单过程的 Itô积分是正态分布随机变量。更一般地，我们有下述定理。</p>
+        </div>
+    </div>
+
+    <!-- Slide 23: 8.3 定理 8.3.2：确定性被积函数 -->
+    <div class="slide-container" id="slide23">
+        <h2 class="slide-title"><i class="fas fa-wave-square"></i> 定理 8.3.2：确定性被积函数</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">如果 \(X\) 是非随机的，且 \(\int_0^T X^2(s) \mathrm{d} s < \infty\)，那么对 \(\forall t\)，</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 24px;">
+                    \[Y(t) = \int_0^t X(s) \mathrm{d} B(s)\]
+                </div>
+            </div>
+            <p style="font-size: 22px;">是服从正态分布的随机变量。即 \(\{Y(t), 0 \leqslant t \leqslant T\}\) 是 Gauss 过程，其均值函数为零，协方差函数为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 24px; border-left: 6px solid #3b82f6;">
+                    \[\operatorname{Cov}[Y(t), Y(t+u)] = \int_0^t X^2(s) \mathrm{d} s, \quad u \geqslant 0\]
+                </div>
+            </div>
+            <p style="font-size: 22px; text-align: center; font-weight: bold; margin-top: 20px;">\(\{Y(t)\}\) 也是平方可积鞅。</p>
+        </div>
+    </div>
+
+   <!-- Slide 24: 8.3 定理 8.3.2 证明解析 -->
+<div class="slide-container" id="slide24">
+    <h2 class="slide-title"><i class="fas fa-search"></i> 定理 8.3.2 证明</h2>
+    <div class="content-area">
+        <p style="font-size: 18px;">
+            因为被积函数是非随机的，所以
+            \(\int_0^t E[X^2(s)] \mathrm{d}s=\int_0^t X^2(s)\mathrm{d}s<\infty\)。
+            由定理 8.3.1 知 \(Y\) 具有零均值，再由积分及 \(Y(t)\) 的鞅性质，有：
+        </p>
+
+        <div class="two-column-top" style="height: auto; gap: 28px; align-items: stretch; margin-top: 10px;">
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 17px; text-align: left; padding: 14px 16px; margin: 0; line-height: 1.45;">
+                    \[
+                    \begin{aligned}
+                    & E\left[\int_0^t X(s)\,\mathrm{d}B(s)\int_t^{t+u}X(s)\,\mathrm{d}B(s)\right] \\
+                    =& E\left\{E\left[\int_0^t X(s)\,\mathrm{d}B(s)\int_t^{t+u}X(s)\,\mathrm{d}B(s)\mid \mathscr{F}_t\right]\right\} \\
+                    =& E\left\{\int_0^t X(s)\,\mathrm{d}B(s)\,
+                    E\left[\int_t^{t+u}X(s)\,\mathrm{d}B(s)\mid \mathscr{F}_t\right]\right\} \\
+                    =& 0
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 17px; text-align: left; padding: 14px 16px; margin: 0; line-height: 1.45;">
+                    \[
+                    \begin{aligned}
+                    \operatorname{Cov}[Y(t),Y(t+u)]
+                    &= E\left[\int_0^t X(s)\,\mathrm{d}B(s)\int_0^{t+u}X(s)\,\mathrm{d}B(s)\right] \\
+                    &= E\left\{\int_0^t X(s)\,\mathrm{d}B(s)
+                    \left[\int_0^t X(s)\,\mathrm{d}B(s)+\int_t^{t+u}X(s)\,\mathrm{d}B(s)\right]\right\} \\
+                    &= E\left[\int_0^t X(s)\,\mathrm{d}B(s)\right]^2 \\
+                    &= \int_0^t E[X^2(s)]\,\mathrm{d}s
+                    = \int_0^t X^2(s)\,\mathrm{d}s
+                    \end{aligned}
+                    \]
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Slide 25: 8.3 例 8.3.1 -->
+    <div class="slide-container" id="slide25">
+        <h2 class="slide-title"><i class="fas fa-check-circle"></i> 例 8.3.1</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #10b981; padding: 50px;">
+                <p style="font-size: 26px;">根据上述定理可得：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 32px; padding: 30px; margin-top: 30px; border-left: 6px solid #10b981;">
+                        \[J = \int_0^t s \mathrm{~d} B(s) \sim N\left(0, \frac{t^3}{3}\right)\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 26: 8.3 二次变差 -->
+    <div class="slide-container" id="slide26">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 8.3 二次变差定义与定理</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;"><strong>定义 8.3.1</strong> 设 \(Y(t) = \int_0^t X(s) \mathrm{d} B(s)\) 是 Itô 积分，如果在依概率收敛的意义下，极限当 \(\{t_i^n\}_{i=0}^n\) 遍取 \([0, t]\) 的分割且模 \(\delta_n \to 0\) 时存在，称此极限为 \(Y\) 的二次变差 \([Y, Y](t)\)：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px; padding: 10px;">
+                    \[\lim_{\delta_n \rightarrow 0} \sum_{i=0}^{n-1}\left|Y(t_{i+1}^n) - Y(t_i^n)\right|^2\]
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color: #ec4899; margin-top: 15px; padding: 25px;">
+                <h3 style="font-size: 22px;">定理 8.3.3</h3>
+                <p style="font-size: 18px;">设 \(Y(t) = \int_0^t X(s) \mathrm{d} B(s)(0 \leqslant t \leqslant T)\) 是 Itô 积分，则 \(Y\) 的二次变差为：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 20px; border-left: 4px solid #ec4899;">
+                        \[[Y, Y](t) = \int_0^t X^2(s) \mathrm{d} s\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 27: 8.3 二次协变差 -->
+    <div class="slide-container" id="slide27">
+        <h2 class="slide-title"><i class="fas fa-random"></i> 二次协变差</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">对于同一个 Brown 运动 \(\{B(t)\}\) 的两个不同的 Itô 积分 \(Y_1(t)\) 和 \(Y_2(t)\)，由于 \(Y_1(t)+Y_2(t)=\int_0^t[X_1(s)+X_2(s)] \mathrm{d} B(s)\)，故我们可以定义 \(Y_1\) 和 \(Y_2\) 的二次协变差：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 18px;">
+                    \[[Y_1, Y_2](t) = \frac{1}{2}\{[Y_1+Y_2, Y_1+Y_2](t) - [Y_1, Y_1](t) - [Y_2, Y_2](t)\}\]
+                </div>
+            </div>
+            <p style="font-size: 20px; margin-top: 20px;">由定理8.3.3，有：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 22px; border-left: 6px solid #8b5cf6;">
+                    \[[Y_1, Y_2](t) = \int_0^t X_1(s) X_2(s) \mathrm{d} s\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- Enhanced Insert：Itô 积分过程图解 -->
+<div class="slide-container" id="enhanced-ito-process-graph">
+    <h2 class="slide-title"><i class="fas fa-chart-area"></i> 图解：Itô 积分过程是“噪声累计轨道”</h2>
+    <div class="content-area"><div class="two-column-top" style="gap:30px; align-items:stretch;">
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:28px;"><p style="font-size:22px; line-height:1.8;">固定上限是随机变量，变动上限就是随机过程：</p><div class="math-wrapper"><div class="math-box" style="font-size:28px; border-left:6px solid #3b82f6;">\[Y(t)=\int_0^tX(s)\,\mathrm dB(s)\]</div></div><p style="font-size:20px; line-height:1.7;">随着 \(t\) 增大，新的 Brown 增量不断被加进来。</p></div>
+        <div class="tile fragment" data-step="2" style="border-top-color:#8b5cf6; padding:18px;"><svg width="100%" height="330" viewBox="0 0 520 330" xmlns="http://www.w3.org/2000/svg"><rect x="0" y="0" width="520" height="330" rx="18" fill="#f8fafc" stroke="#ddd6fe"/><line x1="50" y1="250" x2="475" y2="250" stroke="#94a3b8" stroke-width="2"/><line x1="50" y1="250" x2="50" y2="55" stroke="#94a3b8" stroke-width="2"/><path d="M55 170 C75 150,90 210,112 190 C138 166,158 220,180 176 C205 126,230 152,252 120 C278 84,292 156,318 134 C350 108,370 188,396 146 C425 98,450 118,470 88" fill="none" stroke="#8b5cf6" stroke-width="4" stroke-linecap="round"/><text x="480" y="256" font-size="15" fill="#475569">t</text><text x="18" y="54" font-size="15" fill="#475569">Y(t)</text></svg></div>
+    </div></div>
+</div>
+
+<!-- Enhanced Insert：二次变差的含义 -->
+<div class="slide-container" id="enhanced-quadratic-variation-intuition">
+    <h2 class="slide-title"><i class="fas fa-square"></i> 二次变差：测量随机波动的累计强度</h2>
+    <div class="content-area">
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:28px;"><p style="font-size:22px; line-height:1.8;">二次变差不是把路径长度相加，而是把每小段变化平方后相加。</p></div>
+        <div class="math-wrapper fragment" data-step="2"><div class="math-box" style="font-size:26px; border-left:8px solid #8b5cf6;">\[[Y,Y](t)=\int_0^tX^2(s)\,\mathrm ds\]</div></div>
+        <div class="two-column-top fragment" data-step="3" style="gap:30px; align-items:stretch; margin-top:18px;"><div class="tile" style="border-top-color:#10b981; padding:24px; background:#f0fdf4;"><h3 style="font-size:23px; color:#047857;">\(|X(s)|\) 大</h3><p style="font-size:20px; line-height:1.7; color:#166534;">噪声被放大，二次变差增长快。</p></div><div class="tile" style="border-top-color:#ec4899; padding:24px; background:#fff7fb;"><h3 style="font-size:23px; color:#9d174d;">\(|X(s)|\) 小</h3><p style="font-size:20px; line-height:1.7; color:#831843;">噪声影响弱，二次变差增长慢。</p></div></div>
+    </div>
+</div>
+
+    <!-- Slide 28: 8.4 Itô 公式 -->
+    <div class="slide-container" id="slide28">
+        <h2 class="slide-title"><i class="fas fa-crown"></i> 8.4 Itô 公式导引</h2>
+        <div class="content-area">
+            <p style="font-size: 22px;">Itô 公式、随机分析中的变量替换公式或链式法则，许多重要的公式都是由 Itô 公式导出的。</p>
+            <p style="font-size: 22px;">因为 Brown 运动在 \([0, t]\) 上的二次变差为 \(t\)，即在依概率收敛的意义下：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 20px;">
+                    \[\lim_{\delta_n \rightarrow 0} \sum_{i=0}^{n-1}[B(t_{i+1}^n) - B(t_i^n)]^2 = t\]
+                </div>
+            </div>
+            <p style="font-size: 22px; margin-top: 15px;">上式从形式上可表示为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 24px; border-left: 6px solid #f59e0b; color: #fcd34d;">
+                    \[\int_0^t[\mathrm{~d} B(s)]^2 = \int_0^t \mathrm{d} s = t \quad \Rightarrow \quad [\mathrm{d} B(t)]^2 = \mathrm{d} t\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 29: 8.4 定理 8.4.1 -->
+    <div class="slide-container" id="slide29">
+        <h2 class="slide-title"><i class="fas fa-weight-hanging"></i> 定理 8.4.1：带权重的二次变差</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #3b82f6; padding: 40px;">
+                <p style="font-size: 24px;">更一般地，设 \(g\) 是有界连续函数，\(\{t_i^n\}\) 是 \([0, t]\) 的分割，则对任意 \(\theta_i^n \in (B(t_i^n), B(t_{i+1}^n))\)（即 \(B(t_i^n), B(t_{i+1}^n)\) 之间的任意值），依概率收敛意义下的极限：</p>
+
+                <div class="math-wrapper" style="margin-top: 30px;">
+                    <div class="math-box" style="font-size: 24px; padding: 25px; border-left: 6px solid #3b82f6;">
+                        \[\lim_{\delta_n \rightarrow 0} \sum_{i=0}^{n-1} g(\theta_i^n)[B(t_{i+1}^n) - B(t_i^n)]^2 = \int_0^t g[B(s)] \mathrm{d} s\]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 30: 8.4 定理 8.4.2 -->
+    <div class="slide-container" id="slide30">
+        <h2 class="slide-title"><i class="fas fa-magic"></i> 定理 8.4.2：Itô 公式</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">现在，我们给出 Itô 公式。如果 \(f\) 是二次连续可微函数，则对任意 \(t\)，有：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 22px; border-left: 6px solid #ec4899;">
+                    \[f[B(t)] = f(0) + \int_0^t f'[B(s)] \mathrm{d} B(s) + \frac{1}{2} \int_0^t f''[B(s)] \mathrm{d} s\]
+                </div>
+            </div>
+            <p style="font-size: 24px; margin-top: 20px;">如果用微分形式表示，Itô 公式变为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 26px; padding: 25px;  color: #f8fafc;">
+                    \[\mathrm{d}\{f[B(t)]\} = f'[B(t)] \mathrm{d} B(t) + \frac{1}{2} f''[B(t)] \mathrm{d} t\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<!-- Enhanced Insert：Itô 公式为什么多出二阶项 -->
+<div class="slide-container" id="enhanced-ito-extra-term">
+    <h2 class="slide-title"><i class="fas fa-magic"></i> Itô 公式为什么多出 \(\frac12 f''\)？</h2>
+    <div class="content-area">
+        <div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:8px;"><p style="font-size:22px; line-height:1.8;">普通 Taylor 展开给出</p><div class="math-wrapper"><div class="math-box" style="font-size:18px;">\[f(B+\Delta B)-f(B)\approx f'(B)\Delta B+\frac12f''(B)(\Delta B)^2\]</div></div></div>
+        <div class="two-column-top" style="gap:30px; align-items:stretch; margin-top:18px;"><div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:6px; background:#f0fdf4;"><h3 style="font-size:23px; color:#047857;">普通微积分</h3><p style="font-size:21px; line-height:1.75; color:#166534;">\((\Delta x)^2\) 是高阶小量，可以忽略。</p></div><div class="tile fragment" data-step="3" style="border-top-color:#ec4899; padding:6px; background:#fff7fb;"><h3 style="font-size:23px; color:#9d174d;">Brown 运动</h3><p style="font-size:21px; line-height:1.75; color:#831843;">\(\Delta B\sim\sqrt{\Delta t}\)，所以 \((\Delta B)^2\sim\Delta t\)，不能扔。</p></div></div>
+        <div class="math-wrapper fragment" data-step="4"><div class="math-box" style="font-size:27px; border-left:8px solid #f59e0b;">\[\mathrm d\{f(B_t)\}=f'(B_t)\,\mathrm dB_t+\frac12f''(B_t)\,\mathrm dt\]</div></div>
+    </div>
+</div>
+
+<!-- Enhanced Insert：例 8.4.1 讲清楚 -->
+<div class="slide-container" id="enhanced-example-841-explain">
+    <h2 class="slide-title"><i class="fas fa-rocket"></i> 例 8.4.1 详细解释：求 \(\mathrm d(e^{B(t)})\)</h2>
+    <div class="content-area">
+        <div class="two-column-top" style="gap:30px; align-items:stretch;"><div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:30px;"><h3 style="font-size:24px;">套函数</h3><div class="math-wrapper"><div class="math-box math-box-short">\[f(x)=e^x\]</div></div><div class="math-wrapper"><div class="math-box math-box-short">\[f'(x)=e^x,\qquad f''(x)=e^x\]</div></div></div><div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:30px; background:#f0fdf4;"><h3 style="font-size:24px; color:#047857;">套 Itô 公式</h3><div class="math-wrapper"><div class="math-box" style="font-size:23px;">\[\mathrm d(e^{B(t)})=e^{B(t)}\,\mathrm dB(t)+\frac12e^{B(t)}\,\mathrm dt\]</div></div></div></div>
+        <div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; padding:24px; margin-top:22px;"><p style="font-size:21px; line-height:1.75; color:#831843; text-align:center;">如果按普通链式法则，会漏掉 \(\frac12 e^{B(t)}\mathrm dt\)。漏这一项，后面的随机微分方程就会开始集体叛变。</p></div>
+    </div>
+</div>
+
+    <!-- Slide 31: 8.4 定义 8.4.1 Itô 过程 -->
+    <div class="slide-container" id="slide31">
+        <h2 class="slide-title"><i class="fas fa-sliders-h"></i> 定义 8.4.1：Itô 过程</h2>
+        <div class="content-area">
+            <p style="font-size: 20px;">由此看出，Brown 运动的函数可以表示为一个 Itô 积分加上一个具有有界变差的绝对连续过程。我们称这类过程为 Itô 过程。如果过程 \(\{Y(t), 0 \leqslant t \leqslant T\}\) 可以表示为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 20px;">
+                    \[Y(t) = Y(0) + \int_0^t \mu(s) \mathrm{d} s + \int_0^t \sigma(s) \mathrm{d} B(s)\]
+                </div>
+            </div>
+            <p style="font-size: 20px;">其中过程 \(\{\mu(t)\}\) 和 \(\{\sigma(t)\}\) 满足：(1) \(\mu(t)\) 适应且 \(\int_0^T|\mu(t)| \mathrm{d} t < \infty\)，a.s. (2) \(\sigma(t) \in V^*\)，则称 \(\{Y(t)\}\) 为 <strong>Itô 过程</strong>。微分形式为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 20px; border-left: 6px solid #10b981;">
+                    \[\mathrm{d} Y(t) = \mu(t) \mathrm{d} t + \sigma(t) \mathrm{d} B(t)\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 32: 8.4 例 8.4.1 -->
+    <div class="slide-container" id="slide32">
+        <h2 class="slide-title"><i class="fas fa-rocket"></i> 例 8.4.1 与金融应用（1/2）</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #ec4899; padding: 25px;">
+                <h3 style="font-size: 22px;">求 \(\mathrm{d}(\mathrm{e}^{B(t)})\)</h3>
+                <p style="font-size: 23px;">对函数 \(f(x)=\mathrm{e}^x\) 用 Itô 公式，此时 \(f'(x)=\mathrm{e}^x, f''(x)=\mathrm{e}^x\)，所以：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size: 23px; border-left: 4px solid #ec4899;">
+                        \[\mathrm{d}(\mathrm{e}^{B(t)}) = \mathrm{e}^{B(t)} \mathrm{d} B(t) + \frac{1}{2} \mathrm{e}^{B(t)} \mathrm{d} t\]
+                    </div>
+                </div>
+                <p style="font-size: 23px;">于是，\(X(t)=\mathrm{e}^{B(t)}\) 具有随机微分形式 \(\mathrm{d} X(t) = X(t) \mathrm{d} B(t) + \frac{1}{2} X(t) \mathrm{d} t\)。</p>
+            </div>
+
+            
+        </div>
+    </div>
+
+
+
+        <div class="slide-container" id="slide32">
+        <h2 class="slide-title"><i class="fas fa-rocket"></i> 例 8.4.1 与金融应用（2/2）</h2>
+        <div class="content-area">
+           
+
+            <div class="tile" style="border-top-color: #3b82f6; margin-top: 15px; padding: 25px;">
+                <h3 style="font-size: 22px;">股票收益积分</h3>
+                <p style="font-size: 23px;">金融应用中，股票的价格 \(S(t)\) 是用 \(\mathrm{d} S(t) = \mu S(t) \mathrm{d} t + \sigma S(t) \mathrm{d} B(t)\) 描述的。如果 \(a(t)\) 表示投资者的股票个股收益，则收益为：
+               
+                    
+                        \[\int_0^T a(t) \mathrm{d} S(t) = \mu \int_0^T a(t) S(t) \mathrm{d} t + \sigma \int_0^T a(t) S(t) \mathrm{d} B(t)\]
+                   
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Slide 33: 8.4 Itô 乘法表 -->
+    <div class="slide-container" id="slide33">
+        <h2 class="slide-title"><i class="fas fa-th"></i> Itô 积分乘法规则</h2>
+        <div class="content-area">
+            <p style="font-size: 24px;">下面的定理给出了关于 Itô 过程的 Itô 公式。其中 \([\mathrm{d} X(t)]^2 = [\mathrm{d} X(t)][\mathrm{d} X(t)]\) 按照下面的规则计算：</p>
+
+            <div class="math-wrapper" style="margin-top: 40px;">
+                <div class="math-box" style="font-size: 32px; padding: 40px;  border: 2px solid #3b82f6;">
+                    \[\mathrm{d} t \cdot \mathrm{d} t = \mathrm{d} t \cdot \mathrm{d} B(t) = \mathrm{d} B(t) \cdot \mathrm{d} t = 0;\]
+                    
+           
+                </div>
+                                <div class="math-box" style="font-size: 32px; padding: 40px;  border: 2px solid #3b82f6;">
+                
+                    
+                    \[\mathrm{d} B(t) \cdot \mathrm{d} B(t) = \mathrm{d} t\]
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 34: 8.4 定理 8.4.3 -->
+    <div class="slide-container" id="slide34">
+        <h2 class="slide-title"><i class="fas fa-chess-board"></i> 定理 8.4.3：广义二维 Itô 公式</h2>
+        <div class="content-area">
+            <p style="font-size: 18px;">设 \(\{X(t)\}\) 是由 \(\mathrm{d} X(t) = \mu(t) \mathrm{d} t + \sigma(t) \mathrm{d} B(t)\) 给出的 Itô 过程，$g(t, x)$ 是 $[0, \infty) \times \mathbb{R}$ 上的二次连续可微函数，则 \(\{Y(t) = g[t, X(t)]\}\) 仍为 Itô 过程，并且：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 20px; padding: 10px;">
+                    \[\mathrm{d} Y(t) = \frac{\partial g}{\partial t}[t, X(t)] \mathrm{d} t + \frac{\partial g}{\partial x}[t, X(t)] \mathrm{d} X(t) + \frac{1}{2} \frac{\partial^2 g}{\partial x^2}[t, X(t)] [\mathrm{d} X(t)]^2\]
+                </div>
+            </div>
+            <p style="font-size: 18px; margin-top: 10px;">从而可以改写为：</p>
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size: 20px; padding: 10px; border-left: 6px solid #8b5cf6;">
+                    \[
+                    \mathrm{d} Y(t) = \left\{ \frac{\partial g}{\partial t} + \frac{\partial g}{\partial x} \mu(t) + \frac{1}{2} \frac{\partial^2 g}{\partial x^2} \sigma^2(t) \right\} \mathrm{d} t + \frac{\partial g}{\partial x} \sigma(t) \mathrm{d} B(t)
+                    \]
+                </div>
+            </div>
+           
+        </div>
+    </div>
+
+
+        <!-- Slide 35: 例 9-3 -->
+    <div class="slide-container" id="slide35">
+        <h2 class="slide-title"><i class="fas fa-integral"></i> 例 ：利用 Itô 公式计算 \(\int_0^t B_s\,\mathrm{d}B_s\)</h2>
+        <div class="content-area">
+
+            <div class="tile" style="border-top-color:#3b82f6; padding:14px;">
+                <h3 style="font-size:22px;"><i class="fas fa-question-circle"></i> 问题</h3>
+                <p style="font-size:20px; line-height:1.7;">
+                    利用 Itô 公式计算随机积分
+                    \(
+                    \int_0^t B_s\,\mathrm{d}B_s.
+                    \)
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#8b5cf6; padding:14px; margin-top:14px; background:#faf5ff;">
+                <h3 style="font-size:22px; color:#6d28d9;"><i class="fas fa-lightbulb"></i> 解题思路</h3>
+                <p style="font-size:19px; line-height:1.65; color:#4c1d95;">
+                    令 \(X_t=B_t\)，则
+                    \[
+                    \mathrm{d}X_t=0\cdot\mathrm{d}t+1\cdot\mathrm{d}B_t.
+                    \]
+                    因此 \(\mu(t)=0,\ \sigma(t)=1\)。
+                    取函数 \(f(t,x)=x^2\)，则
+                    \[
+                    \frac{\partial f}{\partial t}=0,\qquad
+                    \frac{\partial f}{\partial x}=2x,\qquad
+                    \frac{\partial^2 f}{\partial x^2}=2.
+                    \]
+                </p>
+            </div>
+
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size:20px; padding:10px; border-left:6px solid #ec4899;">
+                    \[
+                    B_t^2-B_{t_0}^2
+                    =
+                    2\int_{t_0}^{t}B_s\,\mathrm{d}B_s
+                    +
+                    \int_{t_0}^{t}\mathrm{d}s,
+                    \qquad 0\leqslant t_0\lt t
+                    \]
+                </div>
+            </div>
+
+            
+
+        </div>
+    </div>
+
+
+<div class="slide-container" id="slide35">
+        <h2 class="slide-title"><i class="fas fa-integral"></i> 例 ：利用 Itô 公式计算 \(\int_0^t B_s\,\mathrm{d}B_s\)</h2>
+        <div class="content-area">
+
+                <div class="math-wrapper">
+                <div class="math-box" style="font-size:20px; padding:10px; border-left:6px solid #ec4899;">
+                    \[
+                    B_t^2-B_{t_0}^2
+                    =
+                    2\int_{t_0}^{t}B_s\,\mathrm{d}B_s
+                    +
+                    \int_{t_0}^{t}\mathrm{d}s,
+                    \qquad 0\leqslant t_0\lt t
+                    \]
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color:#10b981; padding:14px; margin-top:12px; background:#f0fdf4;">
+                <h3 style="font-size:22px; color:#047857;"><i class="fas fa-check-circle"></i> 结论</h3>
+                <p style="font-size:20px; line-height:1.7; color:#166534;">
+                    当 \(t_0=0\) 时，因为 \(B_0=0\)，所以
+                    \[
+                    \boxed{
+                    \int_0^t B_s\,\mathrm{d}B_s
+                    =
+                    \frac{1}{2}\left(B_t^2-t\right)
+                    }.
+                    \]
+                    这也说明：随机积分不能简单地照搬普通积分的规则。
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Slide 36: 例 9-4 -->
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title"><i class="fas fa-superscript"></i> 例 ：Itô 指数</h2>
+        <div class="content-area">
+
+            <div class="tile" style="border-top-color:#3b82f6; padding:12px;">
+                <h3 style="font-size:21px;"><i class="fas fa-question-circle"></i> 问题背景</h3>
+                <p style="font-size:21px; line-height:1.65;">
+                    在普通微积分中，指数函数满足
+                    \[
+                    \left(\mathrm{e}^x\right)'=\mathrm{e}^x.
+                    \]
+                    那么随机情形下，是否存在过程 \(X\) 满足
+                    \[
+                    X_t-X_s=\int_s^t X_x\,\mathrm{d}B_x,
+                    \qquad 0\leqslant s\lt t?
+                    \]
+                    若存在，则称 \(X\) 为 <strong>Itô 指数过程</strong>。
+                </p>
+            </div>
+
+            
+
+        </div>
+    </div>
+
+
+ <!-- Slide 36: 例 9-4 -->
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title"><i class="fas fa-superscript"></i> 例 ：Itô 指数</h2>
+        <div class="content-area">
+
+         
+
+            <div class="tile" style="border-top-color:#ef4444; padding:12px; margin-top:12px; background:#fff5f5;">
+                <h3 style="font-size:21px; color:#b91c1c;"><i class="fas fa-triangle-exclamation"></i> 先看 \(\mathrm{e}^{B_t}\) 为什么不行</h3>
+                <p style="font-size:18px; line-height:1.6; color:#7f1d1d;">
+                    令 \(f(t,x)=\mathrm{e}^x\)。由于
+                    \[
+                    \mathrm{d}B_t=0\cdot\mathrm{d}t+1\cdot\mathrm{d}B_t,
+                    \]
+                    由 Itô 公式得到
+                    \[
+                    \mathrm{e}^{B_t}-\mathrm{e}^{B_s}
+                    =
+                    \int_s^t \mathrm{e}^{B_x}\,\mathrm{d}B_x
+                    +
+                    \frac{1}{2}\int_s^t \mathrm{e}^{B_x}\,\mathrm{d}x.
+                    \]
+                    多出来的 \(\frac12\) 项就是 Itô 修正项。
+                </p>
+            </div>
+
+           
+
+        </div>
+    </div>
+
+
+
+ <!-- Slide 36: 例 9-4 -->
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title"><i class="fas fa-superscript"></i> 例 ：Itô 指数</h2>
+        <div class="content-area">
+
+         
+
+
+            <div class="tile" style="border-top-color:#10b981; padding:12px; margin-top:12px; background:#f0fdf4;">
+                <h3 style="font-size:21px; color:#047857;"><i class="fas fa-check-circle"></i> 正确的 Itô 指数</h3>
+                <p style="font-size:21px; line-height:1.6; color:#166534;">
+                    令
+                    \(
+                    f(t,x)=\mathrm{e}^{x-\frac12 t}.
+                    \)
+                    则
+                    \[
+                    \frac{\partial f}{\partial t}=-\frac12 f,\qquad
+                    \frac{\partial f}{\partial x}=f,\qquad
+                    \frac{\partial^2 f}{\partial x^2}=f.
+                    \]
+                    代入 Itô 公式后，\(\mathrm{d}t\) 项正好抵消：
+                    \[
+                    f(t,B_t)-f(s,B_s)
+                    =
+                    \int_s^t f(x,B_x)\,\mathrm{d}B_x.
+                    \]
+                    因此
+                    \(
+                    \boxed{
+                    \mathrm{e}^{B_t-\frac12 t}
+                    }
+                    \),
+                    才是标准 Brown 运动对应的 Itô 指数。
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+
+
+    <!-- Slide 37: 例 9-5 -->
+    <div class="slide-container" id="slide37">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 ：几何 Brown 运动</h2>
+        <div class="content-area">
+
+            <div class="tile" style="border-top-color:#3b82f6; padding:14px;">
+                <h3 style="font-size:22px;"><i class="fas fa-cube"></i> 模型设定</h3>
+                <p style="font-size:21px; line-height:1.7;">
+                    考虑几何 Brown 运动
+                    \[
+                    X_t=f(t,B_t)
+                    =
+                    \mathrm{e}^{\left(\mu-\frac12\sigma^2\right)t+\sigma B_t},
+                    \qquad \sigma\gt0.
+                    \]
+                    其中 \(\mu\) 表示平均增长率，\(\sigma\) 表示随机波动强度。
+                </p>
+            </div>
+
+         
+
+        </div>
+    </div>
+
+
+
+     <div class="slide-container" id="slide37">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 ：几何 Brown 运动</h2>
+        <div class="content-area">
+
+           
+            <div class="tile" style="border-top-color:#8b5cf6; padding:14px; margin-top:14px; background:#faf5ff;">
+                <h3 style="font-size:22px; color:#6d28d9;"><i class="fas fa-calculator"></i> 偏导数计算</h3>
+                <p style="font-size:20px; line-height:1.7; color:#4c1d95;">
+                    对
+                    \[
+                    f(t,x)=\mathrm{e}^{\left(\mu-\frac12\sigma^2\right)t+\sigma x}
+                    \]
+                    有
+                    \[
+                    \frac{\partial f}{\partial t}
+                    =
+                    \left(\mu-\frac12\sigma^2\right)f(t,x),
+                    \qquad
+                    \frac{\partial f}{\partial x}
+                    =
+                    \sigma f(t,x),
+                    \]
+                    \[
+                    \frac{\partial^2 f}{\partial x^2}
+                    =
+                    \sigma^2 f(t,x).
+                    \]
+                </p>
+            </div>
+
+
+        </div>
+    </div>
+
+
+
+    <div class="slide-container" id="slide37">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 例 ：几何 Brown 运动</h2>
+        <div class="content-area">
+
+           
+
+            <div class="tile" style="border-top-color:#10b981; padding:14px; margin-top:14px; background:#f0fdf4;">
+                <h3 style="font-size:22px; color:#047857;"><i class="fas fa-check-circle"></i> 代入 Itô 公式</h3>
+                <p style="font-size:20px; line-height:1.7; color:#166534;">
+                    由 Itô 公式，
+                    \[
+                    \mathrm{d}X_t
+                    =
+                    \mu X_t\,\mathrm{d}t
+                    +
+                    \sigma X_t\,\mathrm{d}B_t.
+                    \]
+                    积分形式为
+                    \[
+                    \boxed{
+                    X_t-X_0
+                    =
+                    \mu\int_0^t X_s\,\mathrm{d}s
+                    +
+                    \sigma\int_0^t X_s\,\mathrm{d}B_s
+                    }.
+                    \]
+                    这就是几何 Brown 运动满足的线性随机微分方程。
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Slide 38: 例 9-10 -->
+    <div class="slide-container" id="slide38">
+        <h2 class="slide-title"><i class="fas fa-people-group"></i> 例：人口增长模型</h2>
+        <div class="content-area">
+
+            <div class="tile" style="border-top-color:#3b82f6; padding:10px;">
+                <h3 style="font-size:21px;"><i class="fas fa-seedling"></i> 模型设定</h3>
+                <p style="font-size:18px; line-height:1.55;">
+                    设 \(N_t\) 为 \(t\) 时刻的人口数量，且满足随机微分方程
+                    \[
+                    \mathrm{d}N_t=\mu N_t\,\mathrm{d}t+\sigma N_t\,\mathrm{d}B_t,
+                    \]
+                    其中 \(\mu,\sigma\) 为常数。求 \(N_t\) 的表达式。
+                </p>
+            </div>
+
+            <div class="tile" style="border-top-color:#8b5cf6; padding:10px; margin-top:10px; background:#faf5ff;">
+                <h3 style="font-size:21px; color:#6d28d9;"><i class="fas fa-logarithm"></i> 对数变换</h3>
+                <p style="font-size:18px; line-height:1.55; color:#4c1d95;">
+                    令
+                    \(
+                    Y_t=\ln N_t,\qquad f(t,x)=\ln x.
+                    \)
+                    则
+                    \[
+                    \frac{\partial f}{\partial t}=0,\qquad
+                    \frac{\partial f}{\partial x}=\frac1x,\qquad
+                    \frac{\partial^2 f}{\partial x^2}=-\frac1{x^2}.
+                    \]
+                    由 Itô 公式，
+                    \[
+                    \mathrm{d}(\ln N_t)
+                    =
+                    \left(\mu-\frac{\sigma^2}{2}\right)\mathrm{d}t
+                    +
+                    \sigma\,\mathrm{d}B_t.
+                    \]
+                </p>
+            </div>
+
+            
+
+        </div>
+    </div>
+
+
+
+
+     <div class="slide-container" id="slide38">
+        <h2 class="slide-title"><i class="fas fa-people-group"></i> 例：人口增长模型</h2>
+        <div class="content-area">
+
+          
+            <div class="tile" style="border-top-color:#10b981; padding:10px; margin-top:10px; background:#f0fdf4;">
+                <h3 style="font-size:21px; color:#047857;"><i class="fas fa-check-circle"></i> 解出 \(N_t\)</h3>
+                <p style="font-size:18px; line-height:1.55; color:#166534;">
+                    两边从 \(0\) 到 \(t\) 积分，并利用 \(B_0=0\)，得
+                    \[
+                    \ln\frac{N_t}{N_0}
+                    =
+                    \left(\mu-\frac{\sigma^2}{2}\right)t
+                    +
+                    \sigma B_t.
+                    \]
+                    因此
+                    \[
+                    \boxed{
+                    N_t
+                    =
+                    N_0
+                    \mathrm{e}^{\left(\mu-\frac{\sigma^2}{2}\right)t+\sigma B_t}
+                    }.
+                    \]
+                    这说明 \(N_t\) 是一个几何 Brown 运动。
+                </p>
+            </div>
+
+            <div class="math-wrapper">
+                <div class="math-box" style="font-size:20px; padding:8px; margin-top:8px; border-left:6px solid #ec4899;">
+                    \[
+                    E(N_t)
+                    =
+                    N_0\mathrm{e}^{\left(\mu-\frac{\sigma^2}{2}\right)t}
+                    E\left(\mathrm{e}^{\sigma B_t}\right)
+                    =
+                    N_0\mathrm{e}^{\mu t}.
+                    \]
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- Slide 35: Itô积分的应用导入 -->
+    <div class="slide-container" id="slide40">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> Itô 积分到底拿来做什么？</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color:#3b82f6; padding:28px;">
+                <p style="font-size:22px;">Itô 积分并不是单纯把 \(\int f(t)\,\mathrm dB(t)\) 写得更漂亮，而是在描述：</p>
+                <div class="math-wrapper">
+                    <div class="math-box" style="font-size:26px; border-left:6px solid #3b82f6;">
+                        \[\text{随机噪声在时间上的累计影响}\]
+                    </div>
+                </div>
+                <p style="font-size:21px;">普通积分 \(\int f(t)\,\mathrm dt\) 累积的是“确定性输入”；Itô 积分 \(\int f(t)\,\mathrm dB(t)\) 累积的是“随机输入”。</p>
+            </div>
+            <div class="tiled-content-3" style="margin-top:18px;">
+                <div class="tile" style="padding:22px; border-top-color:#10b981;">
+                    <h3 style="font-size:22px;"><i class="fas fa-chart-line"></i> 金融</h3>
+                    <p style="font-size:18px;">股票价格、利率、波动率模型里，随机波动项通常都写成 Itô 积分。</p>
+                </div>
+                <div class="tile" style="padding:22px; border-top-color:#8b5cf6;">
+                    <h3 style="font-size:22px;"><i class="fas fa-atom"></i> 物理</h3>
+                    <p style="font-size:18px;">粒子持续受到微观碰撞，位置与速度中的噪声累积可用 Itô 积分刻画。</p>
+                </div>
+                <div class="tile" style="padding:22px; border-top-color:#ec4899;">
+                    <h3 style="font-size:22px;"><i class="fas fa-dna"></i> 生物/工程</h3>
+                    <p style="font-size:18px;">环境波动、传感噪声、随机控制输入，常都以 \(\sigma(t)\,\mathrm dB(t)\) 形式进入模型。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 36: 应用实例1 金融 -->
+    <div class="slide-container" id="slide36">
+        <h2 class="slide-title"><i class="fas fa-coins"></i> 应用实例 1：股票价格中的随机波动</h2>
+        <div class="content-area">
+            <div class="two-column-top" style="gap:32px;">
+                <div class="tile" style="border-top-color:#10b981; padding:24px;">
+                    <h3 style="font-size:23px;">模型含义</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size:22px; border-left:6px solid #10b981;">
+                            \[\mathrm dS(t)=\mu S(t)\,\mathrm dt+\sigma S(t)\,\mathrm dB(t)\]
+                        </div>
+                    </div>
+                    <p style="font-size:18px; margin-bottom:10px;">这里 \(S(t)\) 表示股票价格：</p>
+                    <ul class="bullet-list" style="margin-left:0;">
+                        <li style="font-size:18px;">\(\mu S(t)\,\mathrm dt\)：平均增长趋势</li>
+                        <li style="font-size:18px;">\(\sigma S(t)\,\mathrm dB(t)\)：市场随机波动</li>
+                    </ul>
+                    <p style="font-size:18px;">积分形式为</p>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size:18px;">
+                            \[S(t)=S(0)+\int_0^t \mu S(s)\,\mathrm ds+\int_0^t \sigma S(s)\,\mathrm dB(s)\]
+                        </div>
+                    </div>
+                </div>
+                <div class="tile" style="border-top-color:#3b82f6; padding:24px;">
+                    <h3 style="font-size:23px;">图形理解</h3>
+                    <svg width="100%" height="360" viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="520" height="360" rx="18" fill="#f8fafc" stroke="#dbeafe"/>
+                        <line x1="50" y1="300" x2="480" y2="300" stroke="#94a3b8" stroke-width="2"/>
+                        <line x1="50" y1="300" x2="50" y2="40" stroke="#94a3b8" stroke-width="2"/>
+                        <text x="486" y="306" font-size="16" fill="#475569">t</text>
+                        <text x="28" y="34" font-size="16" fill="#475569">S(t)</text>
+                        <path d="M55 280 C110 260, 160 230, 220 205 S340 145, 470 95" fill="none" stroke="#94a3b8" stroke-dasharray="8 6" stroke-width="3"/>
+                        <path d="M55 286 C85 292, 120 245, 145 252 C175 260, 205 185, 235 196 C270 208, 300 140, 332 158 C365 176, 392 102, 425 118 C448 129, 462 92, 472 98" fill="none" stroke="#10b981" stroke-width="4" stroke-linecap="round"/>
+                        <circle cx="55" cy="286" r="5" fill="#10b981"/>
+                        <circle cx="472" cy="98" r="5" fill="#10b981"/>
+                        <rect x="268" y="44" width="190" height="80" rx="12" fill="#ffffff" stroke="#dbeafe"/>
+                        <text x="282" y="68" font-size="16" fill="#1e293b">虚线：平均趋势 \(\mu\)</text>
+                        <text x="282" y="95" font-size="16" fill="#1e293b">实线：真实价格轨道</text>
+                        <text x="282" y="122" font-size="16" fill="#1e293b">偏离部分来自 Itô 积分</text>
+                    </svg>
+                    <p style="font-size:18px; margin-top:10px;">理解重点：Itô 积分那一项让价格围绕平均趋势上下随机摆动，因此模型既有趋势，又有噪声。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 37: 应用实例2 粒子运动 -->
+    <div class="slide-container" id="slide37">
+        <h2 class="slide-title"><i class="fas fa-microscope"></i> 应用实例 2：粒子受随机碰撞的运动</h2>
+        <div class="content-area">
+            <div class="two-column-top" style="gap:32px;">
+                <div class="tile" style="border-top-color:#8b5cf6; padding:24px;">
+                    <h3 style="font-size:23px;">模型含义</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size:22px; border-left:6px solid #8b5cf6;">
+                            \[\mathrm dX(t)=b(X_t)\,\mathrm dt+\sigma(X_t)\,\mathrm dB(t)\]
+                        </div>
+                    </div>
+                    <p style="font-size:18px;">这里 \(X(t)\) 可以看作粒子位置：</p>
+                    <ul class="bullet-list" style="margin-left:0;">
+                        <li style="font-size:18px;">\(b(X_t)\,\mathrm dt\)：外力或平均漂移</li>
+                        <li style="font-size:18px;">\(\sigma(X_t)\,\mathrm dB(t)\)：周围分子连续随机撞击</li>
+                    </ul>
+                    <p style="font-size:18px;">因此 Itô 积分刻画的是“无数微小随机碰撞一路累计后的总效果”。</p>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899; padding:24px;">
+                    <h3 style="font-size:23px;">图形理解</h3>
+                    <svg width="100%" height="360" viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="520" height="360" rx="18" fill="#f8fafc" stroke="#e9d5ff"/>
+                        <rect x="42" y="58" width="436" height="250" rx="18" fill="#eff6ff" stroke="#bfdbfe"/>
+                        <g fill="#cbd5e1" opacity="0.8">
+                            <circle cx="90" cy="105" r="5"/><circle cx="140" cy="90" r="4"/><circle cx="205" cy="118" r="5"/>
+                            <circle cx="250" cy="82" r="4"/><circle cx="320" cy="108" r="5"/><circle cx="390" cy="92" r="4"/>
+                            <circle cx="430" cy="130" r="5"/><circle cx="112" cy="180" r="4"/><circle cx="175" cy="210" r="5"/>
+                            <circle cx="230" cy="170" r="4"/><circle cx="310" cy="192" r="5"/><circle cx="372" cy="218" r="4"/>
+                            <circle cx="430" cy="186" r="5"/><circle cx="125" cy="265" r="5"/><circle cx="210" cy="250" r="4"/>
+                            <circle cx="280" cy="278" r="5"/><circle cx="355" cy="258" r="4"/><circle cx="420" cy="272" r="5"/>
+                        </g>
+                        <path d="M88 250 C118 230, 136 205, 160 214 C182 222, 205 180, 228 165 C250 150, 268 195, 298 178 C325 162, 336 126, 365 136 C394 146, 412 110, 435 115" fill="none" stroke="#8b5cf6" stroke-width="4" stroke-linecap="round"/>
+                        <circle cx="435" cy="115" r="8" fill="#f59e0b" stroke="#fff" stroke-width="3"/>
+                        <text x="60" y="38" font-size="16" fill="#1e293b">蓝灰小点：环境分子</text>
+                        <text x="280" y="330" font-size="16" fill="#1e293b">紫色折线：粒子真实随机轨迹</text>
+                    </svg>
+                    <p style="font-size:18px; margin-top:10px;">这类模型常用于扩散、热运动、噪声驱动的动力系统。连续但非常粗糙的轨道，正是 Brown 运动驱动的典型特征。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 38: 应用实例3 生物/工程 -->
+    <div class="slide-container" id="slide38">
+        <h2 class="slide-title"><i class="fas fa-seedling"></i> 应用实例 3：种群增长与环境噪声</h2>
+        <div class="content-area">
+            <div class="two-column-top" style="gap:32px;">
+                <div class="tile" style="border-top-color:#10b981; padding:24px;">
+                    <h3 style="font-size:23px;">模型含义</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size:22px; border-left:6px solid #10b981;">
+                            \[\mathrm dX(t)=rX(t)\,\mathrm dt+\sigma X(t)\,\mathrm dB(t)\]
+                        </div>
+                    </div>
+                    <p style="font-size:18px;">这里 \(X(t)\) 表示种群数量或系统状态：</p>
+                    <ul class="bullet-list" style="margin-left:0;">
+                        <li style="font-size:18px;">\(rX(t)\,\mathrm dt\)：平均增长率</li>
+                        <li style="font-size:18px;">\(\sigma X(t)\,\mathrm dB(t)\)：天气、资源、测量误差等环境噪声</li>
+                    </ul>
+                    <p style="font-size:18px;">如果没有 Itô 积分项，模型会变成过于理想化的纯确定增长；加入噪声后，才更接近真实系统。</p>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b; padding:24px;">
+                    <h3 style="font-size:23px;">图形理解</h3>
+                    <svg width="100%" height="360" viewBox="0 0 520 360" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="520" height="360" rx="18" fill="#f8fafc" stroke="#fde68a"/>
+                        <line x1="50" y1="300" x2="480" y2="300" stroke="#94a3b8" stroke-width="2"/>
+                        <line x1="50" y1="300" x2="50" y2="40" stroke="#94a3b8" stroke-width="2"/>
+                        <text x="486" y="306" font-size="16" fill="#475569">t</text>
+                        <text x="15" y="34" font-size="16" fill="#475569">X(t)</text>
+                        <path d="M55 285 C110 270, 170 240, 240 205 S360 145, 470 95" fill="none" stroke="#94a3b8" stroke-dasharray="8 6" stroke-width="3"/>
+                        <path d="M55 286 C88 280, 120 258, 148 266 C178 275, 215 210, 244 224 C282 242, 314 164, 344 180 C379 198, 412 118, 470 104" fill="none" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/>
+                        <rect x="266" y="48" width="188" height="90" rx="12" fill="#ffffff" stroke="#fde68a"/>
+                        <text x="282" y="72" font-size="16" fill="#1e293b">虚线：理想平均增长</text>
+                        <text x="282" y="100" font-size="16" fill="#1e293b">实线：噪声下真实轨道</text>
+                        <text x="282" y="128" font-size="16" fill="#1e293b">随机波动可能短时下跌</text>
+                    </svg>
+                    <p style="font-size:18px; margin-top:10px;">在生态、流行病、工程控制里，Itô 积分常用来刻画“系统一直在受噪声推动”，所以轨道不是平滑曲线，而是带随机起伏的连续轨迹。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 39: 理论与应用如何对应 -->
+    <div class="slide-container" id="slide39">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 理论公式与应用图景如何对应？</h2>
+        <div class="content-area">
+            <div class="tiled-content" style="gap:24px;">
+                <div class="tile" style="border-top-color:#3b82f6; padding:26px;">
+                    <h3 style="font-size:24px;">为什么要先定义简单过程积分？</h3>
+                    <p style="font-size:19px;">因为随机过程太复杂，先把被积函数分段常数化，再用极限逼近，思路上就像“先搭积木，再逼近曲线”。</p>
+                </div>
+                <div class="tile" style="border-top-color:#8b5cf6; padding:26px;">
+                    <h3 style="font-size:24px;">Itô 等距性说明什么？</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size:20px;">
+                            \[E\left[\int_0^T X(t)\,\mathrm dB(t)\right]^2=\int_0^T E[X^2(t)]\,\mathrm dt\]
+                        </div>
+                    </div>
+                    <p style="font-size:19px;">它告诉我们：随机积分的“平均能量”可以转化为普通积分，分析就容易多了。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981; padding:26px;">
+                    <h3 style="font-size:24px;">为什么积分过程常是鞅？</h3>
+                    <p style="font-size:19px;">因为 Brown 增量的条件均值为 0，新的随机扰动在“已知过去”后没有额外偏向，所以累积过程天然常带鞅结构。</p>
+                </div>
+                <div class="tile" style="border-top-color:#ec4899; padding:26px;">
+                    <h3 style="font-size:24px;">Itô 公式为什么会多出二阶项？</h3>
+                    <p style="font-size:19px;">普通链式法则忽略了 \((\mathrm dB)^2\) 的贡献，但 Brown 运动的二次变差不为 0，所以必须补上 \(\frac12 f''\) 那一项。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Slide 40: Itô积分 vs 普通积分 -->
+    <div class="slide-container" id="slide40">
+        <h2 class="slide-title"><i class="fas fa-scale-balanced"></i> Itô 积分 vs 普通积分：差别在哪里？</h2>
+        <div class="content-area">
+            <div class="two-column-top" style="gap: 32px; align-items: stretch;">
+                <div class="tile" style="border-top-color: #3b82f6; padding: 24px;">
+                    <h3 style="font-size: 24px;"><i class="fas fa-ruler"></i> 普通积分</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 24px; border-left: 5px solid #3b82f6;">
+                            \[
+                            \int_0^t f(s)\,\mathrm ds
+                            \]
+                        </div>
+                    </div>
+                    <ul class="bullet-list" style="margin-top: 6px;">
+                        <li style="font-size: 18px;">对 <strong>确定长度</strong> \(\mathrm ds\) 做加总</li>
+                        <li style="font-size: 18px;">积累的是 <strong>规则输入、平均趋势、面积</strong></li>
+                        <li style="font-size: 18px;">路径光滑时，可按普通微积分理解</li>
+                        <li style="font-size: 18px;">量级上：\(\Delta t\) 很小时，主导项是 \(\Delta t\)</li>
+                    </ul>
+                    <div class="math-wrapper" style="margin-top: 10px;">
+                        <div class="math-box" style="font-size: 18px; text-align: left; padding: 14px 18px; background: #eff6ff; border-color: #bfdbfe;">
+                            \[
+                            X(t)=X(0)+\int_0^t \mu(s)\,\mathrm ds
+                            \]
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 24px;">
+                    <h3 style="font-size: 24px;"><i class="fas fa-bolt"></i> Itô 积分</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 24px; border-left: 5px solid #8b5cf6;">
+                            \[
+                            \int_0^t f(s)\,\mathrm dB(s)
+                            \]
+                        </div>
+                    </div>
+                    <ul class="bullet-list" style="margin-top: 6px;">
+                        <li style="font-size: 18px;">对 <strong>Brown 增量</strong> \(\mathrm dB(s)\) 做加总</li>
+                        <li style="font-size: 18px;">积累的是 <strong>随机噪声的累计影响</strong></li>
+                        <li style="font-size: 18px;">因为 Brown 路径粗糙，不能直接按普通积分理解</li>
+                        <li style="font-size: 18px;">量级上：\(\Delta B \sim \sqrt{\Delta t}\)，比 \(\Delta t\) 更“显眼”</li>
+                    </ul>
+                    <div class="math-wrapper" style="margin-top: 10px;">
+                        <div class="math-box" style="font-size: 18px; text-align: left; padding: 14px 18px; background: #f5f3ff; border-color: #ddd6fe;">
+                            \[
+                            X(t)=X(0)+\int_0^t \mu(s)\,\mathrm ds+\int_0^t \sigma(s)\,\mathrm dB(s)
+                            \]
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-column-top" style="gap: 32px; margin-top: 18px; align-items: stretch;">
+                <div class="tile" style="border-top-color: #10b981; padding: 22px;">
+                    <h3 style="font-size: 22px;"><i class="fas fa-chart-area"></i> 图形理解</h3>
+                    <div style="display:flex; gap:18px; align-items:flex-end; justify-content:space-between; height:150px; margin-top:8px;">
+                        <div style="flex:1; height:120px; border-left:2px solid #94a3b8; border-bottom:2px solid #94a3b8; position:relative; background:linear-gradient(to top, rgba(59,130,246,0.08), transparent 65%); overflow:hidden; border-radius: 0 0 0 8px;">
+                            <svg viewBox="0 0 240 120" width="100%" height="100%" preserveAspectRatio="none" style="position:absolute; inset:0;">
+                                <path d="M 0 98 C 40 93, 65 82, 95 74 S 150 58, 180 46 S 215 28, 240 18" fill="none" stroke="#2563eb" stroke-width="3"/>
+                            </svg>
+                            <div style="position:absolute; right:8px; top:6px; font-size:12px; color:#1d4ed8; font-weight:700;">面积/趋势</div>
+                        </div>
+                        <div style="flex:1; height:120px; border-left:2px solid #94a3b8; border-bottom:2px solid #94a3b8; position:relative; background:linear-gradient(to top, rgba(139,92,246,0.07), transparent 65%); overflow:hidden; border-radius: 0 0 0 8px;">
+                            <svg viewBox="0 0 240 120" width="100%" height="100%" preserveAspectRatio="none" style="position:absolute; inset:0;">
+                                <path d="M 0 66 L 12 60 L 24 74 L 36 48 L 48 81 L 60 44 L 72 71 L 84 35 L 96 76 L 108 43 L 120 70 L 132 52 L 144 86 L 156 40 L 168 68 L 180 32 L 192 84 L 204 46 L 216 75 L 228 28 L 240 62" fill="none" stroke="#7c3aed" stroke-width="3"/>
+                            </svg>
+                            <div style="position:absolute; right:8px; top:6px; font-size:12px; color:#6d28d9; font-weight:700;">噪声累计</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tile" style="border-top-color: #f59e0b; padding: 22px; background: #fffaf0;">
+                    <h3 style="font-size: 22px;"><i class="fas fa-key"></i> 课堂抓手</h3>
+                    <p style="font-size: 19px; line-height: 1.75; margin-bottom: 8px;">
+                        普通积分回答的是：<strong>规则输入累计了多少</strong>；
+                        Itô 积分回答的是：<strong>随机噪声一路累计后，对系统造成了多少影响</strong>。
+                    </p>
+                    <div class="math-wrapper" style="margin-top: 6px;">
+                        <div class="math-box" style="font-size: 20px; border-left: 5px solid #f59e0b; background: #fff7ed; border-color: #fed7aa;">
+                            \[
+                            	ext{普通积分处理趋势，Itô 积分处理噪声}
+                            \]
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <!-- Slide 41: 为什么 Brown 运动不能直接用普通积分来积 -->
+    <div class="slide-container" id="slide41">
+        <h2 class="slide-title"><i class="fas fa-circle-question"></i> 为什么 Brown 运动不能直接用普通积分来积？</h2>
+        <div class="content-area">
+            <div class="two-column-top" style="gap: 30px; align-items: stretch;">
+                <div class="tile" style="border-top-color: #ef4444; padding: 24px;">
+                    <h3 style="font-size: 24px;"><i class="fas fa-triangle-exclamation"></i> 普通积分为什么失灵</h3>
+                    <ul class="bullet-list" style="margin-top: 6px;">
+                        <li style="font-size: 18px;">普通 Riemann-Stieltjes 积分通常要求被积路径足够光滑，至少总变差不能太坏。</li>
+                        <li style="font-size: 18px;">但 Brown 运动样本路径<strong>连续却极其粗糙</strong>，几乎处处不可导。</li>
+                        <li style="font-size: 18px;">在很小区间上，普通趋势量级是 
+                            \[
+                            \Delta t
+                            \]
+                            ，而 Brown 增量量级是
+                            \[
+                            \Delta B \sim \sqrt{\Delta t}
+                            \]
+                            ，后者反而更大。</li>
+                        <li style="font-size: 18px;">所以把 \(B(t)\) 当成普通可导函数来积，会把最重要的随机波动部分看漏。</li>
+                    </ul>
+                </div>
+
+                <div class="tile" style="border-top-color: #8b5cf6; padding: 24px;">
+                    <h3 style="font-size: 24px;"><i class="fas fa-chart-line"></i> 直观图像</h3>
+                    <div style="display:flex; gap:18px; align-items:flex-end; justify-content:space-between; height:170px; margin-top:8px;">
+                        <div style="flex:1; height:130px; border-left:2px solid #94a3b8; border-bottom:2px solid #94a3b8; position:relative; overflow:hidden; border-radius:0 0 0 8px; background:linear-gradient(to top, rgba(16,185,129,0.06), transparent 70%);">
+                            <svg viewBox="0 0 240 130" width="100%" height="100%" preserveAspectRatio="none" style="position:absolute; inset:0;">
+                                <path d="M 0 112 C 50 108, 90 96, 140 78 S 200 48, 240 25" fill="none" stroke="#059669" stroke-width="3"/>
+                            </svg>
+                            <div style="position:absolute; right:8px; top:6px; font-size:12px; color:#047857; font-weight:700;">普通光滑曲线</div>
+                        </div>
+                        <div style="flex:1; height:130px; border-left:2px solid #94a3b8; border-bottom:2px solid #94a3b8; position:relative; overflow:hidden; border-radius:0 0 0 8px; background:linear-gradient(to top, rgba(239,68,68,0.05), transparent 70%);">
+                            <svg viewBox="0 0 240 130" width="100%" height="100%" preserveAspectRatio="none" style="position:absolute; inset:0;">
+                                <path d="M 0 72 L 10 62 L 20 84 L 30 56 L 40 95 L 50 58 L 60 76 L 70 42 L 80 88 L 90 52 L 100 83 L 110 49 L 120 97 L 130 40 L 140 82 L 150 34 L 160 92 L 170 48 L 180 101 L 190 46 L 200 74 L 210 28 L 220 90 L 230 44 L 240 66" fill="none" stroke="#dc2626" stroke-width="3"/>
+                            </svg>
+                            <div style="position:absolute; right:8px; top:6px; font-size:12px; color:#b91c1c; font-weight:700;">Brown 粗糙路径</div>
+                        </div>
+                    </div>
+                    <p style="font-size: 17px; line-height: 1.7; margin-top: 12px; color:#475569;">
+                        左边可以近似看成“由很多小直线拼起来”的普通曲线；右边局部放大后仍然剧烈抖动，无法用普通导数或普通微积分直觉直接处理。
+                    </p>
+                </div>
+            </div>
+
+            <div class="two-column-top" style="gap: 30px; margin-top: 18px; align-items: stretch;">
+                <div class="tile" style="border-top-color: #3b82f6; padding: 22px; background:#eff6ff;">
+                    <h3 style="font-size: 22px;"><i class="fas fa-square-root-variable"></i> 量级比较才是关键</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 22px; border-left: 5px solid #3b82f6; background:#f8fbff; border-color:#bfdbfe;">
+                            \[
+                            \Delta B \sim \sqrt{\Delta t},\qquad (\Delta B)^2 \sim \Delta t
+                            \]
+                        </div>
+                    </div>
+                    <p style="font-size: 18px; line-height: 1.7; margin-bottom: 0;">
+                        这意味着 \((\mathrm dB)^2\) 不能像普通微积分那样随便丢掉，反而会留下 \(\mathrm dt\) 级别的贡献，这正是 Itô 公式里多出二阶项的根源。
+                    </p>
+                </div>
+
+                <div class="tile" style="border-top-color: #f59e0b; padding: 22px; background:#fffaf0;">
+                    <h3 style="font-size: 22px;"><i class="fas fa-key"></i> 一句话理解</h3>
+                    <div class="math-wrapper">
+                        <div class="math-box" style="font-size: 20px; border-left: 5px solid #f59e0b; background:#fff7ed; border-color:#fed7aa;">
+                            \[
+                            	ext{Brown 路径太粗糙，普通积分抓不住噪声的主导波动，所以必须用 Itô 积分。}
+                            \]
+                        </div>
+                    </div>
+                    <p style="font-size: 18px; line-height: 1.7; margin-bottom: 0;">
+                        也可以更直白地说：普通积分适合“平滑输入”，Itô 积分是专门为“连续但粗糙的随机输入”设计的。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Slide 40: 课堂小结 -->
+    <div class="slide-container" id="slide35">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 课堂小结</h2>
+        <div class="content-area">
+            <div class="tile" style="border-top-color: #3b82f6; padding: 36px;">
+                <ul class="bullet-list" style="font-size: 22px; line-height: 1.8;">
+                    <li>从<strong>随机游动积分</strong>出发，可以把“下注收益”写成离散随机积分，并看到它天然具有鞅结构。</li>
+                    <li>对 Brown 运动，先从<strong>简单过程</strong>定义积分，再借助逼近把定义扩展到更一般的适应过程，得到 <strong>Itô 积分</strong>。</li>
+                    <li><strong>Itô 等距性</strong>是本章核心工具，它把随机积分的二阶矩转化为普通积分，极大简化了分析。</li>
+                    <li>积分过程 \(Y(t)=\int_0^t X(s)\,\mathrm dB(s)\) 是连续平方可积鞅，并可进一步讨论<strong>二次变差</strong>与<strong>二次协变差</strong>。</li>
+                    <li><strong>Itô 公式</strong>是随机分析里的“链式法则”，它说明 Brown 运动函数的微分不仅有一阶项，还会多出二阶修正项。</li>
+                    <li>在金融建模、随机微分方程与连续时间随机系统中，随机积分与 Itô 公式都是后续内容的基础。</li>
+                </ul>
+            </div>
+            <a class="btn-corner no-fragment" href="https://example.com/homework" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-up-right-from-square"></i> 本章作业库
+            </a>
+        </div>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const slides = Array.from(document.querySelectorAll('.slide-container'));
+    let currentSlideIndex = Math.max(0, Math.min(Number(localStorage.getItem('chapter8CurrentSlide')) || 0, slides.length - 1));
+    let suppressFullscreenExit = false;
+    function isPresentationMode(){ return document.body.classList.contains('presentation-mode'); }
+    function isInteractiveTarget(target){ return Boolean(target.closest('a, button, input, textarea, select, label, video, audio, canvas, svg, [contenteditable="true"], .no-slide-click, .btn-corner')); }
+    function getFragments(slide){ return Array.from(slide.querySelectorAll('.fragment')); }
+    function getHiddenFragments(slide){ return getFragments(slide).filter(el => !el.classList.contains('show')); }
+    function getShownFragments(slide){ return getFragments(slide).filter(el => el.classList.contains('show')); }
+    function updateAllShownState(slide){ if(!slide) return; const has=!!slide.querySelector('.fragment'); const hidden=!!slide.querySelector('.fragment:not(.show)'); slide.classList.toggle('all-shown', has && !hidden); }
+    function resetFragments(slide){ getFragments(slide).forEach(el => el.classList.remove('show')); updateAllShownState(slide); }
+    function revealNextStep(slide){ const hidden=getHiddenFragments(slide); if(!hidden.length){ updateAllShownState(slide); return false; } const next=Math.min(...hidden.map(el=>Number(el.dataset.step||1))); const targets=hidden.filter(el=>Number(el.dataset.step||1)===next); targets.forEach(el=>el.classList.add('show')); updateAllShownState(slide); if(window.MathJax && typeof MathJax.typesetPromise==='function'){ MathJax.typesetPromise(targets).catch(()=>{}); } return true; }
+    function hideLastStep(slide){ const shown=getShownFragments(slide); if(!shown.length) return false; const last=Math.max(...shown.map(el=>Number(el.dataset.step||1))); shown.filter(el=>Number(el.dataset.step||1)===last).forEach(el=>el.classList.remove('show')); updateAllShownState(slide); return true; }
+    function applyPresentationScale(slide){ if(!isPresentationMode() || !slide) return; const scale=Math.min(window.innerWidth/1280, window.innerHeight/720); slide.style.transform=`translate(-50%, -50%) scale(${scale})`; }
+    function showSlide(index, reset=true){ currentSlideIndex=Math.max(0, Math.min(index, slides.length-1)); slides.forEach((slide,i)=>{ slide.classList.toggle('active-slide', i===currentSlideIndex); slide.style.transform=''; }); localStorage.setItem('chapter8CurrentSlide', String(currentSlideIndex)); if(reset && isPresentationMode()) resetFragments(slides[currentSlideIndex]); applyPresentationScale(slides[currentSlideIndex]); }
+    function getVisibleSlideIndex(){ let best=currentSlideIndex, score=Infinity, cy=window.innerHeight/2; slides.forEach((slide,i)=>{ const r=slide.getBoundingClientRect(); const s=Math.abs(r.top+r.height/2-cy); if(s<score){score=s; best=i;} }); return best; }
+    function goNextSlide(){ if(currentSlideIndex<slides.length-1) showSlide(currentSlideIndex+1,true); }
+    function goPrevSlide(){ if(currentSlideIndex>0) showSlide(currentSlideIndex-1,true); }
+    async function enterPresentationMode(){ currentSlideIndex=getVisibleSlideIndex(); document.body.classList.add('presentation-mode'); showSlide(currentSlideIndex,true); if(document.documentElement.requestFullscreen && !document.fullscreenElement){ try{ await document.documentElement.requestFullscreen({navigationUI:'hide'}); }catch(e){ try{ await document.documentElement.requestFullscreen(); }catch(e2){} } } applyPresentationScale(slides[currentSlideIndex]); }
+    async function exitPresentationMode(){ const target=currentSlideIndex; document.body.classList.remove('presentation-mode'); slides.forEach(slide=>{ slide.classList.remove('active-slide'); slide.style.transform=''; }); suppressFullscreenExit=true; if(document.fullscreenElement && document.exitFullscreen){ try{ await document.exitFullscreen(); }catch(e){} } setTimeout(()=>{suppressFullscreenExit=false;},100); requestAnimationFrame(()=>slides[target]?.scrollIntoView({block:'center',behavior:'auto'})); }
+    function autoFragmentize(){ slides.forEach(slide=>{ if(slide.classList.contains('title-slide')){ slide.querySelectorAll('.fragment').forEach(el=>el.classList.add('show')); slide.classList.add('all-shown'); return; } const area=slide.querySelector('.content-area'); if(!area) return; const kids=[...area.children].filter(el=>!el.classList.contains('no-fragment')&&!el.classList.contains('btn-corner')); const manual=kids.some(el=>el.classList.contains('fragment')); if(!manual){ kids.forEach((el,idx)=>{ el.classList.add('fragment'); el.dataset.step=String(idx+1); }); } updateAllShownState(slide); }); }
+    autoFragmentize(); slides.forEach(updateAllShownState); requestAnimationFrame(()=>slides[currentSlideIndex]?.scrollIntoView({block:'center',behavior:'auto'}));
+    document.querySelectorAll('a, button, input, textarea, select, label, video, audio, canvas, svg').forEach(el=>{ ['click','mousedown','mouseup','pointerdown','pointerup','touchstart','touchend','input','change'].forEach(type=>el.addEventListener(type,ev=>ev.stopPropagation())); });
+    slides.forEach(slide=>{ slide.addEventListener('click', e=>{ if(!isPresentationMode()) return; if(isInteractiveTarget(e.target)) return; e.preventDefault(); const revealed=revealNextStep(slide); if(!revealed) goNextSlide(); }); });
+    document.addEventListener('keydown', async e=>{ const key=e.key; if(key==='F5'){ e.preventDefault(); if(isPresentationMode()) await exitPresentationMode(); else await enterPresentationMode(); return; } if(key==='Escape' && isPresentationMode()){ e.preventDefault(); await exitPresentationMode(); return; } if(!isPresentationMode()) return; const active=slides[currentSlideIndex]; if(['ArrowRight','ArrowDown','PageDown',' ','Enter','N','n'].includes(key)){ e.preventDefault(); const revealed=revealNextStep(active); if(!revealed) goNextSlide(); return; } if(['ArrowLeft','ArrowUp','PageUp','Backspace','P','p'].includes(key)){ e.preventDefault(); const hidden=hideLastStep(active); if(!hidden) goPrevSlide(); return; } });
+    document.addEventListener('fullscreenchange', ()=>{ if(!document.fullscreenElement && isPresentationMode() && !suppressFullscreenExit){ exitPresentationMode(); } else if(isPresentationMode()){ applyPresentationScale(slides[currentSlideIndex]); } });
+    window.addEventListener('resize', ()=>{ if(isPresentationMode()) applyPresentationScale(slides[currentSlideIndex]); });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用随机过程 - 课程总结与综合应用</title>
+    <!-- 引入字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <!-- 引入图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05 /* 略微放大公式整体比例 */
+            }
+        };
+    </script>
+       <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js" onerror="this.onerror=null; this.src='https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';"></script>
+    
+    <style>
+        /* 全局重置 */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body, html {
+            background-color: #f1f5f9; /* 浅灰蓝外层背景 */
+            width: 100%;
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 40px 0;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 60px;
+        }
+
+        /* 幻灯片垂直滚动容器 */
+        .slide-container {
+            position: relative;
+            width: 1280px; height: 720px; /* 固定标准 16:9 比例 */
+            background-color: #ffffff; /* 纯白容器 */
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); /* 优雅的阴影 */
+            border-radius: 12px;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+
+        /* 顶部彩色渐变装饰条 */
+        .slide-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 10px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+            z-index: 10;
+        }
+
+        .slide-container::after {
+            content: '点击显示下一部分';
+            position: absolute;
+            right: 20px;
+            bottom: 16px;
+            font-size: 14px;
+            color: #94a3b8;
+            background: rgba(255,255,255,0.88);
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid #e2e8f0;
+            z-index: 20;
+        }
+        .slide-container.all-shown::after { content: '本页内容已全部显示'; }
+
+        /* 高级封面页样式 (优化版) */
+        .title-slide { 
+            background: #020617;
+            color: white; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 60px;
+            position: relative; overflow: hidden;
+        }
+        .slide-container:first-child::before { display: none; }
+        .slide-container.title-slide::after { display: none; }
+        
+        /* 封面网格背景 */
+        .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        /* 封面发光装饰球 */
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(236,72,153,0.1) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        /* 封面毛玻璃内容卡片 */
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.6); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin-bottom: 20px; letter-spacing: 2px; }
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 32px; font-weight: 300; letter-spacing: 1px; }
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.5); color: #60a5fa;
+            padding: 10px 30px; border-radius: 50px; font-size: 22px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        .title-content .course-info { margin-top: 50px; display: flex; gap: 40px; color: #64748b; font-size: 20px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 30px; }
+        .title-content .course-info div { display: flex; align-items: center; gap: 10px; }
+
+        /* 内容页统一标题样式 */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #1e293b;
+            margin: 50px 80px 20px 80px; padding-bottom: 15px;
+            border-bottom: 3px solid #e2e8f0; text-align: left;
+            display: flex; align-items: center; gap: 20px; z-index: 2;
+        }
+        .slide-title i { color: #3b82f6; }
+
+        .content-area { flex-grow: 1; padding: 0 80px 50px 80px; display: flex; flex-direction: column; justify-content: center; z-index: 1; }
+
+        /* 文本与列表 */
+        p { font-size: 24px; color: #334155; line-height: 1.7; margin-bottom: 20px; }
+        .bullet-list { list-style: none; margin-left: 10px; }
+        .bullet-list li { font-size: 22px; color: #475569; margin-bottom: 15px; position: relative; padding-left: 35px; line-height: 1.5; }
+        .bullet-list li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 5px; color: #3b82f6; font-size: 22px; }
+
+        /* 布局组件 */
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center; width: 100%; height: 100%; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: flex-start; width: 100%; height: 100%; }
+        
+        /* 灰底卡片式 (tile) */
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; width: 100%; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; width: 100%; }
+        .tile { 
+            background: #f8fafc; padding: 30px; border-radius: 16px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+            border: 1px solid #e2e8f0; border-top: 5px solid #3b82f6;
+        }
+        .tile h3 { font-size: 26px; color: #1e293b; margin-bottom: 15px; display: flex; align-items: center; gap: 15px; }
+        .tile p { font-size: 20px; margin-bottom: 0; color: #475569; }
+
+        /* 专用的极客风深色公式代码框 (math-box) - 全局样式应用 */
+        .math-box {
+            --math-text-color: #111827;
+            background: #f8fafc;
+            color: var(--math-text-color);
+            border-radius: 12px;
+            font-family: monospace;
+            box-shadow: inset 0 1px 2px rgba(15,23,42,0.06);
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            overflow: visible;
+            font-size: 28px;
+            padding: 16px 22px;
+            margin: 18px 0;
+            line-height: 1.6;
+            min-height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .math-box mjx-container {
+            font-size: 112% !important;
+            color: var(--math-text-color) !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            white-space: normal !important;
+        }
+        .math-box mjx-container *,
+        .math-box mjx-container mjx-math,
+        .math-box mjx-container mjx-mrow,
+        .math-box mjx-container mjx-mi,
+        .math-box mjx-container mjx-mo,
+        .math-box mjx-container mjx-mn,
+        .math-box mjx-container mjx-mtext {
+            color: var(--math-text-color) !important;
+        }
+        .math-box mjx-container[display="true"] {
+            margin: 0.2em 0 !important;
+            width: 100% !important;
+        }
+        .transparent-math,
+        .formula-plain,
+        .light-formula {
+            --math-text-color: #111827;
+            background: transparent !important;
+            box-shadow: none !important;
+            color: var(--math-text-color) !important;
+            border-color: #cbd5e1 !important;
+        }
+        .light-formula {
+            border: 2px dashed #cbd5e1;
+        }
+        .math-box-short {
+            white-space: normal !important;
+        }
+        .formula-plain {
+            margin: 16px 0;
+            text-align: center;
+        }
+
+        /* 强调词 */
+        .highlight { color: #ec4899; font-weight: bold; }
+        .highlight-blue { color: #3b82f6; font-weight: bold; }
+
+        .fragment {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.45s ease, transform 0.45s ease;
+            pointer-events: none;
+        }
+        .fragment.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        body.presentation-mode {
+            padding: 0;
+            gap: 0;
+            margin: 0;
+            background: #000;
+            overflow: hidden;
+            display: block;
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.presentation-mode .slide-container {
+            width: 1280px;
+            height: 720px;
+            border-radius: 0;
+            box-shadow: none;
+            margin: 0;
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center center;
+            overflow: hidden;
+        }
+
+        body.presentation-mode .slide-container.active-slide {
+            display: flex;
+        }
+
+        body:not(.presentation-mode) .fragment {
+            opacity: 1 !important;
+            transform: none !important;
+            pointer-events: auto !important;
+        }
+        @page {
+    size: A4 landscape;
+    margin: 0;
+}
+
+@media print {
+    html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        display: block !important;
+        overflow: visible !important;
+        width: auto !important;
+        gap: 0 !important;
+    }
+
+    .slide-container {
+        width: 297mm !important;
+        height: 210mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: hidden !important;
+    }
+
+    .slide-container:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
+    }
+
+    .slide-container::after {
+        display: none !important;
+    }
+
+    .fragment {
+        opacity: 1 !important;
+        transform: none !important;
+        pointer-events: auto !important;
+    }
+}
+
+
+        /* Brown运动仿真页 */
+        .bm-live-wrap {
+            display: grid;
+            grid-template-columns: 1.02fr 1.18fr;
+            gap: 22px;
+            align-items: stretch;
+            width: 100%;
+            height: 100%;
+        }
+        .bm-panel {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .bm-panel h3 {
+            font-size: 22px;
+            color: #1f2937;
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .bm-badge {
+            background: #ccfbf1;
+            color: #0f766e;
+            border: 1px solid #99f6e4;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            animation: bmPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes bmPulse {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .bm-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin: 10px 0 14px 0;
+            flex-wrap: wrap;
+        }
+        .bm-slider-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f0fdfa;
+            border: 1px solid #99f6e4;
+            border-radius: 12px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 8px rgba(13,148,136,0.08);
+            color: #115e59;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .bm-slider-wrap input[type="range"] {
+            accent-color: #0d9488;
+            width: 110px;
+        }
+        .bm-reset-btn {
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #0d9488, #0f766e);
+            color: #fff;
+            font-size: 15px;
+            font-weight: 700;
+            padding: 10px 16px;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(13,148,136,0.22);
+        }
+        .bm-reset-btn:hover { filter: brightness(1.04); }
+        .bm-quote {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #334155;
+            background: #f0fdfa;
+            border: 1px solid #ccfbf1;
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+        }
+        .bm-microscope {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 320px;
+            margin: 0 auto;
+            background: #e2e8f0;
+            border-radius: 50%;
+            border: 8px solid #cbd5e1;
+            overflow: hidden;
+            box-shadow: inset 0 0 45px rgba(0,0,0,0.35);
+        }
+        .bm-microscope::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(#64748b 1px, transparent 1px);
+            background-size: 15px 15px;
+            opacity: 0.12;
+        }
+        .bm-2d-canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .bm-particle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #fbbf24;
+            border: 2px solid #fff;
+            border-radius: 999px;
+            box-shadow: 0 0 12px rgba(251,191,36,0.85);
+            transform: translate(-50%, -50%);
+            z-index: 3;
+        }
+        .bm-subnote {
+            margin-top: 14px;
+            font-size: 14px;
+            line-height: 1.7;
+            color: #64748b;
+            text-align: center;
+        }
+        .bm-graphs {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-height: 0;
+        }
+       .bm-graph-box {
+    flex: 0 0 110px;
+    display: flex;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #f8fafc;
+    box-shadow: inset 0 2px 10px rgba(148,163,184,0.12);
+    min-height: 110px;
+}
+        .bm-graph-label {
+            width: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-family: monospace;
+            font-size: 18px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            letter-spacing: 1px;
+            flex-shrink: 0;
+        }
+        .bm-graph-label.x { background: #fff1f2; color: #e11d48; border-right: 1px solid #fecdd3; }
+        .bm-graph-label.y { background: #eff6ff; color: #2563eb; border-right: 1px solid #bfdbfe; }
+        .bm-graph-canvas {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .bm-footnote {
+            margin-top: 12px;
+            font-size: 14px;
+            line-height: 1.75;
+            color: #64748b;
+        }
+
+
+        /* ===== Brown运动 vs 泊松过程 对比仿真页 ===== */
+.compare-sim-slide .content-area {
+    justify-content: flex-start;
+    padding-top: 10px;
+}
+
+.compare-sim-wrap {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    width: 100%;
+    padding: 18px 22px 20px 22px;
+}
+
+.compare-sim-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.compare-sim-btn {
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(79, 70, 229, 0.22);
+    transition: 0.2s ease;
+}
+
+.compare-sim-btn:hover {
+    background: #4338ca;
+}
+
+.compare-sim-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.compare-sim-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    align-items: stretch;
+}
+
+.compare-panel {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f8fafc;
+    min-height: 240px;
+    box-shadow: inset 0 2px 10px rgba(148,163,184,0.10);
+}
+
+.compare-panel.bm {
+    border-color: #fecdd3;
+}
+
+.compare-panel.pp {
+    border-color: #bbf7d0;
+}
+
+.compare-panel-top {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    right: 14px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.compare-panel-tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.05);
+}
+
+.compare-panel.bm .compare-panel-tag {
+    color: #be123c;
+    border-color: #fecdd3;
+}
+
+.compare-panel.pp .compare-panel-tag {
+    color: #047857;
+    border-color: #bbf7d0;
+}
+
+.compare-panel-value {
+    font-size: 15px;
+    font-family: monospace;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.86);
+}
+
+.compare-panel.bm .compare-panel-value {
+    color: #e11d48;
+}
+
+.compare-panel.pp .compare-panel-value {
+    color: #059669;
+}
+
+.compare-canvas {
+    width: 100%;
+    height: 220px;
+    display: block;
+}
+
+.compare-time-axis {
+    text-align: center;
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 700;
+    margin-top: 10px;
+}
+
+.compare-scanner-line {
+    position: absolute;
+    width: 2px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 8;
+    display: none;
+}
+
+.compare-panel.bm .compare-scanner-line {
+    background: #f43f5e;
+    box-shadow: 0 0 10px #f43f5e;
+}
+
+.compare-panel.pp .compare-scanner-line {
+    background: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+@media (max-width: 1100px) {
+    .compare-sim-main {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+/* ===== 宏观趋势 vs 微观碎形 仿真页 ===== */
+.bm-fractal-slide .content-area {
+    justify-content: flex-start;
+    padding-top: 8px;
+}
+
+.bm-fractal-wrap {
+    width: 100%;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    padding: 18px 22px 18px 22px;
+}
+
+.bm-fractal-header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.bm-fractal-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #1f2937;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.bm-fractal-btn {
+    background: #4f46e5;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(79, 70, 229, 0.22);
+    transition: 0.2s ease;
+    white-space: nowrap;
+}
+
+.bm-fractal-btn:hover {
+    background: #4338ca;
+}
+
+.bm-fractal-explains {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+    align-items: stretch;
+}
+
+.bm-fractal-card {
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(15,23,42,0.05);
+}
+
+.bm-fractal-card.macro {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+}
+
+.bm-fractal-card.micro {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+}
+
+.bm-fractal-card h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bm-fractal-chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 8px;
+}
+
+.bm-fractal-card.macro .bm-fractal-chip {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.bm-fractal-card.micro .bm-fractal-chip {
+    background: #c7d2fe;
+    color: #3730a3;
+}
+
+.bm-fractal-card p {
+    font-size: 15px;
+    line-height: 1.75;
+    color: #475569;
+    margin: 0;
+}
+
+.bm-fractal-visuals {
+    margin-top: 18px;
+    position: relative;
+}
+
+.bm-fractal-macro-box,
+.bm-fractal-micro-box {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 16px;
+}
+
+.bm-fractal-macro-box {
+    height: 170px;
+    border: 2px solid #cbd5e1;
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+}
+
+.bm-fractal-micro-box {
+    height: 230px;
+    border: 2px solid #818cf8;
+    box-shadow: 0 8px 22px rgba(99,102,241,0.18);
+    margin-top: 6px;
+}
+
+.bm-fractal-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background: #ffffff;
+}
+
+.bm-fractal-top-tag {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    z-index: 8;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 5px 9px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.05);
+}
+
+.bm-fractal-macro-box .bm-fractal-top-tag {
+    color: #334155;
+}
+
+.bm-fractal-micro-box .bm-fractal-top-tag {
+    color: #4338ca;
+    background: rgba(79,70,229,0.92);
+    color: #fff;
+    border-color: #6366f1;
+}
+
+.bm-fractal-time-label {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    z-index: 8;
+    font-size: 12px;
+    font-family: monospace;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #c7d2fe;
+    color: #4338ca;
+}
+
+.bm-fractal-zoom-box {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    width: 10%;
+    background: rgba(99, 102, 241, 0.15);
+    border: 2px solid rgba(99, 102, 241, 0.8);
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    cursor: grab;
+    z-index: 6;
+}
+
+.bm-fractal-zoom-box:active {
+    cursor: grabbing;
+}
+
+.bm-fractal-slider-wrap {
+    width: 100%;
+    padding: 12px 0 4px 0;
+    position: relative;
+    z-index: 20;
+}
+
+.bm-fractal-slider-wrap input[type=range] {
+    -webkit-appearance: none;
+    background: transparent;
+    width: 100%;
+}
+
+.bm-fractal-slider-wrap input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 22px;
+    width: 22px;
+    border-radius: 50%;
+    background: #4f46e5;
+    cursor: pointer;
+    margin-top: -7px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.bm-fractal-slider-wrap input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    cursor: pointer;
+    background: #e2e8f0;
+    border-radius: 4px;
+}
+
+.bm-fractal-slider-hint {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    color: #4f46e5;
+    margin-top: 4px;
+}
+
+.bm-fractal-connector-svg {
+    position: absolute;
+    width: 100%;
+    height: 80px;
+    top: 170px;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+    .bm-fractal-explains {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+
+
+        /* ===== 翻页笔/浏览模式修复 ===== */
+        body:not(.presentation-mode) .slide-container::after { content: '浏览模式：全部内容已显示'; }
+        body.presentation-mode .slide-container::after { content: '鼠标/空格/回车/翻页笔：显示下一部分'; }
+        body.presentation-mode .slide-container.all-shown::after { content: '本页内容已全部显示；再按翻页笔进入下一页'; }
+
+    </style>
+</head>
+
+<body>
+<div class="slide-container title-slide" id="slide-title-summary">
+<div class="glow-orb-1"></div><div class="glow-orb-2"></div>
+<div class="title-content">
+<div class="badge"><i class="fas fa-route"></i> 课程收官</div>
+<h1>应用随机过程<span>综合总结与应用案例</span></h1>
+<p class="subtitle">从随机事件、状态转移到连续波动</p>
+<div class="course-info" style="margin-top:70px;">
+<div><i class="fas fa-book"></i> 应用随机过程</div>
+<div><i class="fas fa-university"></i> 计算机科学与技术</div>
+</div>
+</div>
+</div>
+
+
+<div class="slide-container" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+<div class="content-area" style="align-items:center; text-align:center;">
+<h2 style="font-size:64px; margin-bottom:20px;">第一节：全课程知识地图</h2>
+<hr style="width:150px; height:6px; background:linear-gradient(90deg,#3b82f6,#8b5cf6); border:none; margin:20px 0;">
+<p style="font-size:28px; color:#cbd5e1;">从随机现象到随机模型</p>
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-question-circle"></i> 随机过程课程的总问题</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1" style="border-top-color:#3b82f6;"><p style="font-size:28px; line-height:1.8;">随机过程研究的不是“某一次随机结果”，而是<strong>随机现象如何随时间演化</strong>。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #3b82f6;">\[\{X(t),\ t\in T\}\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile" style="border-top-color:#10b981;"><h3>时间维度</h3><p>离散时间还是连续时间？例如每天、每分钟，还是任意时刻。</p></div>
+<div class="tile" style="border-top-color:#8b5cf6;"><h3>状态维度</h3><p>离散状态还是连续状态？例如人数、订单数，还是温度、价格。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-table-cells"></i> 四类随机过程：先看时间和状态</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1" style="border-top-color:#3b82f6;"><h3>离散时间 + 离散状态</h3><p>Markov 链：天气、网页跳转、信用等级变化。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>连续时间 + 离散状态</h3><p>Poisson 过程、生灭过程、排队系统。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>离散时间 + 连续状态</h3><p>时间序列、随机递推、收益率序列。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>连续时间 + 连续状态</h3><p>Brown 运动、扩散过程、随机微分方程。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-compass"></i> 课程主线：三个核心问题</h2>
+<div class="content-area">
+
+<div class="tiled-content-3">
+<div class="tile fragment" data-step="1"><h3><i class="fas fa-clock"></i> 事件何时发生？</h3><p>Poisson 过程描述随机到达、故障、请求、事故等计数现象。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3><i class="fas fa-shuffle"></i> 状态如何转移？</h3><p>Markov 链描述“下一步去哪”，重点是转移概率与长期稳定。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#ec4899;"><h3><i class="fas fa-wave-square"></i> 波动如何累积？</h3><p>Brown 运动描述连续随机波动，鞅描述公平预测结构。</p></div>
+</div>
+<div class="math-box fragment" data-step="4" style="font-size:28px; border-left:8px solid #8b5cf6;">\[\text{到达} \rightarrow \text{转移} \rightarrow \text{波动} \rightarrow \text{预测}\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-stopwatch"></i> Poisson 过程：随机事件到达模型</h2>
+<div class="content-area">
+
+<div class="two-column-top">
+<div class="tile fragment" data-step="1"><h3>适合描述</h3><ul class="bullet-list"><li>服务器请求到达</li><li>外卖订单到达</li><li>设备故障次数</li><li>电话呼叫、网页点击</li></ul></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>核心公式</h3><div class="math-box" style="font-size:24px;">\[P\{N(t)=k\}=\frac{(\lambda t)^k}{k!}e^{-\lambda t}\]</div></div>
+</div>
+<div class="tile fragment" data-step="3" style="margin-top:22px; border-top-color:#f59e0b; background:#fffaf0;"><p style="font-size:23px; color:#78350f;">它的本质：在一段时间内数“来了多少件事”。至于这些事是不是让人崩溃，那是系统设计的问题，不归概率论背锅。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-hand"></i> Poisson 过程的三个抓手</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1"><h3>独立增量</h3><p>不重叠时间段内发生的事件数相互独立。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>平稳增量</h3><p>事件数分布只与时间长度有关，与起点无关。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>指数间隔</h3><p>相邻事件到达间隔服从指数分布。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>Gamma 到达时刻</h3><p>第 \(n\) 次到达时刻服从 Gamma 分布。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-diagram-project"></i> Markov 链：状态转移模型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:26px;">Markov 链的核心假设：给定现在，未来与过去无关。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #3b82f6;">\[P(X_{n+1}=j\mid X_n=i,X_{n-1},\ldots,X_0)=P(X_{n+1}=j\mid X_n=i)\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile" style="border-top-color:#10b981;"><h3>短期问题</h3><p>一步或多步转移概率：\(P^n\)。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>长期问题</h3><p>平稳分布、极限分布、遍历性。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-scale-balanced"></i> Markov 链复习：平稳分布</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">如果长期状态比例不再变化，就得到平稳分布。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:32px; border-left:8px solid #10b981;">\[\pi P=\pi,\qquad \sum_i\pi_i=1\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6; background:#faf5ff; margin-top:22px;"><p style="font-size:23px; color:#4c1d95;">直观理解：系统转来转去，最后每个状态被访问的长期比例。不是“最后停在哪”。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-person-running"></i> 连续时间 Markov 链：用 Q 矩阵描述跳转</h2>
+<div class="content-area">
+
+<div class="two-column-top">
+<div class="tile fragment" data-step="1"><h3>离散状态</h3><p>状态仍然是 \(0,1,2,\ldots\)，比如系统中订单数。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>连续时间</h3><p>跳转可以发生在任意时刻，而不是只能按步发生。</p></div>
+</div>
+<div class="math-box fragment" data-step="3" style="font-size:28px; border-left:8px solid #3b82f6;">\[q_{ij}=\lim_{h\to0}\frac{P(X(t+h)=j\mid X(t)=i)}{h},\quad i
+\lt j\]</div>
+<div class="tile fragment" data-step="4" style="margin-top:20px; border-top-color:#ec4899;"><p>核心工具：转移速率矩阵 \(Q\)、Kolmogorov 方程、生灭过程。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-people-arrows"></i> 生灭过程：排队系统的骨架</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">设 \(X(t)\) 表示系统中正在等待或服务的顾客数。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #3b82f6;">\[q_{i,i+1}=\lambda_i,\qquad q_{i,i-1}=\mu_i\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile" style="border-top-color:#10b981;"><h3>出生</h3><p>新顾客到达，状态从 \(i\) 变成 \(i+1\)。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>死亡</h3><p>服务完成，状态从 \(i\) 变成 \(i-1\)。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-balance-scale"></i> 鞅：公平预测结构</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">鞅不是“不会波动”，而是“已知现在时，对未来的最好预测就是现在”。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:32px; border-left:8px solid #8b5cf6;">\[E(X_{n+1}\mid\mathcal F_n)=X_n\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile"><h3>关键词</h3><p>条件期望、信息流、停时、公平游戏。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>用途</h3><p>证明不等式、分析随机算法、处理 Brown 运动相关模型。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-water"></i> Brown 运动：连续随机波动模型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">Brown 运动是连续时间、连续状态随机波动的标准基石模型。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #3b82f6;">\[B(t)-B(s)\sim N(0,t-s),\qquad 0\le s\lt t\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile" style="border-top-color:#10b981;"><h3>路径</h3><p>连续，但几乎处处不可导。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>二次变差</h3><p>\([B]_t=t\)，这直接改变了微积分规则。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-square-root-variable"></i> Itô 思想：随机微积分为什么特殊？</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">普通微积分里，高阶小量通常被忽略；但 Brown 运动的平方增量不能随便扔。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:34px; border-left:8px solid #ec4899;">\[(\mathrm dB_t)^2=\mathrm dt\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#f59e0b; background:#fffaf0; margin-top:22px;"><p style="font-size:23px; color:#78350f;">这就是 Itô 公式里会多出二阶项的原因。Brown 运动看起来是曲线，实际像数学界的刺猬，摸一下就扎手。</p></div>
+
+</div>
+</div>
+<div class="slide-container" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+<div class="content-area" style="align-items:center; text-align:center;">
+<h2 style="font-size:64px; margin-bottom:20px;">第二节：综合应用案例</h2>
+<hr style="width:150px; height:6px; background:linear-gradient(90deg,#3b82f6,#8b5cf6); border:none; margin:20px 0;">
+<p style="font-size:28px; color:#cbd5e1;">校园外卖 / 服务器请求系统建模</p>
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-utensils"></i> 综合案例：校园外卖高峰系统</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">场景：每天 11:00 到 13:00，校园外卖订单快速到达，骑手接单、配送、返回，平台希望控制等待时间。</p></div>
+<div class="tiled-content fragment" data-step="2" style="margin-top:22px;">
+<div class="tile"><h3>问题 1</h3><p>订单到达是否有规律？</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>问题 2</h3><p>骑手状态如何转移？</p></div>
+<div class="tile" style="border-top-color:#8b5cf6;"><h3>问题 3</h3><p>系统会不会拥堵？</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>问题 4</h3><p>需求波动如何预测？</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-sitemap"></i> 建模总图：一个系统，多种随机过程</h2>
+<div class="content-area">
+
+<div class="math-box fragment" data-step="1" style="font-size:28px; border-left:8px solid #3b82f6;">\[\text{订单到达} \rightarrow \text{排队等待} \rightarrow \text{骑手接单} \rightarrow \text{配送完成}\]</div>
+<div class="tiled-content fragment" data-step="2" style="margin-top:22px;">
+<div class="tile"><h3>Poisson 过程</h3><p>描述订单随机到达。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>Markov 链</h3><p>描述骑手状态切换。</p></div>
+<div class="tile" style="border-top-color:#8b5cf6;"><h3>生灭过程</h3><p>描述系统订单数变化。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>Brown 运动</h3><p>描述连续需求扰动。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-cart-shopping"></i> 第一步：订单到达用 Poisson 过程</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:24px;">令 \(N(t)\) 表示从 11:00 开始到 \(t\) 分钟内到达的订单数。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #3b82f6;">\[N(t)\sim P(\lambda t)\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#10b981; margin-top:22px;"><p style="font-size:23px;">若平均每分钟 3 单，则 \(\lambda=3\)。10 分钟内订单数期望为 \(E[N(10)]=30\)。</p></div>
+<div class="math-box fragment" data-step="4" style="font-size:28px; border-left:8px solid #ec4899;">\[P\{N(10)=k\}=\frac{30^k}{k!}e^{-30}\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-calculator"></i> 课堂小算例：10 分钟内超过 40 单怎么办？</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">假设 \(N(10)\sim P(30)\)，平台关心：</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:32px; border-left:8px solid #3b82f6;">\[P\{N(10)\ge 40\}\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6; background:#faf5ff; margin-top:22px;"><p style="font-size:23px; color:#4c1d95;">这个概率可以用 Poisson 分布表、软件或正态近似计算。它回答的是：高峰爆单是不是小概率异常，还是系统每天都该面对的现实。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-motorcycle"></i> 第二步：骑手状态用 Markov 链</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:24px;">设骑手每 10 分钟记录一次状态：</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #3b82f6;">\[0=\text{空闲},\quad 1=\text{接单中},\quad 2=\text{配送中},\quad 3=\text{休息}\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#10b981; margin-top:22px;"><p style="font-size:23px;">若下一时刻状态主要由当前状态决定，可用 Markov 链描述骑手行为。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-table"></i> 骑手状态转移矩阵</h2>
+<div class="content-area">
+
+<div class="math-box fragment" data-step="1" style="font-size:24px; border-left:8px solid #3b82f6;">
+    \[
+    P=\left[
+    \begin{array}{cccc}
+    0.20 & 0.60 & 0.10 & 0.10 \\
+    0.10 & 0.20 & 0.60 & 0.10 \\
+    0.40 & 0.10 & 0.30 & 0.20 \\
+    0.50 & 0.10 & 0.10 & 0.30
+    \end{array}\right]
+    \]
+</div>
+<div class="tiled-content fragment" data-step="2" style="margin-top:22px;">
+<div class="tile"><h3>行</h3><p>当前状态。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>列</h3><p>下一时刻状态。</p></div>
+</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#ec4899; margin-top:20px;"><p style="font-size:22px;">例如第一行表示：空闲骑手下一时刻有 60% 概率进入接单中。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-chart-pie"></i> 长期状态比例：平台要看什么？</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:24px;">求平稳分布：</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #10b981;">\[\pi P=\pi,\qquad \pi_0+\pi_1+\pi_2+\pi_3=1\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile"><h3>配送中比例高</h3><p>说明运力主要被占用。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>空闲比例过低</h3><p>说明高峰时段系统缓冲不足。</p></div>
+</div>
+<div class="tile fragment" data-step="4" style="border-top-color:#f59e0b; background:#fffaf0; margin-top:20px;"><p style="font-size:22px; color:#78350f;">平稳分布不是玄学，它是在问：长远看，骑手们都把时间花在哪了。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-arrow-up-9-1"></i> 第三步：系统订单数用生灭过程</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:24px;">令 \(X(t)\) 表示系统内未完成订单数。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #3b82f6;">\[q_{i,i+1}=\lambda,\qquad q_{i,i-1}=\mu\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile"><h3>来单</h3><p>订单数增加：\(i\to i+1\)。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>完成配送</h3><p>订单数减少：\(i\to i-1\)。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-triangle-exclamation"></i> 系统稳定性：最朴素也最残酷</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">如果只有一个综合服务台，可以近似看作 \(M/M/1\) 系统。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:25px; border-left:8px solid #ec4899;">\[\rho=\frac{\lambda}{\mu}\lt1\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#10b981; margin-top:22px;"><p style="font-size:23px;">当 \(\lambda\lt\mu\)，平均处理速度大于来单速度，系统可能稳定。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ef4444; background:#fff5f5; margin-top:18px;"><p style="font-size:23px; color:#7f1d1d;">当 \(\lambda\ge\mu\)，订单越积越多。数学只是礼貌地告诉你：系统要炸了。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-cloud-rain"></i> 第四步：需求连续波动用 Brown 运动</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:24px;">现实中的订单强度不是常数，天气、活动、考试周都会带来波动。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #3b82f6;">\[\mathrm dD_t=m(t)\,\mathrm dt+\sigma\,\mathrm dB_t\]</div>
+<div class="tiled-content fragment" data-step="3" style="margin-top:22px;">
+<div class="tile"><h3>趋势项</h3><p>\(m(t)\)：午餐高峰、晚餐高峰、节假日规律。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>随机项</h3><p>\(\sigma\mathrm dB_t\)：天气、临时促销、突发事件。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-database"></i> 把模型落到数据：需要哪些变量？</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1"><h3>订单数据</h3><p>下单时间、完成时间、取餐点、配送范围。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>骑手数据</h3><p>状态记录、接单时间、配送耗时、在线人数。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>环境数据</h3><p>天气、温度、是否考试周、是否促销。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>服务质量</h3><p>等待时间、超时率、取消率、投诉率。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-sliders"></i> 估计参数：不是把希腊字母摆着好看</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1"><h3>估计 \(\lambda\)</h3><p>用单位时间平均订单数估计到达率。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>估计 \(P\)</h3><p>统计骑手状态从 \(i\) 到 \(j\) 的频率。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>估计 \(\mu\)</h3><p>用平均配送完成速率估计服务率。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>估计 \(\sigma\)</h3><p>用需求残差波动强度估计扰动大小。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-stethoscope"></i> 模型诊断：什么时候假设不合理？</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1"><h3>Poisson 不合理</h3><p>到达存在明显聚集、过度离散，或者午高峰强度明显变化。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>Markov 不合理</h3><p>下一状态不仅依赖当前状态，还强烈依赖已配送时长或骑手疲劳。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>排队模型不合理</h3><p>服务时间不是指数分布，或骑手之间差异极大。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>Brown 扰动不合理</h3><p>突发跳跃很多，需要考虑跳跃过程或状态切换模型。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-screwdriver-wrench"></i> 改进方向：让模型别太天真</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1"><h3>非齐次 Poisson</h3><p>令 \(\lambda=\lambda(t)\)，刻画午餐高峰和晚餐高峰。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>带协变量强度</h3><p>令 \(\lambda(t)=\exp(\beta_0+\beta_1\text{雨天}+\beta_2\text{促销})\)。</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>多服务台排队</h3><p>用 \(M/M/c\) 描述多个骑手共同服务。</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>仿真优化</h3><p>用 Monte Carlo 模拟不同骑手数量下的等待时间。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-comments"></i> 课堂讨论：如果你是调度员</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:34px;">
+<ul class="bullet-list" style="font-size:23px; line-height:2;">
+<li>如何判断订单到达是否适合 Poisson 过程？</li>
+<li>如果下雨导致订单暴增，模型应该如何加入天气变量？</li>
+<li>骑手状态是否真的满足 Markov 性？</li>
+<li>系统拥堵时，增加骑手和限制订单哪个更有效？</li>
+<li>如何用历史数据验证你的模型？</li>
+</ul>
+</div>
+
+</div>
+</div>
+<div class="slide-container" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+<div class="content-area" style="align-items:center; text-align:center;">
+<h2 style="font-size:64px; margin-bottom:20px;">第三节：期末复习与题型串讲</h2>
+<hr style="width:150px; height:6px; background:linear-gradient(90deg,#3b82f6,#8b5cf6); border:none; margin:20px 0;">
+<p style="font-size:28px; color:#cbd5e1;">从会听到会做</p>
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-filter"></i> 期末复习第一步：看到题先分类</h2>
+<div class="content-area">
+
+<div class="tiled-content">
+<div class="tile fragment" data-step="1"><h3>看时间</h3><p>离散时间还是连续时间？</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981;"><h3>看状态</h3><p>离散状态还是连续状态？</p></div>
+<div class="tile fragment" data-step="3" style="border-top-color:#8b5cf6;"><h3>看性质</h3><p>是否 Markov？是否独立增量？是否平稳增量？</p></div>
+<div class="tile fragment" data-step="4" style="border-top-color:#ec4899;"><h3>看目标</h3><p>求分布、转移概率、平稳分布、条件期望，还是 hitting time？</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-bolt"></i> Poisson 过程常见题型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><ul class="bullet-list" style="font-size:23px; line-height:2;">
+<li>求 \(P\{N(t)=k\}\)、\(P\{N(t)\ge k\}\)；</li>
+<li>求到达间隔时间分布；</li>
+<li>求第 \(n\) 次到达时间分布；</li>
+<li>利用条件分布：给定 \(N(t)=n\)，到达时刻像均匀次序统计量；</li>
+<li>判断是否满足独立增量和平稳增量。</li>
+</ul></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #3b82f6;">\[T_n\sim \operatorname{Gamma}(n,\lambda)\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-link"></i> Markov 链常见题型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><ul class="bullet-list" style="font-size:23px; line-height:2;">
+<li>根据题意写状态空间与转移矩阵；</li>
+<li>计算 \(n\) 步转移概率 \(P^n\)；</li>
+<li>判断状态是否互通、常返、暂留、周期；</li>
+<li>求平稳分布 \(\pi P=\pi\)；</li>
+<li>判断是否存在极限分布。</li>
+</ul></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-clock-rotate-left"></i> 连续时间 Markov 链常见题型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><ul class="bullet-list" style="font-size:23px; line-height:2;">
+<li>根据瞬时转移概率写出 \(Q\) 矩阵；</li>
+<li>写 Kolmogorov 前向或后向方程；</li>
+<li>识别生灭过程的出生率和死亡率；</li>
+<li>求平稳方程 \(\pi Q=Q\)；</li>
+<li>应用到简单排队模型。</li>
+</ul></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #10b981;">\[\pi Q=Q,\qquad \sum_i\pi_i=1\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-dice"></i> 鞅常见题型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><ul class="bullet-list" style="font-size:23px; line-height:2;">
+<li>验证适应性与可积性；</li>
+<li>计算条件期望，判断是否为鞅；</li>
+<li>构造鞅差序列；</li>
+<li>使用停时思想分析公平游戏；</li>
+<li>识别 Brown 运动相关鞅。</li>
+</ul></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #8b5cf6;">\[B_t,\qquad B_t^2-t,\qquad \exp\{\theta B_t-\tfrac12\theta^2t\}\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-water"></i> Brown 运动常见题型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><ul class="bullet-list" style="font-size:22px; line-height:1.9;">
+<li>利用 \(B(t)-B(s)\sim N(0,t-s)\) 求概率；</li>
+<li>利用 \(\operatorname{Cov}(B(s),B(t))=\min\{s,t\}\) 求协方差；</li>
+<li>判断线性组合的正态分布；</li>
+<li>计算 Brown 桥、带漂移 Brown 运动、几何 Brown 运动；</li>
+<li>理解首中时、最大值和反射原理。</li>
+</ul></div>
+<div class="math-box fragment" data-step="2" style="font-size:30px; border-left:8px solid #3b82f6;">\[\operatorname{Cov}(B(s),B(t))=\min\{s,t\}\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-puzzle-piece"></i> 综合题型：从描述到模型</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">综合题通常不是直接告诉你“这是 Poisson 过程”或“这是 Markov 链”，它会伪装成一个现实场景。非常人类。</p></div>
+<div class="tiled-content fragment" data-step="2" style="margin-top:22px;">
+<div class="tile"><h3>看到“次数”</h3><p>优先考虑计数过程、Poisson 过程。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>看到“状态转移”</h3><p>优先考虑 Markov 链或连续时间 Markov 链。</p></div>
+<div class="tile" style="border-top-color:#8b5cf6;"><h3>看到“公平预测”</h3><p>优先考虑鞅。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>看到“连续随机波动”</h3><p>优先考虑 Brown 运动或 SDE。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-not-equal"></i> 易错点 1：独立与不相关不是一回事</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:24px;">一般情况下，不相关不代表独立。只有在正态结构下，两者才会高度绑定。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #3b82f6;">\[\operatorname{Cov}(X,Y)=0\quad \nRightarrow\quad X,Y\text{ 独立}\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#10b981; margin-top:22px;"><p style="font-size:23px;">Brown 运动是 Gauss 过程，所以有限维正态向量中，零协方差可推出独立。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-brain"></i> 易错点 2：Markov 性不是“完全没记忆”</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">Markov 性说的是：在给定当前状态后，过去信息对未来预测没有额外帮助。</p></div>
+<div class="math-box fragment" data-step="2" style="font-size:28px; border-left:8px solid #8b5cf6;">\[P(X_{n+1}\mid X_n,X_{n-1},\ldots)=P(X_{n+1}\mid X_n)\]</div>
+<div class="tile fragment" data-step="3" style="border-top-color:#ec4899; background:#fff7fb; margin-top:22px;"><p style="font-size:23px; color:#831843;">它不是说系统没有历史，而是说“当前状态已经压缩了足够的历史”。这句话很关键，不然 Markov 链会被误会成健忘症。</p></div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-wave-square"></i> 易错点 3：Brown 运动连续但不可导</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1"><p style="font-size:25px;">Brown 运动样本路径连续，但几乎处处不可导。</p></div>
+<div class="tiled-content fragment" data-step="2" style="margin-top:22px;">
+<div class="tile" style="border-top-color:#10b981;"><h3>连续</h3><p>没有跳跃，轨道不断裂。</p></div>
+<div class="tile" style="border-top-color:#ef4444;"><h3>不可导</h3><p>局部抖动太强，没有普通速度。</p></div>
+</div>
+<div class="math-box fragment" data-step="3" style="font-size:30px; border-left:8px solid #ec4899;">\[[B]_t=t\]</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-map"></i> 最后一页知识地图</h2>
+<div class="content-area">
+
+<div class="math-box fragment" data-step="1" style="font-size:27px; border-left:8px solid #3b82f6;">\[\text{随机过程}=\text{随机变量族}+\text{时间结构}+\text{状态结构}\]</div>
+<div class="tiled-content fragment" data-step="2" style="margin-top:22px;">
+<div class="tile"><h3>Poisson</h3><p>数事件。</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>Markov</h3><p>看状态。</p></div>
+<div class="tile" style="border-top-color:#8b5cf6;"><h3>鞅</h3><p>做预测。</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>Brown</h3><p>描波动。</p></div>
+</div>
+
+</div>
+</div>
+<div class="slide-container " >
+<h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 课程收束：随机过程的价值</h2>
+<div class="content-area">
+
+<div class="tile fragment" data-step="1" style="border-top-color:#3b82f6; padding:36px;"><p style="font-size:28px; line-height:1.8;">随机过程的价值在于：它承认世界有不确定性，但仍然努力寻找结构。</p></div>
+<div class="tile fragment" data-step="2" style="border-top-color:#10b981; padding:30px; margin-top:24px; background:#f0fdf4;"><p style="font-size:24px; color:#166534; line-height:1.8;">现实不是确定的，数据不是干净的，系统也不会按教材排队。但我们仍然可以用模型理解、预测和优化它。</p></div>
+<div class="math-box fragment" data-step="3" style="font-size:30px; border-left:8px solid #ec4899; margin-top:24px;">\[\text{不确定性}\ne\text{不可分析}\]</div>
+
+</div>
+</div>
+
+<script>
+/* ===== 放映模式修复：F5 从当前页全屏，ESC 后恢复浏览 ===== */
+(function () {
+    let slides = [];
+    let currentSlideIndex = 0;
+    let currentStep = 0;
+    let isPresentationMode = false;
+
+    function collectSlides() {
+        slides = Array.from(document.querySelectorAll('.slide-container'));
+        slides.forEach((slide, index) => {
+            if (!slide.id) slide.id = 'slide-auto-' + (index + 1);
+        });
+    }
+
+    function getVisibleSlideIndex() {
+        if (!slides.length) collectSlides();
+
+        const viewportCenter = window.scrollY + window.innerHeight / 2;
+        let bestIndex = 0;
+        let bestDistance = Infinity;
+
+        slides.forEach((slide, index) => {
+            const rect = slide.getBoundingClientRect();
+            const slideCenter = window.scrollY + rect.top + rect.height / 2;
+            const distance = Math.abs(slideCenter - viewportCenter);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = index;
+            }
+        });
+
+        return bestIndex;
+    }
+
+    function getFragments(slide) {
+        return Array.from(slide.querySelectorAll('.fragment'))
+            .sort((a, b) => {
+                const sa = Number(a.dataset.step || 0);
+                const sb = Number(b.dataset.step || 0);
+                return sa - sb;
+            });
+    }
+
+    function updateSlideScale() {
+        if (!isPresentationMode) return;
+
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const scale = Math.min(vw / 1280, vh / 720);
+
+        slides.forEach(slide => {
+            slide.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
+        });
+    }
+
+    function setActiveSlide(index, resetFragments = true) {
+        if (!slides.length) collectSlides();
+        if (!slides.length) return;
+
+        currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+
+        slides.forEach((slide, i) => {
+            slide.classList.toggle('active-slide', i === currentSlideIndex);
+            slide.classList.remove('all-shown');
+        });
+
+        const activeSlide = slides[currentSlideIndex];
+        const fragments = getFragments(activeSlide);
+
+        if (resetFragments) {
+            currentStep = 0;
+            fragments.forEach(fragment => fragment.classList.remove('show'));
+        }
+
+        if (fragments.length === 0 || currentStep >= fragments.length) {
+            activeSlide.classList.add('all-shown');
+        }
+
+        updateSlideScale();
+
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([activeSlide]).catch(function () {});
+        }
+    }
+
+    function showNextFragmentOrSlide() {
+        if (!isPresentationMode) return;
+
+        const activeSlide = slides[currentSlideIndex];
+        const fragments = getFragments(activeSlide);
+
+        if (currentStep < fragments.length) {
+            fragments[currentStep].classList.add('show');
+            currentStep += 1;
+
+            if (currentStep >= fragments.length) {
+                activeSlide.classList.add('all-shown');
+            }
+
+            if (window.MathJax && MathJax.typesetPromise) {
+                MathJax.typesetPromise([activeSlide]).catch(function () {});
+            }
+            return;
+        }
+
+        if (currentSlideIndex < slides.length - 1) {
+            setActiveSlide(currentSlideIndex + 1, true);
+        }
+    }
+
+    function previousSlide() {
+        if (!isPresentationMode) return;
+        if (currentSlideIndex > 0) {
+            setActiveSlide(currentSlideIndex - 1, true);
+        }
+    }
+
+    function enterPresentationMode(startIndex) {
+        if (!slides.length) collectSlides();
+
+        isPresentationMode = true;
+        document.body.classList.add('presentation-mode');
+        setActiveSlide(startIndex, true);
+
+        const root = document.documentElement;
+        const requestFullscreen = root.requestFullscreen ||
+                                  root.webkitRequestFullscreen ||
+                                  root.mozRequestFullScreen ||
+                                  root.msRequestFullscreen;
+
+        if (requestFullscreen && !document.fullscreenElement && !document.webkitFullscreenElement) {
+            try {
+                requestFullscreen.call(root);
+            } catch (e) {
+                /* 某些浏览器会拒绝全屏请求，至少保证页面进入放映布局 */
+            }
+        }
+    }
+
+    function exitPresentationMode() {
+        if (!isPresentationMode) return;
+
+        isPresentationMode = false;
+        document.body.classList.remove('presentation-mode');
+
+        slides.forEach(slide => {
+            slide.classList.remove('active-slide', 'all-shown');
+            slide.style.transform = '';
+        });
+
+        document.body.style.cursor = '';
+
+        const target = slides[currentSlideIndex];
+        if (target) {
+            setTimeout(() => {
+                target.scrollIntoView({ behavior: 'instant', block: 'center' });
+            }, 0);
+        }
+    }
+
+    function leaveBrowserFullscreen() {
+        const exitFullscreen = document.exitFullscreen ||
+                               document.webkitExitFullscreen ||
+                               document.mozCancelFullScreen ||
+                               document.msExitFullscreen;
+        if (exitFullscreen && (document.fullscreenElement || document.webkitFullscreenElement)) {
+            try { exitFullscreen.call(document); } catch (e) {}
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        collectSlides();
+
+        slides.forEach((slide, index) => {
+            slide.addEventListener('click', function (event) {
+                const tag = (event.target && event.target.tagName || '').toLowerCase();
+                if (['button', 'a', 'input', 'select', 'textarea', 'label'].includes(tag)) return;
+
+                if (isPresentationMode) {
+                    showNextFragmentOrSlide();
+                } else {
+                    currentSlideIndex = index;
+                }
+            });
+        });
+
+        updateSlideScale();
+    });
+
+    document.addEventListener('keydown', function (event) {
+        const key = event.key;
+
+        if (key === 'F5') {
+            event.preventDefault();
+            event.stopPropagation();
+            enterPresentationMode(getVisibleSlideIndex());
+            return false;
+        }
+
+        if ((key === 'f' || key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            event.preventDefault();
+            enterPresentationMode(getVisibleSlideIndex());
+            return false;
+        }
+
+        if (!isPresentationMode) return;
+
+        if ([' ', 'Enter', 'ArrowRight', 'PageDown'].includes(key)) {
+            event.preventDefault();
+            showNextFragmentOrSlide();
+            return false;
+        }
+
+        if (['ArrowLeft', 'PageUp'].includes(key)) {
+            event.preventDefault();
+            previousSlide();
+            return false;
+        }
+
+        if (key === 'Escape') {
+            exitPresentationMode();
+            setTimeout(leaveBrowserFullscreen, 0);
+        }
+    }, true);
+
+    document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement && isPresentationMode) {
+            exitPresentationMode();
+        }
+    });
+
+    document.addEventListener('webkitfullscreenchange', function () {
+        if (!document.webkitFullscreenElement && isPresentationMode) {
+            exitPresentationMode();
+        }
+    });
+
+    window.addEventListener('resize', updateSlideScale);
+})();
+</script>
+
+
+<script>
+/* ===== 布朗运动：宏观趋势 vs 微观碎形 ===== */
+const BM_FRACTAL_N = 8000;
+const BM_FRACTAL_T = 10;
+const BM_FRACTAL_DT = BM_FRACTAL_T / BM_FRACTAL_N;
+const BM_FRACTAL_MU = 1.5;
+const BM_FRACTAL_SIGMA = 1.2;
+const BM_FRACTAL_ZOOM_WIDTH_PERCENT = 10;
+
+let bmFractalPathData = [];
+let bmFractalMinXMacro = 0;
+let bmFractalMaxXMacro = 0;
+
+function bmFractalRandomGaussian() {
+    let u1 = Math.random();
+    let u2 = Math.random();
+    while (u1 === 0) u1 = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u1)) * Math.cos(2.0 * Math.PI * u2);
+}
+
+function bmFractalSetupCanvas(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    canvas.width = Math.floor(rect.width * dpr);
+    canvas.height = Math.floor(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    return { ctx, w: rect.width, h: rect.height };
+}
+
+function bmFractalGenerateData() {
+    bmFractalPathData = [];
+    let currentX = 0;
+    bmFractalMinXMacro = 0;
+    bmFractalMaxXMacro = 0;
+
+    for (let i = 0; i <= BM_FRACTAL_N; i++) {
+        bmFractalPathData.push({ t: i * BM_FRACTAL_DT, x: currentX });
+
+        if (currentX < bmFractalMinXMacro) bmFractalMinXMacro = currentX;
+        if (currentX > bmFractalMaxXMacro) bmFractalMaxXMacro = currentX;
+
+        const dw = bmFractalRandomGaussian() * Math.sqrt(BM_FRACTAL_DT);
+        currentX += BM_FRACTAL_MU * BM_FRACTAL_DT + BM_FRACTAL_SIGMA * dw;
+    }
+
+    bmFractalDrawMacro();
+    bmFractalUpdateZoom();
+}
+
+function bmFractalDrawMacro() {
+    const cvs = bmFractalSetupCanvas('bmFractalCanvasMacro');
+    if (!cvs) return;
+
+    const { ctx, w, h } = cvs;
+    const paddingY = 20;
+    const rangeY = Math.max(1e-6, bmFractalMaxXMacro - bmFractalMinXMacro);
+    const scaleY = (h - paddingY * 2) / rangeY;
+    const scaleX = w / BM_FRACTAL_N;
+
+    /* 背景网格 */
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const x = (i / 4) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+
+    /* 漂移参考线 */
+    ctx.beginPath();
+    ctx.moveTo(0, h - paddingY - (0 - bmFractalMinXMacro) * scaleY);
+    const endExpectedX = BM_FRACTAL_MU * BM_FRACTAL_T;
+    ctx.lineTo(w, h - paddingY - (endExpectedX - bmFractalMinXMacro) * scaleY);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([5, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* 主轨迹 */
+    ctx.beginPath();
+    for (let i = 0; i <= BM_FRACTAL_N; i++) {
+        const px = i * scaleX;
+        const py = h - paddingY - (bmFractalPathData[i].x - bmFractalMinXMacro) * scaleY;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+function bmFractalDrawMicro(startIndex) {
+    const cvs = bmFractalSetupCanvas('bmFractalCanvasMicro');
+    if (!cvs) return;
+
+    const { ctx, w, h } = cvs;
+    const zoomPoints = Math.floor((BM_FRACTAL_ZOOM_WIDTH_PERCENT / 100) * BM_FRACTAL_N);
+    const subData = bmFractalPathData.slice(startIndex, startIndex + zoomPoints + 1);
+    if (!subData.length) return;
+
+    let minX = subData[0].x;
+    let maxX = subData[0].x;
+    for (const p of subData) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+    }
+
+    const paddingY = 30;
+    const rangeY = Math.max(1e-6, maxX - minX);
+    const scaleY = (h - paddingY * 2) / rangeY;
+    const scaleX = w / zoomPoints;
+
+    /* 背景网格 */
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const x = (i / 4) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+    }
+
+    /* 局部漂移参考线 */
+    const startVal = subData[0].x;
+    const localExpectedEnd = startVal + BM_FRACTAL_MU * (zoomPoints * BM_FRACTAL_DT);
+    ctx.beginPath();
+    ctx.moveTo(0, h - paddingY - (startVal - minX) * scaleY);
+    ctx.lineTo(w, h - paddingY - (localExpectedEnd - minX) * scaleY);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* 全局局部路径 */
+    ctx.beginPath();
+    for (let i = 0; i < subData.length; i++) {
+        const px = i * scaleX;
+        const py = h - paddingY - (subData[i].x - minX) * scaleY;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = '#4f46e5';
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    /* 向下的片段用红色高亮 */
+    ctx.beginPath();
+    for (let i = 1; i < subData.length; i++) {
+        const prev = subData[i - 1];
+        const curr = subData[i];
+        if (curr.x < prev.x) {
+            const px1 = (i - 1) * scaleX;
+            const py1 = h - paddingY - (prev.x - minX) * scaleY;
+            const px2 = i * scaleX;
+            const py2 = h - paddingY - (curr.x - minX) * scaleY;
+            ctx.moveTo(px1, py1);
+            ctx.lineTo(px2, py2);
+        }
+    }
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#ef4444';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('红色段表示即使宏观向上，微观依然存在大量暴跌', 14, h - 12);
+}
+
+function bmFractalUpdateZoom() {
+    const slider = document.getElementById('bmFractalZoomSlider');
+    const zoomBox = document.getElementById('bmFractalZoomBox');
+    const macroContainer = document.getElementById('bmFractalMacroContainer');
+    const poly = document.getElementById('bmFractalConnectorPoly');
+    const label = document.getElementById('bmFractalMicroTimeLabel');
+
+    if (!slider || !zoomBox || !macroContainer || !poly || !label) return;
+
+    const percent = parseInt(slider.value, 10);
+    zoomBox.style.left = percent + '%';
+
+    const w = macroContainer.clientWidth;
+    const topLeftX = (percent / 100) * w;
+    const topRightX = ((percent + BM_FRACTAL_ZOOM_WIDTH_PERCENT) / 100) * w;
+    poly.setAttribute('points', `${topLeftX},0 ${topRightX},0 ${w},80 0,80`);
+
+    const startIndex = Math.floor((percent / 100) * BM_FRACTAL_N);
+    bmFractalDrawMicro(startIndex);
+
+    const startTime = (percent / 100) * BM_FRACTAL_T;
+    const endTime = ((percent + BM_FRACTAL_ZOOM_WIDTH_PERCENT) / 100) * BM_FRACTAL_T;
+    label.innerText = `t = ${startTime.toFixed(3)} ~ ${endTime.toFixed(3)}`;
+}
+
+window.addEventListener('resize', function () {
+    if (document.getElementById('bmFractalCanvasMacro')) {
+        bmFractalDrawMacro();
+        bmFractalUpdateZoom();
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+        if (document.getElementById('bmFractalCanvasMacro')) {
+            bmFractalGenerateData();
+        }
+    }, 100);
+});
+</script>
+
+
+</body>
+</html>
