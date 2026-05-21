@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计预测与决策 - 第10章 灰色预测法</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: { scale: 1.05, displayAlign: 'center' }
+        };
+    </script>
+      <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+
+        /* ===================== 浏览模式（默认） ===================== */
+        body.browse-mode { overflow-y: auto; overflow-x: hidden; min-height: 100vh; }
+        body.browse-mode #presentation-container {
+            position: relative; width: 1280px; margin: 24px auto 60px auto;
+            transform: none !important; height: auto; background: transparent; overflow: visible;
+        }
+        body.browse-mode .slide {
+            position: relative; width: 1280px; height: 720px; margin: 0 auto 28px auto;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 1 !important; pointer-events: auto !important;
+            background: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;
+        }
+        body.browse-mode .step { opacity: 1 !important; transform: none !important; transition: none !important; }
+        body.browse-mode .progress-bar, body.browse-mode .slide-counter { display: none; }
+
+        /* ===================== 放映模式 ===================== */
+        body.presentation-mode { background-color: #0f172a; width: 100vw; height: 100vh; overflow: hidden; }
+        body.presentation-mode #presentation-container {
+            position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); background-color: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden;
+        }
+        body.presentation-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #64748b, #94a3b8, #cbd5e1); z-index: 100;
+        }
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            background-color: #ffffff;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        /* ===================== 动画 ===================== */
+        .step { opacity: 0; transform: translateY(20px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .step.visible { opacity: 1; transform: translateY(0); }
+
+        /* ===================== 内容排版 ===================== */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 34px; color: #1e293b;
+            margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+        }
+        .slide-title i { color: #64748b; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; overflow: visible; }
+        p { font-size: 19px; color: #334155; line-height: 1.6; margin: 0; }
+        ul { list-style: none; margin-left: 5px; }
+        li { position: relative; padding-left: 25px; margin-bottom: 8px; font-size: 18px; color: #475569; line-height: 1.5; }
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 3px; color: #64748b; font-size: 18px; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: stretch; }
+        .tile { background: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #cbd5e1; border-top: 5px solid #64748b; }
+        .tile h3 { font-size: 22px; color: #0f172a; margin-bottom: 10px; }
+
+        /* 浅色背景公式区 */
+        .math-center { text-align: center; width: 100%; margin: 5px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 5px solid #64748b; border-radius: 8px;
+            padding: 10px 20px; color: #000; font-size: 18px;
+            display: inline-block; width: fit-content; text-align: left; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: visible !important; white-space: normal;
+        }
+        mjx-container { overflow: visible !important; }
+
+        .info-box { background: #eff6ff; border-left: 6px solid #3b82f6; padding: 12px 20px; border-radius: 8px; margin: 5px 0; }
+        
+        /* 表格样式 */
+        .table-wrapper { width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; overflow-y: auto; background: white; margin: 5px 0; max-height: 280px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; color: #334155; }
+        .data-table th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; position: sticky; top: 0; z-index: 1; }
+        .data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+        .svg-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; position: relative;}
+        .path-anim { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawPath 3s ease-in-out forwards; }
+        @keyframes drawPath { to { stroke-dashoffset: 0; } }
+
+        /* ===================== 封面 ===================== */
+        .title-slide { background: #020617 !important; color: white; justify-content: center !important; align-items: center !important; text-align: center; padding: 0; position: relative; }
+        .title-slide::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; z-index: 1; opacity: 0.3;}
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(100,116,139,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(148,163,184,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        .title-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.7); padding: 60px 80px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; color: #fff; }
+        .title-content h1 span { background: linear-gradient(to right, #94a3b8, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .section-slide { background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important; color: #ffffff; justify-content: center !important; align-items: center !important; text-align: center; position: relative; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 48px; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 6px; background: #64748b; border: none; margin: 20px 0; }
+
+        body.browse-mode .title-slide, body.browse-mode .section-slide { min-height: 720px; display: flex !important; }
+
+        .hw-btn { background: linear-gradient(135deg, #64748b, #94a3b8); color: white; padding: 12px 35px; border-radius: 50px; font-size: 22px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; border: none; cursor: pointer; margin-top: 20px; transition: transform 0.2s; box-shadow: 0 10px 20px rgba(100, 116, 139, 0.3);}
+        .hw-btn:hover { transform: translateY(-3px); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: #64748b; transition: width 0.3s ease; z-index: 200; }
+        .slide-counter { position: absolute; bottom: 20px; right: 30px; font-size: 18px; font-weight: bold; color: #94a3b8; z-index: 100; }
+
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide { width: 100vw !important; height: 100vh !important; margin: 0 !important; box-shadow: none !important; page-break-after: always; page-break-inside: avoid; border: 1px solid transparent; }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+    </style>
+</head>
+<body class="browse-mode">
+
+<div id="presentation-container">
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+    <!-- ==================== Slide 0: 封面 ==================== -->
+    <div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div><div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge" style="background:rgba(100,116,139,0.2); border:1px solid #64748b; color:#cbd5e1; padding:8px 20px; border-radius:50px; margin-bottom:20px; font-size:18px;">应用统计学专业课程</div>
+            <h1><span>第十章 灰色预测法</span></h1>
+            <p style="color:#94a3b8; font-size:24px; margin-top:10px;">小样本、贫信息下的趋势洞察 (Grey Forecasting)</p>
+            <div class="step" style="margin-top: 30px; background: rgba(0,0,0,0.4); padding: 12px 25px; border-radius: 12px;">
+                <p style="font-size: 18px; color: #cbd5e1; margin: 0;"><i class="fas fa-desktop"></i> <strong>F5</strong> 开启全屏放映 | 单击鼠标步进讲解</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 章节总导入 ==================== -->
+    <div class="slide" id="slide-intro">
+        <h2 class="slide-title"><i class="fas fa-eye-slash"></i> 章节导入：在“迷雾”中预测未来</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile">
+                    <h3>白、黑与灰的系统世界</h3>
+                    <p>在现实的经济预测中，我们经常遇到数据很少（如只有5年的GDP数据），或者内部运作机制极度复杂（如中国经济体制转轨期），这种“部分信息已知、部分信息未知”的系统，被称为<strong>“灰色系统”</strong>。</p>
+                    <p style="margin-top:10px;">与需要大样本的传统时间序列方法不同，<strong>灰色预测法</strong>专门对付“小样本、贫信息”的问题。它不需要寻找数据的统计规律，而是通过特殊的数据生成技术（如累加），强行从杂乱的数据中“挤出”规律。</p>
+                </div>
+                <div class="svg-container" style="height: 240px; background: #0f172a;">
+                    <svg viewBox="0 0 400 200" style="width: 100%; height: 100%;">
+                        <circle cx="80" cy="100" r="40" fill="none" stroke="#ffffff" stroke-width="2"/>
+                        <text x="80" y="105" fill="#ffffff" font-size="14" text-anchor="middle">白色系统</text>
+                        <text x="80" y="125" fill="#94a3b8" font-size="10" text-anchor="middle">信息完全已知</text>
+
+                        <circle cx="320" cy="100" r="40" fill="#000000" stroke="#334155" stroke-width="2"/>
+                        <text x="320" y="105" fill="#475569" font-size="14" text-anchor="middle">黑色系统</text>
+                        <text x="320" y="125" fill="#334155" font-size="10" text-anchor="middle">信息完全未知</text>
+
+                        <circle cx="200" cy="100" r="60" fill="url(#grad1)"/>
+                        <defs>
+                            <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" style="stop-color:#cbd5e1;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#475569;stop-opacity:1" />
+                            </radialGradient>
+                        </defs>
+                        <text x="200" y="105" fill="#ffffff" font-size="16" font-weight="bold" text-anchor="middle">灰色系统</text>
+                        <text x="200" y="125" fill="#f8fafc" font-size="10" text-anchor="middle">部分已知，部分未知</text>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 新增：应用场景 ==================== -->
+    <div class="slide" id="slide-added-scenes">
+        <h2 class="slide-title"><i class="fas fa-map-marked-alt"></i> 灰色预测的应用场景：哪里“灰”，哪里就可能用</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile">
+                    <h3 style="font-size:18px;">适合场景</h3>
+                    <ul style="font-size:14px;line-height:1.55;">
+                        <li><strong>小样本趋势预测：</strong>只有 4～10 期数据，如新兴产业产值、新产品销量、地区消费额。</li>
+                        <li><strong>机制复杂但方向清楚：</strong>宏观经济、能源消费、人口规模、物流需求等。</li>
+                        <li><strong>短中期预测：</strong>用于趋势外推、规划参考、粗略预判。</li>
+                        <li><strong>变量关联排序：</strong>用灰色关联度判断哪些因素与目标变量走势更接近。</li>
+                    </ul>
+                </div>
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3 style="font-size:18px;color:#b91c1c;">不适合直接硬套的场景</h3>
+                    <ul style="font-size:14px;line-height:1.55;">
+                        <li><strong>强季节性序列：</strong>如月度旅游人数、空调销量，应先做季节处理。</li>
+                        <li><strong>剧烈震荡序列：</strong>如股票日收益率，灰色模型会被噪声牵着鼻子走。</li>
+                        <li><strong>长期预测：</strong>指数外推容易越跑越离谱，现实不会因为公式优雅就服从它。</li>
+                        <li><strong>结构突变：</strong>政策、疫情、市场规则变化后，应重新建模或分段建模。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color:#8b5cf6;">
+                <h3 style="font-size:18px;color:#6d28d9;">课堂提示</h3>
+                <p style="font-size:15px;">它适合的是<strong>小样本中存在单调或近似指数趋势</strong>的序列。小样本但乱得像宿舍抢外卖顺序，那也不是灰色预测的菜。</p>
+            </div>
+        </div>
+    </div>
+    <!-- ==================== 新增：章节逻辑总览 ==================== -->
+    <div class="slide" id="slide-added-ch10-roadmap-v2">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 灰色预测到底怎么预测？</h2>
+        <div class="content-area">
+            <div class="step tile" style="border-top-color:#64748b;">
+                <h3>核心问题</h3>
+                <p style="font-size:17px;">当我们只有很少的历史数据，又知道系统不完全透明时，能不能仍然给出一个可解释、可计算、可检验的预测？灰色预测法回答的是这个问题。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:360px;">
+                <table class="data-table" style="font-size:15px;">
+                    <tr><th>学习环节</th><th>要解决的问题</th><th>对应方法</th><th>一句话理解</th></tr>
+                    <tr><td>1. 判断系统是否“灰”</td><td>信息是否不充分？样本是否偏少？</td><td>灰色系统思想</td><td>不全知道，但也不是完全不知道。</td></tr>
+                    <tr><td>2. 让数据变得有规律</td><td>原始序列波动大怎么办？</td><td>累加生成 AGO</td><td>把短期抖动压平，看清长期趋势。</td></tr>
+                    <tr><td>3. 判断因素相关性</td><td>哪些指标走势最接近目标？</td><td>灰色关联度</td><td>看曲线形状像不像，而不是数值大小一样不一样。</td></tr>
+                    <tr><td>4. 建立预测模型</td><td>如何从少量数据推出未来？</td><td>GM(1,1)</td><td>用一阶微分方程描述累加序列的增长。</td></tr>
+                    <tr><td>5. 检验模型能不能用</td><td>预测结果可靠吗？</td><td>残差、关联度、后验差</td><td>不能只会算，还得知道算得靠不靠谱。</td></tr>
+                    <tr><td>6. 精度不够怎么办</td><td>模型有系统性误差怎么办？</td><td>残差修正模型</td><td>对误差再建模，把欠账补回来。</td></tr>
+                </table>
+            </div>
+            <div class="step info-box">
+                <p style="font-size:16px;"><strong>本章主线：</strong>为什么用 → 数据怎么处理 → 模型怎么建 → 参数怎么估 → 预测怎么还原 → 结果怎么检验 → 精度不够怎么修正。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：章节导入案例 ==================== -->
+    <div class="slide" id="slide-added-ch10-case-intro-v2">
+        <h2 class="slide-title"><i class="fas fa-car-battery"></i> 章节导入实例：新能源汽车保有量怎么预测？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:17px;">某市要规划未来充电桩数量，但新能源汽车保有量只有最近 6 年数据。样本太短，ARIMA 之类模型吃不饱；影响因素又多，政策、补贴、油价、基础设施都在变。此时问题就很“灰”：有一些信息，但远远不完整。</p>
+            </div>
+            <div class="step two-column">
+                <div class="table-wrapper" style="max-height:250px;">
+                    <table class="data-table" style="font-size:15px;">
+                        <tr><th>年份</th><th>2019</th><th>2020</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th></tr>
+                        <tr><th>保有量/万辆</th><td>2.8</td><td>3.6</td><td>5.2</td><td>7.4</td><td>10.1</td><td>13.5</td></tr>
+                    </table>
+                </div>
+                <div class="svg-container" style="height:250px;background:#f8fafc;">
+                    <svg viewBox="0 0 520 260" style="width:100%;height:100%;">
+                        <line x1="55" y1="220" x2="485" y2="220" stroke="#334155"/>
+                        <line x1="55" y1="35" x2="55" y2="220" stroke="#334155"/>
+                        <polyline points="80,190 150,178 220,148 290,108 360,60 430,35" fill="none" stroke="#64748b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="80" cy="190" r="6" fill="#64748b"/><circle cx="150" cy="178" r="6" fill="#64748b"/><circle cx="220" cy="148" r="6" fill="#64748b"/><circle cx="290" cy="108" r="6" fill="#64748b"/><circle cx="360" cy="60" r="6" fill="#64748b"/><circle cx="430" cy="35" r="6" fill="#64748b"/>
+                        <text x="64" y="242" font-size="13">2019</text><text x="134" y="242" font-size="13">2020</text><text x="204" y="242" font-size="13">2021</text><text x="274" y="242" font-size="13">2022</text><text x="344" y="242" font-size="13">2023</text><text x="414" y="242" font-size="13">2024</text>
+                        <text x="20" y="40" font-size="13" fill="#334155">万辆</text>
+                        <text x="165" y="25" font-size="17" fill="#334155" font-weight="700">小样本，但趋势很清楚</text>
+                    </svg>
+                </div>
+            </div>
+            <div class="step info-box">
+                <p style="font-size:16px;"><strong>预测任务：</strong>利用灰色预测法建立 GM(1,1) 模型，预测 2025、2026 年保有量，并给充电桩建设、配电容量规划提供依据。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：为什么不用普通模型 ==================== -->
+    <div class="slide" id="slide-added-why-grey-v2">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> 为什么这里要用灰色预测，而不是普通回归？</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:390px;">
+                <table class="data-table" style="font-size:20px;">
+                    <tr><th>方法</th><th>通常需要什么</th><th>本案例的问题</th><th>结论</th></tr>
+                    <tr><td>普通线性回归</td><td>较明确的解释变量和足够样本</td><td>政策、基础设施、消费偏好都影响保有量，但变量未必完整</td><td>变量缺失时解释容易偏</td></tr>
+                    <tr><td>ARIMA</td><td>较长时间序列，用于识别平稳性与自相关结构</td><td>只有 6 年数据，样本短得像论文截稿前的睡眠</td><td>难以稳定识别模型</td></tr>
+                    <tr><td>指数平滑</td><td>趋势平滑，适合连续观测较多的数据</td><td>能做粗略预测，但对小样本规律提取不足</td><td>可对比，但不是本章重点</td></tr>
+                    <tr><td>GM(1,1)</td><td>少量数据，非负序列，近似指数趋势</td><td>保有量单调增长，样本少，信息不完全</td><td>适合作为短中期预测工具</td></tr>
+                </table>
+            </div>
+            <div class="step tile" style="border-top-color:#10b981;">
+                <h3 style="font-size:20px;color:#047857;">灰色预测的定位</h3>
+                <p style="font-size:20px;">灰色预测不是万能模型，它更像“信息不足时的应急灯”。当数据不够多，但序列具有明显增长趋势时，GM(1,1) 可以给出一个简洁、可解释、可检验的预测结果。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第一节 过渡 ==================== -->
+
+
+   
+
+    <div class="slide section-slide" id="slide-sec1">
+        <div class="glow-orb-1"></div>
+        <h2>第一节 灰色预测理论</h2>
+        <hr><p class="step" style="font-size: 24px;">生成列与关联度：化无序为有序的魔法</p>
+    </div>
+
+
+     <!-- ==================== 新增：第一节导入 ==================== -->
+    <div class="slide" id="slide-added-sec1-intro-v2">
+        <h2 class="slide-title"><i class="fas fa-lightbulb"></i> 第一节导入：为什么说“灰色”不是含糊，而是现实？</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#ffffff;">
+                    <h3 style="font-size:20px;">白色系统</h3>
+                    <p style="font-size:20px;">内部结构、变量关系、变化规律全部清楚。例如理想物理实验中的匀速直线运动。现实经济系统很少这么乖，毕竟经济不是物理题。</p>
+                </div>
+                <div class="tile" style="border-top-color:#020617;">
+                    <h3 style="font-size:20px;">黑色系统</h3>
+                    <p style="font-size:20px;">内部信息几乎完全未知，只能看到输入输出。例如完全未知算法控制下的黑箱系统。</p>
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color:#64748b;">
+                <h3 style="font-size:20px;color:#475569;">灰色系统</h3>
+                <p style="font-size:20px;">现实经济系统通常介于两者之间：我们知道一些历史数据和部分影响因素，但不知道所有机制。灰色预测法就是在这种“已知 + 未知”混合环境下，用少量观测数据提取发展趋势。</p>
+            </div>
+           
+        </div>
+    </div>
+    <!-- ==================== 灰色预测分类 ==================== -->
+    <div class="slide" id="slide-grey-types">
+        <h2 class="slide-title"><i class="fas fa-sitemap"></i> 一、灰色预测的概念与类型</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 16px;">灰色预测的核心思想：通过对原始随机数据进行<strong>生成处理</strong>（如累加），寻找出系统变动的内在规律，然后建立微分方程模型（即GM模型）进行外推预测。</p>
+            </div>
+
+            <div class="step two-column" style="margin-top: 10px;">
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 20px; color: #1d4ed8;">1. 灰色时间序列预测</h3>
+                    <p style="font-size: 20px;">用观察到的时间序列构造模型，预测未来某一时刻的特征量。（最常用）</p>
+                </div>
+                <div class="tile" style="border-top-color: #ef4444;">
+                    <h3 style="font-size: 20px; color: #b91c1c;">2. 畸变预测</h3>
+                    <p style="font-size: 20px;">预测异常值（畸变点）出现的时刻。例如：预测地震、自然灾害发生的时间窗口。</p>
+                </div>
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 20px; color: #047857;">3. 系统预测</h3>
+                    <p style="font-size: 20px;">建立一组相互关联的灰色模型，预测系统中多个变量间的相互协调关系（如互补产品销量制约）。</p>
+                </div>
+                <div class="tile" style="border-top-color: #f59e0b;">
+                    <h3 style="font-size: 20px; color: #b45309;">4. 拓扑预测</h3>
+                    <p style="font-size: 20px;">寻找某一特定数值发生的所有时点，构成时点数列建模，预测该数值未来发生的时点。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 生成列 ==================== -->
+    <div class="slide" id="slide-generation">
+        <h2 class="slide-title"><i class="fas fa-layer-group"></i> 二、数据生成：累加与累减</h2>
+        <div class="content-area">
+            <p class="step" style="font-size: 20px;">为了弱化原始序列的随机性，必须先生成具有较强规律性的数据序列。通常使用<strong>累加（AGO）</strong>和<strong>累减（IAGO）</strong>。</p>
+            
+            <div class="step two-column">
+                <div class="tile">
+                    <h3 style="font-size: 20px;">一次累加生成 (1-AGO)</h3>
+                    <p style="font-size: 20px;">将原始序列 $X^{(0)}$ 的前 $k$ 个数据相加，得到新序列 $X^{(1)}$。累加能让随机波动的序列呈现出明显的<strong>指数增长规律</strong>。</p>
+                    <div class="math-center"><div class="math-box" style="font-size: 20px; padding: 5px 15px;">
+                        \[ X^{(1)}(k) = \sum_{i=1}^k X^{(0)}(i) = X^{(1)}(k-1) + X^{(0)}(k) \]
+                    </div></div>
+                </div>
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 20px;">一次累减生成 (1-IAGO)</h3>
+                    <p style="font-size: 20px;">累加的逆运算。通常用于模型求解后，将预测出的累加值还原为原始层面的预测值。</p>
+                    <div class="math-center"><div class="math-box" style="font-size: 20px; border-left-color:#8b5cf6; padding: 5px 15px;">
+                        \[ X^{(0)}(k) = X^{(1)}(k) - X^{(1)}(k-1) \]
+                    </div></div>
+                </div>
+            </div>
+
+         
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 新增：累加生成图示 ==================== -->
+    <div class="slide" id="slide-added-ago-visual-v2">
+        <h2 class="slide-title"><i class="fas fa-chart-area"></i> 累加生成的直观作用：把“抖动”变成“趋势”</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="svg-container" style="height:330px;background:#f8fafc;">
+                    <svg viewBox="0 0 540 320" style="width:100%;height:100%;">
+                        <line x1="55" y1="260" x2="500" y2="260" stroke="#334155"/>
+                        <line x1="55" y1="40" x2="55" y2="260" stroke="#334155"/>
+                        <polyline points="80,220 130,200 180,195 230,185 280,150 330,135 380,110 430,70 480,62" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <polyline points="80,235 130,220 180,198 230,172 280,140 330,108 380,75 430,48 480,35" fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 5"/>
+                        <text x="325" y="95" fill="#ef4444" font-size="16" font-weight="700">原始序列 $X^{(0)}$</text>
+                        <text x="275" y="42" fill="#3b82f6" font-size="16" font-weight="700">累加序列 $X^{(1)}$ 更平滑</text>
+                        <text x="225" y="300" fill="#334155" font-size="15">时间 $k$</text>
+                        <text x="10" y="45" fill="#334155" font-size="15">数值</text>
+                    </svg>
+                </div>
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:20px;color:#1d4ed8;">为什么累加后更容易建模？</h3>
+                    <ul style="font-size:20px;line-height:1.6;">
+                        <li>原始序列可能有随机扰动，直接建模容易被局部波动干扰。</li>
+                        <li>累加后，每一点都包含前面所有信息，短期噪声被“平均化”。</li>
+                        <li>很多非负序列累加后会呈现近似指数趋势，适合用一阶微分方程刻画。</li>
+                        <li>预测完成后，再用累减把结果还原到原始序列层面。</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:20px;">
+                
+                \[ \text{建模层面：}X^{(1)} \quad \Longrightarrow \quad \text{预测层面：}\hat X^{(1)} \quad \Longrightarrow \quad \text{还原层面：}\hat X^{(0)} \]
+            </div></div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 新增完整版：例10-1 累加生成列 ==================== -->
+    <div class="slide" id="slide-added-ex101-full">
+        <h2 class="slide-title"><i class="fas fa-plus-circle"></i> 【例10-1】一次累加生成列：完整计算</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:16px;">原始序列为 $X^{(0)}=\{3.21,3.78,3.98,4.28,5.10,5.60,6.20,7.30,7.50\}$。一次累加生成的核心规则是：第 $k$ 项等于前 $k$ 个原始值之和。</p>
+                <div class="math-center"><div class="math-box" style="font-size:16px;">\[X^{(1)}(k)=\sum_{i=1}^{k}X^{(0)}(i)=X^{(1)}(k-1)+X^{(0)}(k)\]</div></div>
+            </div>
+            <div class="step table-wrapper" style="max-height:360px;">
+                <table class="data-table" style="font-size:14px;">
+                    <tr><th>$k$</th><th>$X^{(0)}(k)$</th><th>逐步计算</th><th>$X^{(1)}(k)$</th></tr>
+                    <tr><td>1</td><td>3.21</td><td>$X^{(1)}(1)=X^{(0)}(1)=3.21$</td><td>3.21</td></tr>
+                    <tr><td>2</td><td>3.78</td><td>$X^{(1)}(2)=3.21+3.78=6.99$</td><td>6.99</td></tr>
+                    <tr><td>3</td><td>3.98</td><td>$X^{(1)}(3)=6.99+3.98=10.97$</td><td>10.97</td></tr>
+                    <tr><td>4</td><td>4.28</td><td>$X^{(1)}(4)=10.97+4.28=15.25$</td><td>15.25</td></tr>
+                  </table>
+            </div>
+            <div class="step info-box"><p style="font-size:15px;"><strong>结论：</strong>$X^{(1)}=\{3.21,6.99,10.97,15.25,20.35,25.95,32.15,39.45,46.95\}$。累加后序列单调递增，趋势更清楚。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-2 累减生成列 ==================== -->
+    <div class="slide" id="slide-added-ex102-full">
+        <h2 class="slide-title"><i class="fas fa-minus-circle"></i> 【例10-2】一次累减生成列：把累加序列还原</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:16px;">已知累加序列 $X^{(0)}=\{3.21,6.99,10.97,15.25,20.35,25.95,32.15,39.45,46.95\}$。令 $X^{(0)}(0)=0$，用相邻两项相减得到一次累减生成列。</p>
+                <div class="math-center"><div class="math-box" style="font-size:16px;">\[X^{(1)}(k)=X^{(0)}(k)-X^{(0)}(k-1)\]</div></div>
+            </div>
+            <div class="step table-wrapper" style="max-height:365px;">
+                <table class="data-table" style="font-size:14px;">
+                    <tr><th>$k$</th><th>逐步计算</th><th>$X^{(1)}(k)$</th></tr>
+                    <tr><td>1</td><td>$3.21-0=3.21$</td><td>3.21</td></tr>
+                    <tr><td>2</td><td>$6.99-3.21=3.78$</td><td>3.78</td></tr>
+                    <tr><td>3</td><td>$10.97-6.99=3.98$</td><td>3.98</td></tr>
+                    <tr><td>4</td><td>$15.25-10.97=4.28$</td><td>4.28</td></tr>
+                    <tr><td>5</td><td>$20.35-15.25=5.10$</td><td>5.10</td></tr>
+                </table>
+            </div>
+            <div class="step info-box"><p style="font-size:15px;"><strong>结论：</strong>累减生成列为 $X^{(1)}=\{3.21,3.78,3.98,4.28,5.10,5.60,6.20,7.30,7.50\}$，正好还原到例 10-1 的原始序列。灰色模型预测结束后也要靠这一步回到原始量纲。</p></div>
+        </div>
+    </div>
+
+<!-- ==================== 灰色关联分析导入 ==================== -->
+<div class="slide" id="slide-grey-relation-intro">
+    <h2 class="slide-title">
+        <i class="fas fa-lightbulb"></i>
+       三、关联度分析 (Grey Relational Analysis)：为什么需要灰色关联分析？
+    </h2>
+
+    <div class="content-area">
+
+        <div class="step tile" style="border-top-color:#3b82f6;">
+            <h3 style="font-size:24px;color:#2563eb;">
+                现实问题
+            </h3>
+
+            <p style="font-size:22px;line-height:1.8;">
+                某电商平台发现：近期商品销量不断变化。
+            </p>
+
+            <ul style="font-size:21px;line-height:1.8;">
+                <li>广告投入增加了</li>
+                <li>直播观看人数增加了</li>
+                <li>商品价格下降了</li>
+                <li>用户评价数量增加了</li>
+                <li>节假日消费也到来了</li>
+            </ul>
+
+            <p style="font-size:22px;line-height:1.8;">
+                那么问题来了：<strong>究竟哪个因素与销量关系最密切？</strong>
+            </p>
+        </div>
+
+        <div class="step" style="
+            margin-top:20px;
+            display:grid;
+            grid-template-columns:repeat(5,1fr);
+            gap:10px;
+        ">
+
+            <div class="tile">
+                <div style="font-size:40px;">📢</div>
+                <p style="font-size:18px;">广告投入</p>
+            </div>
+
+            <div class="tile">
+                <div style="font-size:40px;">📱</div>
+                <p style="font-size:18px;">直播流量</p>
+            </div>
+
+            <div class="tile">
+                <div style="font-size:40px;">💴</div>
+                <p style="font-size:18px;">商品价格</p>
+            </div>
+
+            <div class="tile">
+                <div style="font-size:40px;">⭐</div>
+                <p style="font-size:18px;">用户评价</p>
+            </div>
+
+            <div class="tile">
+                <div style="font-size:40px;">🎉</div>
+                <p style="font-size:18px;">节假日因素</p>
+            </div>
+
+        </div>
+
+      
+
+    </div>
+</div>
+
+
+
+<div class="slide" id="slide-grey-relation-intro">
+    <h2 class="slide-title">
+        <i class="fas fa-lightbulb"></i>
+       三、关联度分析 (Grey Relational Analysis)：为什么需要灰色关联分析？
+    </h2>
+
+    <div class="content-area">
+
+
+        <div class="step info-box"
+             style="margin-top:25px;border-left:6px solid #f59e0b;">
+
+            <p style="font-size:22px;line-height:1.8;">
+
+                在客观世界中，许多因素之间的关系并不是完全清晰的。 有些因素之间可能联系很强，
+                有些因素联系较弱，
+                还有些因素表面上相关，但实际影响并不明显。这种<strong>“关系不明确、信息不完全”</strong>的情况，
+                称为<strong>灰色关系</strong>。
+
+            </p>
+
+
+        </div>
+
+        <div class="step math-box"
+             style="margin-top:20px;font-size:22px;">
+
+            <p style="line-height:1.8;">
+
+                灰色关联分析的目的：
+
+            </p>
+
+            <p style="
+                text-align:center;
+                font-size:28px;
+                color:#dc2626;
+                font-weight:bold;
+            ">
+
+                从多个因素中找出“谁与目标最接近”
+
+            </p>
+
+            <p style="
+                text-align:center;
+                font-size:22px;
+                margin-top:10px;
+            ">
+                ↓
+            </p>
+
+            <p style="
+                text-align:center;
+                font-size:24px;
+                color:#2563eb;
+            ">
+
+                先计算关联系数 → 再计算关联度
+
+            </p>
+
+        </div>
+
+    </div>
+</div>
+    <!-- ==================== 关联度分析 ==================== -->
+    <div class="slide" id="slide-relational">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 三、关联度分析 (Grey Relational Analysis)</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 20px;">用于分析系统中各因素关联程度的方法。步骤：<strong>初始化 $\rightarrow$ 求绝对差 $\rightarrow$ 算关联系数 $\rightarrow$ 求平均得关联度</strong>。</p>
+            </div>
+            
+            <div class="step tile" style="margin-top: 5px;">
+                <h3 style="font-size: 20px;">关联系数计算公式</h3>
+                <p style="font-size: 20px;">设 $\hat{X}^{(0)}$ 为参考序列，$X^{(0)}$ 为比较序列，$\rho \in (0,1)$ 为分辨系数（常取 0.5）。关联系数 $\eta(k)$ 为：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 20px; padding: 10px;">
+                    \[ \eta(k) = \frac{\min\min|\hat{X}^{(0)}(k)-X^{(0)}(k)| + \rho \max\max|\hat{X}^{(0)}(k)-X^{(0)}(k)|}{|\hat{X}^{(0)}(k)-X^{(0)}(k)| + \rho \max\max|\hat{X}^{(0)}(k)-X^{(0)}(k)|} \]
+                </div></div>
+                <div class="step tile" style="border-top-color:#3b82f6;">
+
+            <h3 style="font-size:20px; color:#1d4ed8;">式中：</h3>
+
+            <ul style="font-size:17px; line-height:1.55;">
+
+                <li>
+                    \(\left|\hat{X}^{(0)}(k)-X^{(0)}(k)\right|\)
+                    是第 \(k\) 个点 \(X^{(0)}\) 与 \(\hat{X}^{(0)}\) 的绝对误差。
+                </li>
+                <li>
+                    \(\min\min \left|\hat{X}^{(0)}(k)-X^{(0)}(k)\right|\)
+                    是两级最小差； \(\max\max \left|\hat{X}^{(0)}(k)-X^{(0)}(k)\right|\)
+                    是两级最大差，其含义与两级最小差相似。
+                </li>
+                
+                <li>
+                    \(\rho\) 称为分辨率，\(0\lt \rho \lt 1\)，一般取
+                    \(\rho=0.5\)。
+                </li>
+            </ul>
+
+        </div>
+            </div>
+       
+           
+        </div>
+    </div>
+
+
+
+        <div class="slide" id="slide-relational">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 三、关联度分析 (Grey Relational Analysis)</h2>
+        <div class="content-area">
+
+                 <div class="step info-box"><p style="font-size:25px;">对单位不一、初值不同的序列，在计算关联系数前应首先进行初始化，
+                    即将该序列的所有数据分别除以第一个数据。</p></div>
+
+            <div class="step tile" style="margin-top: 5px;">
+                <h3 style="font-size: 20px;">关联度</h3>
+                <p style="font-size: 20px;">在算出 $\hat{X}^{(0)}(k)$ 序列与 $X^{(0)}(k)$ 序列的关联系数后，计算各类关联系数的平均值：
+              \[  r=\frac{1}{n} \sum_{k=1}^n \eta(k) \]
+                  这个平均值 $r$ 称为 $\hat{X}^{(0)}(k)$ 序列与 $X^{(0)}(k)$ 序列的关联度。</p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 新增完整版：例10-3 关联度计算1 ==================== -->
+    <div class="slide" id="slide-added-ex103-full-1">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 【例10-3】关联度计算：初始化与绝对差</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:15px;">参考序列 $Y_0=\{8,8.8,16,18,24,32\}$；比较序列 $Y_1=\{10,12.12,19.28,20.25,23.4,30.69\}$，$Y_2=\{6,6.35,6.57,6.98,8.35,8.75\}$。先除以各自首项，消除量纲差异。</p></div>
+            <div class="step table-wrapper" style="max-height:320px;">
+                <table class="data-table" style="font-size:18px;">
+                    <tr><th>序列</th><th>初始化结果</th></tr>
+                    <tr><td>$X_0$</td><td>$\{8/8,8.8/8,16/8,18/8,24/8,32/8\}=\{1,1.1,2,2.25,3,4\}$</td></tr>
+                    <tr><td>$X_1$</td><td>$\{10/10,12.12/10,19.28/10,20.25/10,23.4/10,30.69/10\}=\{1,1.212,1.928,2.025,2.34,3.069\}$</td></tr>
+                    <tr><td>$X_2$</td><td>$\{6/6,6.35/6,6.57/6,6.98/6,8.35/6,8.75/6\}=\{1,1.0583,1.095,1.1633,1.3917,1.4583\}$</td></tr>
+                </table>
+            </div>
+            <div class="step table-wrapper" style="max-height:170px;">
+                <table class="data-table" style="font-size:18px;">
+                    <tr><th>$k$</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr>
+                    <tr><th>$\Delta_1(k)=|X_0-X_1|$</th><td>0</td><td>0.112</td><td>0.072</td><td>0.225</td><td>0.660</td><td>0.931</td></tr>
+                    <tr><th>$\Delta_2(k)=|X_0-X_2|$</th><td>0</td><td>0.0417</td><td>0.905</td><td>1.0867</td><td>1.6083</td><td>2.5417</td></tr>
+                </table>
+            </div>
+            <div class="step info-box"><p style="font-size:18px;">两级最小差为 $\Delta_{\min}=0$，两级最大差为 $\Delta_{\max}=2.5417$。取分辨系数 $\rho=0.5$。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-3 关联度计算2 ==================== -->
+    <div class="slide" id="slide-added-ex103-full-2">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 【例10-3】关联度计算：关联系数逐项代入</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:15px;">关联系数公式为：</p><div class="math-center"><div class="math-box" style="font-size:16px;">\[\eta_i(k)=\frac{\Delta_{\min}+\rho\Delta_{\max}}{\Delta_i(k)+\rho\Delta_{\max}}=\frac{0+0.5\times2.5417}{\Delta_i(k)+0.5\times2.5417}\]</div></div></div>
+            <div class="step table-wrapper" style="max-height:340px;">
+                <table class="data-table" style="font-size:14px;">
+                    <tr><th>$k$</th><th>$\eta_1(k)$ 计算</th><th>$\eta_1(k)$</th><th>$\eta_2(k)$ 计算</th><th>$\eta_2(k)$</th></tr>
+                    <tr><td>1</td><td>$1.27085/(0+1.27085)$</td><td>1.0000</td><td>$1.27085/(0+1.27085)$</td><td>1.0000</td></tr>
+                    <tr><td>2</td><td>$1.27085/(0.112+1.27085)$</td><td>0.9190</td><td>$1.27085/(0.0417+1.27085)$</td><td>0.9683</td></tr>
+                    <tr><td>3</td><td>$1.27085/(0.072+1.27085)$</td><td>0.9464</td><td>$1.27085/(0.905+1.27085)$</td><td>0.5841</td></tr>
+                    <tr><td>4</td><td>$1.27085/(0.225+1.27085)$</td><td>0.8496</td><td>$1.27085/(1.0867+1.27085)$</td><td>0.5391</td></tr>
+                    <tr><td>5</td><td>$1.27085/(0.660+1.27085)$</td><td>0.6582</td><td>$1.27085/(1.6083+1.27085)$</td><td>0.4414</td></tr>
+                    <tr><td>6</td><td>$1.27085/(0.931+1.27085)$</td><td>0.5772</td><td>$1.27085/(2.5417+1.27085)$</td><td>0.3333</td></tr>
+                </table>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:16px;">
+                \[r_1=\frac{1+0.9190+0.9464+0.8496+0.6582+0.5772}{6}=0.8251,r_2=\frac{1+0.9683+0.5841+0.5391+0.4414+0.3333}{6}=0.6444\]</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-3 结果解释 ==================== -->
+    <div class="slide" id="slide-added-ex103-full-3">
+        <h2 class="slide-title"><i class="fas fa-ranking-star"></i> 【例10-3】关联度结论怎么解释？</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:20px;color:#047857;">计算结论</h3><p style="font-size:21px;">$r_1=0.8251$，$r_2=0.6444$，因此 $r_1>r_2$。说明比较序列 $Y_1$ 与参考序列 $Y_0$ 的变化趋势更接近。</p></div>
+                <div class="tile" style="border-top-color:#3b82f6;"><h3 style="font-size:20px;color:#1d4ed8;">统计含义</h3><p style="font-size:21px;">灰色关联度比较的是“形状像不像”，不是绝对数值是否一样。初始化以后，$Y_1$ 与 $Y_0$ 的走势差距整体更小，所以关联度更高。</p></div>
+            </div>
+            <div class="step info-box"><p style="font-size:21px;"><strong>提醒：</strong>如果参考序列是 GDP，被比较序列是工业增加值和农业产值，那么关联度更高的变量可理解为与 GDP 协同变化更强。但关联度不是因果证明，别把“像”理解成“导致”。</p></div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 第二节 过渡 ==================== -->
+    <div class="slide section-slide" id="slide-sec2">
+        <div class="glow-orb-2"></div>
+        <h2>第二节 GM(1,1) 模型</h2>
+        <hr><p class="step" style="font-size: 24px;">一阶方程、单变量的预测利器</p>
+    </div>
+
+
+
+    <!-- ==================== 新增：第二节导入与GM预测流程 ==================== -->
+    <div class="slide" id="slide-added-sec2-intro-v2">
+        <h2 class="slide-title"><i class="fas fa-cogs"></i> 第二节导入：GM(1,1) 为什么能做预测？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:17px;">GM(1,1) 的名字有两个信息：第一个“1”表示一阶微分方程，第二个“1”表示一个变量。它的思想并不神秘：先把原始序列累加成较平滑的 $X^{(1)}$，再假设 $X^{(1)}$ 的变化速度与当前状态有关，并受到一个常数推动。</p>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:20px;">
+                \[ \frac{\mathrm{d}X^{(1)}}{\mathrm{d}t}+aX^{(1)}=\mu \]
+            </div></div>
+            <div class="step three-column">
+                <div class="tile"><h3 style="font-size:18px;">$X^{(1)}$</h3><p style="font-size:14px;">累加后的系统状态。</p></div>
+                <div class="tile"><h3 style="font-size:18px;">$a$</h3><p style="font-size:14px;">发展灰数，控制系统发展速度与方向。</p></div>
+                <div class="tile"><h3 style="font-size:18px;">$\mu$</h3><p style="font-size:14px;">内生控制灰数，表示系统内部推动力量。</p></div>
+            </div>
+            <div class="step info-box"><p style="font-size:16px;">这不是说真实经济一定服从这个微分方程，而是用它作为少样本趋势的近似刻画。模型不是宇宙真理，只是一个能干活的近似工具。</p></div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== GM(1,1) 建模 ==================== -->
+    <div class="slide" id="slide-gm11">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 一、GM(1,1) 模型的建立</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 15px;">对原始序列 $X^{(0)}$ 累加生成 $X^{(1)}$ 后，建立一阶常微分方程：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 18px; padding: 5px 20px;">
+                    \[ \frac{\mathrm{d}X^{(1)}}{\mathrm{d}t} + a X^{(1)} = \mu \]
+                </div></div>
+                <p style="font-size: 14px; text-align: center;">($a$ 称为发展灰数，$\mu$ 称为内生控制灰数)</p>
+            </div>
+
+            <div class="step two-column" style="margin-top: 10px;">
+                <div class="tile" style="border-top-color: #10b981;">
+                    <h3 style="font-size: 18px; color: #047857;">最小二乘法估计参数 $\hat{\alpha} = [a, \mu]^T$</h3>
+                    <div class="math-center"><div class="math-box" style="font-size: 14px; border-left-color: #10b981; padding: 5px;">
+                        \[ \hat{\alpha} = (B^T B)^{-1} B^T Y_n \]
+                        其中 
+                        
+                        
+                \[
+                B=
+                \begin{pmatrix}
+                -\frac12[X^{(1)}(1)+X^{(1)}(2) ]&1\\
+                -\frac12[X^{(1)}(2)+X^{(1)}(3)]&1\\
+                \vdots&\vdots\\
+                -\frac12[X^{(1)}(n-1)+X^{(1)}(n)]&1
+                \end{pmatrix},
+                Y_n=
+                \begin{pmatrix}
+                X^{(0)}(2)\\
+                X^{(0)}(3)\\
+                \vdots\\
+                X^{(0)}(n)
+                \end{pmatrix}.
+                \]
+                        即，$B$ 的第 $k-1$ 行为 $[-\frac{1}{2}(X^{(1)}(k-1)+X^{(1)}(k)), 1]$，$Y_n$ 为 $X^{(0)}$ 从第2项开始的列向量。
+                    </div></div>
+                </div>
+                <div class="tile" style="border-top-color: #f59e0b;">
+                    <h3 style="font-size: 18px; color: #b45309;">求解微分方程得到预测模型</h3>
+                    <div class="math-center"><div class="math-box" style="font-size: 21px; border-left-color: #f59e0b; padding: 5px;">
+                        \[ \hat{X}^{(1)}(k+1) = \left[X^{(0)}(1) - \frac{\mu}{a}\right] e^{-ak} + \frac{\mu}{a} \]
+                    </div></div>
+                    <p style="font-size: 21px;">最后再通过<strong>累减</strong>，还原出所需的原始预测值 $\hat{X}^{(0)}(k+1)$。
+                        \[\hat{X}^{(0)}(k+1)=\hat{X}^{(1)}(k+1)-\hat{X}^{(1)}(k)\]</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+
+    <!-- ==================== 新增：GM(1,1)公式推导 ==================== -->
+    <div class="slide" id="slide-added-gm11-proof-v2">
+        <h2 class="slide-title"><i class="fas fa-square-root-alt"></i> GM(1,1) 关键公式从哪里来？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:16px;">GM(1,1) 从连续形式开始：</p>
+                <div class="math-center"><div class="math-box" style="font-size:19px;">
+                    \[ \frac{\mathrm{d}X^{(1)}}{\mathrm{d}t}+aX^{(1)}=\mu \]
+                </div></div>
+            </div>
+            <div class="step tile" style="border-top-color:#3b82f6;">
+                <h3 style="font-size:19px;color:#1d4ed8;">第一步：解一阶线性微分方程</h3>
+                <p style="font-size:15px;">其通解为：</p>
+                <div class="math-center"><div class="math-box" style="font-size:18px;border-left-color:#3b82f6;">
+                    \[ X^{(1)}(t)=Ce^{-at}+\frac{\mu}{a} \]
+                </div></div>
+                <p style="font-size:15px;">由初始条件 $X^{(1)}(1)=X^{(0)}(1)$，离散记号中常写成 $k=0$ 时对应第一项，于是得到：</p>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:20px;border-left-color:#10b981;">
+                \[ \hat X^{(1)}(k+1)=\left[X^{(0)}(1)-\frac{\mu}{a}\right]e^{-ak}+\frac{\mu}{a},\qquad k=0,1,2,\cdots \]
+            </div></div>
+            <div class="step info-box"><p style="font-size:15px;"><strong>这就是时间响应函数。</strong>它给出的是累加序列的预测值，因此最终还要通过 $\hat X^{(0)}(k+1)=\hat X^{(1)}(k+1)-\hat X^{(1)}(k)$ 还原。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-added-gm11-discrete-v2">
+        <h2 class="slide-title"><i class="fas fa-table-cells"></i> 为什么矩阵 $B$ 要这样构造？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:16px;">由于实际数据是离散观测值，无法直接进行连续求导，连续方程无法直接用有限样本估计，所以要离散化。因此采用背景值（用于近似区间平均状态）近似积分。对第 $k$ 期，有灰色差分方程：</p>
+                <div class="math-center"><div class="math-box" style="font-size:15px;padding: 5px;">
+                    \[ X^{(0)}(k)+aZ^{(1)}(k)=\mu,\qquad k=2,3,\cdots,n \]
+                </div></div>
+                <p style="font-size:15px;">其中背景值取：</p>
+                <div class="math-center"><div class="math-box" style="font-size:15px;padding: 5px;">
+                    \[ Z^{(1)}(k)=\frac12\left[X^{(1)}(k)+X^{(1)}(k-1)\right] \]
+                </div></div>
+                <p style="font-size:14px;color:#666;">即利用相邻两个累加值的平均值近似表示区间状态。 </p>
+            </div>
+            <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3 style="font-size:18px;color:#b45309;">背景值为什么取平均值？</h3>
+                    <p style="font-size:17px;">在第 \(k-1\) 到第 \(k\) 个时间区间上积分：</p>
+                    <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#f59e0b;">
+                        \[\int_{k-1}^{k}\frac{dX^{(1)}}{dt}dt+a\int_{k-1}^{k}X^{(1)}(t)dt=\int_{k-1}^{k}\mu dt\]
+                    </div></div>
+                    
+                </div>
+        </div>
+    </div>
+
+
+ <div class="slide">
+        <h2> <i class="fas fa-wave-square"></i>背景值为什么取平均值？</h2>
+    <div class="content-area">
+
+        <div class="step two-column">
+
+            <div class="tile"><h3 style="color:#2563eb;">第一项</h3>
+                <div class="math-center">
+                       <div class="math-box">
+                          \[\int_{k-1}^{k}\frac{dX^{(1)}}{dt}dt=X^{(1)}(k)-X^{(1)}(k-1)\]
+                       </div>
+                </div>
+               由累加生成定义：
+               <div class="math-center">
+                            <div class="math-box">
+                               \[X^{(1)}(k)-X^{(1)}(k-1)=X^{(0)}(k)\]
+                           </div>
+               </div>
+           </div>
+
+            <div class="tile"><h3 style="color:#d97706;">第二项</h3>
+                   <div class="math-center">
+                        <div class="math-box">
+                             \[\int_{k-1}^{k}X^{(1)}(t)dt\]
+                        </div>
+                    </div>
+               真实积分难计算，所以采用梯形公式近似：
+                    <div class="math-center">
+                         <div class="math-box">
+                              \[\int_{k-1}^{k}X^{(1)}(t)dt\approx\frac12[X^{(1)}(k-1)+X^{(1)}(k)]\]
+                         </div>
+                    </div>
+                因此得到背景值：
+                 <div class="math-center">
+                         <div class="math-box">  
+                            \[Z^{(1)}(k)=\frac12[X^{(1)}(k-1)+X^{(1)}(k)]\]
+                         </div>
+                 </div>    
+            </div>        
+        </div>
+             </div>
+    </div>   
+
+
+
+
+
+
+
+
+    <div class="slide" id="slide-added-gm11-discrete-v2">
+        <h2 class="slide-title"><i class="fas fa-table-cells"></i> 为什么矩阵 $B$ 要这样构造？</h2>
+        <div class="content-area">
+           
+
+
+          
+                <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3 style="font-size:18px;color:#b45309;">写成回归形式</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#f59e0b;">
+                        \[ X^{(0)}(k)=-aZ^{(1)}(k)+\mu \]
+                    </div></div>
+                    <p style="font-size:14px;">所以矩阵 $B$ 的一行就是 $[-Z^{(1)}(k),1]$。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:18px;color:#047857;">最小二乘估计</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#10b981;">
+                        \[ Y_n=B\alpha+\varepsilon,\qquad \hat\alpha=(B^TB)^{-1}B^TY_n \]
+                    </div></div>
+                    <p style="font-size:14px;">这就是 $a$ 和 $\mu$ 的来源。</p>
+                </div>
+         
+        </div>
+    </div>
+
+
+
+
+
+    <!-- ==================== 模型检验 ==================== -->
+    <div class="slide" id="slide-gm-test">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 二、灰色预测模型的三大检验</h2>
+        <div class="content-area">
+            <div class="step three-column">
+                <div class="tile" style="border-top-color: #3b82f6;">
+                    <h3 style="font-size: 23px;">1. 残差检验</h3>
+                    <p style="font-size: 20px;">计算原始序列 $X^{(0)}$ 与拟合序列 $\hat{X}^{(0)}$ 的绝对误差与相对误差 $\Phi(i)$。相对误差越小越好。</p>
+                </div>
+                <div class="tile" style="border-top-color: #8b5cf6;">
+                    <h3 style="font-size: 23px;">2. 关联度检验</h3>
+                    <p style="font-size: 20px;">计算拟合序列 $\hat{X}^{(0)}$ 与原始序列 $X^{(0)}$ 的关联度 $r$。当 $\rho=0.5$ 时，一般要求 $r > 0.6$。</p>
+                </div>
+                <div class="tile" style="border-top-color: #f43f5e;">
+                    <h3 style="font-size: 23px;">3. 后验差检验</h3>
+                    <p style="font-size: 20px;">计算原始数据标准差 $S_1$ 和残差标准差 $S_2$，求得方差比 $C = S_2 / S_1$ 和小误差概率 $P$。</p>
+                </div>
+            </div>
+
+            <div class="step tile" style="margin-top: 10px;">
+                <h3 style="font-size: 18px;">后验差检验的等级评定标准</h3>
+                <div  style="max-height: 200px;">
+                    <table class="data-table">
+                        <tr><th>模型精度等级</th><th>小误差概率 $P$</th><th>方差比 $C$</th></tr>
+                        <tr style="background:#f0fdf4;"><td>好 (一级)</td><td>$> 0.95$</td><td>$< 0.35$</td></tr>
+                        <tr><td>合格 (二级)</td><td>$> 0.80$</td><td>$< 0.50$</td></tr>
+                        <tr><td>勉强合格 (三级)</td><td>$> 0.70$</td><td>$< 0.65$</td></tr>
+                        <tr style="background:#fef2f2;"><td>不合格 (四级)</td><td>$\leqslant 0.70$</td><td>$\geqslant 0.65$</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- ==================== 新增：检验逻辑讲清楚 ==================== -->
+    <div class="slide" id="slide-added-test-logic-v2">
+        <h2 class="slide-title"><i class="fas fa-stethoscope"></i> 为什么 GM(1,1) 建完以后一定要检验？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:18px;">灰色模型常用于小样本，样本少意味着模型很容易“看起来很像”，但未必可靠。因此建模后必须检查：拟合误差小不小、曲线走势像不像、残差波动大不大。</p>
+            </div>
+            <div class="step three-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:18px;color:#1d4ed8;">残差检验</h3>
+                    <p style="font-size:18px;">回答“每一期预测差多少”。</p>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;border-left-color:#3b82f6;">\[ \Phi(i)=\frac{|X^{(0)}(i)-\hat X^{(0)}(i)|}{X^{(0)}(i)}\times100\% \]</div></div>
+                </div>
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3 style="font-size:18px;color:#6d28d9;">关联度检验</h3>
+                    <p style="font-size:18px;">回答“拟合曲线走势像不像原序列”。</p>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;border-left-color:#8b5cf6;">\[ r=\frac1n\sum_{i=1}^{n}\eta(i) \]</div></div>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3 style="font-size:18px;color:#b45309;">后验差检验</h3>
+                    <p style="font-size:18px;">回答“残差波动相对原序列是否足够小”。</p>
+                    <div class="math-center"><div class="math-box" style="font-size:18px;border-left-color:#f59e0b;">\[ C=\frac{S_2}{S_1},\qquad P=p\{e_i<0.6745S_1\} \]</div></div>
+                </div>
+            </div>
+            <div class="step info-box"><p style="font-size:21px;"><strong>判断逻辑：</strong>残差小、关联度高、$C$ 小、$P$ 大，才说明模型既贴近数据，又没有明显失控。否则需要重新建模或做残差修正。</p></div>
+        </div>
+    </div>
+
+    
+
+
+
+
+    <!-- ==================== 新增完整版：例10-4 矩阵计算1 ==================== -->
+    <div class="slide" id="slide-added-ex104-full-1">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 【例10-4】GM(1,1)：累加、背景值与矩阵</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:15px;">原始序列 $X^{(0)}=\{26.7,31.5,32.8,34.1,35.8,37.5\}$，累加生成：</p><div class="math-center"><div class="math-box" style="font-size:15px;">\[X^{(1)}=\{26.7,58.2,91.0,125.1,160.9,198.4\}\]</div></div></div>
+            <div class="step table-wrapper" style="max-height:330px;">
+                <table class="data-table" style="font-size:14px;">
+                    <tr><th>$k$</th><th>$X^{(0)}(k)$</th><th>$X^{(1)}(k)$</th><th>背景值 $Z^{(1)}(k)=\frac12[X^{(1)}(k-1)+X^{(1)}(k)]$</th><th>$B$ 第 $k-1$ 行</th></tr>
+                    <tr><td>2</td><td>31.5</td><td>58.2</td><td>$(26.7+58.2)/2=42.45$</td><td>$[-42.45,1]$</td></tr>
+                    <tr><td>3</td><td>32.8</td><td>91.0</td><td>$(58.2+91.0)/2=74.60$</td><td>$[-74.60,1]$</td></tr>
+                    <tr><td>4</td><td>34.1</td><td>125.1</td><td>$(91.0+125.1)/2=108.05$</td><td>$[-108.05,1]$</td></tr>
+                    <tr><td>5</td><td>35.8</td><td>160.9</td><td>$(125.1+160.9)/2=143.00$</td><td>$[-143.00,1]$</td></tr>
+                    <tr><td>6</td><td>37.5</td><td>198.4</td><td>$(160.9+198.4)/2=179.65$</td><td>$[-179.65,1]$</td></tr>
+                </table>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:15px;">
+                \[B=\begin{pmatrix}-42.45&1\\-74.60&1\\-108.05&1\\-143.00&1\\-179.65&1\end{pmatrix},
+                \qquad 
+                Y_n=\begin{pmatrix}31.5\\32.8\\34.1\\35.8\\37.5\end{pmatrix}\]</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-4 矩阵计算2 ==================== -->
+    <div class="slide" id="slide-added-ex104-full-2">
+        <h2 class="slide-title"><i class="fas fa-matrix"></i> 【例10-4】GM(1,1)：最小二乘参数估计</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile"><h3 style="font-size:18px;">计算 $B^TB$</h3><div class="math-center"><div class="math-box" style="font-size:15px;">\[B^TB=\begin{pmatrix}71765.09&-547.75\\-547.75&5\end{pmatrix}\]</div></div><p style="font-size:14px;">其中 $71765.09=42.45^2+74.60^2+108.05^2+143^2+179.65^2$，$-547.75=-(42.45+74.60+108.05+143+179.65)$。</p></div>
+                <div class="tile" style="border-top-color:#3b82f6;"><h3 style="font-size:18px;color:#1d4ed8;">计算逆矩阵</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[(B^TB)^{-1}=\begin{pmatrix}0.000085&0.009316\\0.009316&1.220591\end{pmatrix}\]</div></div></div>
+            </div>
+            <div class="step tile" style="border-top-color:#10b981;"><h3 style="font-size:18px;color:#047857;">计算 $B^TY_n$ 与参数</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[B^TY_n=\begin{pmatrix}-19324.835\\171.7\end{pmatrix}\]\[\hat\alpha=(B^TB)^{-1}B^TY_n=\begin{pmatrix}-0.043804\\29.541221\end{pmatrix}\]</div></div><p style="font-size:15px;">所以 $a=-0.043804$，$\mu=29.541221$。为了课堂板书方便，可近似写为 $a=-0.0438$，$\mu=29.54122$。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-4 时间响应与拟合 ==================== -->
+    <div class="slide" id="slide-added-ex104-full-3">
+        <h2 class="slide-title"><i class="fas fa-wave-square"></i> 【例10-4】时间响应函数与拟合值</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:15px;">由 $\mu/a=-674.388$，$X^{(0)}(1)-\mu/a=26.7-(-674.388)=701.088$，得到：</p><div class="math-center"><div class="math-box" style="font-size:16px;">\[\hat X^{(1)}(k+1)=701.0885e^{0.0438k}-674.388\]</div></div></div>
+            <div class="step table-wrapper" style="max-height:330px;">
+                <table class="data-table" style="font-size:13px;">
+                    <tr><th>$k$</th><th>$\hat X^{(1)}(k+1)$ 计算</th><th>$\hat X^{(1)}$</th><th>累减还原 $\hat X^{(0)}$</th></tr>
+                    <tr><td>0</td><td>$701.0885e^0-674.388$</td><td>26.7000</td><td>26.7000</td></tr>
+                    <tr><td>1</td><td>$701.0885e^{0.0438}-674.388$</td><td>58.0934</td><td>$58.0934-26.7000=31.3934$</td></tr>
+                    <tr><td>2</td><td>$701.0885e^{0.0876}-674.388$</td><td>90.8925</td><td>$90.8925-58.0934=32.7991$</td></tr>
+                    <tr><td>3</td><td>$701.0885e^{0.1314}-674.388$</td><td>125.1602</td><td>$125.1602-90.8925=34.2678$</td></tr>
+                    <tr><td>4</td><td>$701.0885e^{0.1752}-674.388$</td><td>160.9625</td><td>$160.9625-125.1602=35.8022$</td></tr>
+                    <tr><td>5</td><td>$701.0885e^{0.2190}-674.388$</td><td>198.3678</td><td>$198.3678-160.9625=37.4054$</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-4 检验 ==================== -->
+    <div class="slide" id="slide-added-ex104-full-4">
+        <h2 class="slide-title"><i class="fas fa-check-double"></i> 【例10-4】残差、关联度与后验差检验</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:220px;">
+                <table class="data-table" style="font-size:13px;">
+                    <tr><th>$i$</th><th>$X^{(0)}(i)$</th><th>$\hat X^{(0)}(i)$</th><th>$\Delta^{(0)}(i)$</th><th>相对误差</th><th>$\eta(i)$</th></tr>
+                    <tr><td>1</td><td>26.7</td><td>26.7000</td><td>0</td><td>0</td><td>1.0000</td></tr>
+                    <tr><td>2</td><td>31.5</td><td>31.3934</td><td>0.1066</td><td>0.3385%</td><td>0.4403</td></tr>
+                    <tr><td>3</td><td>32.8</td><td>32.7991</td><td>0.0009</td><td>0.0027%</td><td>0.9894</td></tr>
+                    <tr><td>4</td><td>34.1</td><td>34.2678</td><td>0.1678</td><td>0.4920%</td><td>0.3333</td></tr>
+                    <tr><td>5</td><td>35.8</td><td>35.8022</td><td>0.0022</td><td>0.0062%</td><td>0.9742</td></tr>
+                    <tr><td>6</td><td>37.5</td><td>37.4054</td><td>0.0946</td><td>0.2523%</td><td>0.4699</td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile"><h3 style="font-size:17px;">关联度检验</h3><p style="font-size:14px;">$\Delta_{\min}=0$，$\Delta_{\max}=0.167778$，$\rho=0.5$。</p><div class="math-center"><div class="math-box" style="font-size:14px;">\[r=\frac{1+0.4403+0.9894+0.3333+0.9742+0.4699}{6}=0.7012>0.6\]</div></div></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:17px;color:#047857;">后验差检验</h3><p style="font-size:14px;">$\bar X^{(0)}=33.0667$，$S_1=3.7750$；$\bar\Delta=0.0620$，$S_2=0.0713$。</p><div class="math-center"><div class="math-box" style="font-size:14px;border-left-color:#10b981;">\[C=S_2/S_1=0.0189<0.35,\qquad P=1\]</div></div></div>
+            </div>
+            <div class="step info-box"><p style="font-size:15px;">
+                残差检验、关联度检验、后验差检验均通过，模型精度等级为“好”, 这才可以预测。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-4 预测第8期 ==================== -->
+    <div class="slide" id="slide-added-ex104-full-5">
+        <h2 class="slide-title"><i class="fas fa-forward"></i> 【例10-4】预测第 8 期：必须先算累加值再累减</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:16px;">预测第 8 期原始值 $\hat X^{(0)}(8)$，要先算累加预测 $\hat X^{(1)}(7)$ 和 $\hat X^{(1)}(8)$，再相减。</p></div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;"><h3 style="font-size:18px;color:#1d4ed8;">第 7 期累加预测值</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[\hat X^{(1)}(7)=701.0885e^{0.0438\times6}-674.388\]</div></div></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:18px;color:#047857;">第 8 期累加预测值</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[\hat X^{(1)}(8)=701.0885e^{0.0438\times7}-674.388\]</div></div></div>
+            </div>
+            <div class="step tile" style="border-top-color:#f59e0b;">
+                <h3 style="font-size:18px;color:#b45309;">累减还原</h3>
+                <div class="math-center">
+                    <div class="math-box" style="font-size:18px;border-left-color:#f59e0b;">
+                        \[\hat X^{(0)}(8)=\hat X^{(1)}(8)-\hat X^{(1)}(7)=40.82492\]
+                    </div>
+                </div>
+                <p style="font-size:16px;">所以第 8 期预测值约为 <strong>40.82492.</strong></p></div>
+        </div>
+    </div>
+
+
+    <!-- ==================== 新增：例10-4预测步骤图解 ==================== -->
+    <div class="slide" id="slide-added-ex104-predict-v2">
+        <h2 class="slide-title"><i class="fas fa-forward"></i> 例10-4 最关键：第 8 期到底怎么预测出来？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:16px;">模型已经得到：</p>
+                <div class="math-center"><div class="math-box" style="font-size:19px;">
+                    \[ \hat X^{(1)}(k+1)=701.0885e^{0.0438k}-674.388 \]
+                </div></div>
+                <p style="font-size:15px;">注意：这个公式算出来的是累加序列预测值 $\hat X^{(1)}$。</p>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:18px;color:#1d4ed8;">先算第 7 期累加预测值</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">
+                        \[ \hat X^{(1)}(7)=701.0885e^{0.0438\times6}-674.388 \]
+                    </div></div>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:18px;color:#047857;">再算第 8 期累加预测值</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#10b981;">
+                        \[ \hat X^{(1)}(8)=701.0885e^{0.0438\times7}-674.388 \]
+                    </div></div>
+                </div>
+            </div>
+            <div class="step tile" style="border-top-color:#f59e0b;">
+                <h3 style="font-size:18px;color:#b45309;">最后累减还原</h3>
+                <div class="math-center"><div class="math-box" style="font-size:19px;border-left-color:#f59e0b;">
+                    \[ \hat X^{(0)}(8)=\hat X^{(1)}(8)-\hat X^{(1)}(7)=40.82492 \]
+                </div></div>
+                <p style="font-size:15px;">所以第 8 期预测值为 40.82492。预测不是直接把 $k=7$ 代进去就结束，必须再做一次累减还原。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 第三节 过渡 ==================== -->
+    <div class="slide section-slide" id="slide-sec3">
+        <div class="glow-orb-1"></div>
+        <h2>第三节 GM(1,1) 残差模型及 GM(n,h) 模型</h2>
+        <hr><p class="step" style="font-size: 24px;">误差修正与多维演进</p>
+    </div>
+
+    <!-- ==================== 残差模型 ==================== -->
+    <div class="slide" id="slide-residual-model">
+        <h2 class="slide-title"><i class="fas fa-tools"></i> 一、残差修正模型</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 16px;">如果原始建立的 GM(1,1) 模型检验不合格，就要对残差序列建立新的 GM(1,1) 模型来进行补偿修正。</p>
+            </div>
+            
+            <div class="step tile" style="margin-top: 10px;">
+                <h3 style="font-size: 18px;">修正方法：</h3>
+                <p style="font-size: 15px;">提取误差序列 $e^{(0)}(j) = X^{(1)}(j) - \hat{X}^{(1)}(j)$。对其累加建立误差预测模型 $\hat{e}^{(1)}(k+1)$。<br>
+                求导后叠加到原模型上，得到带有修正项的新模型：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 15px; padding: 10px;">
+                    \[ \hat{X}^{(1)}(k+1) = \underbrace{\left[X^{(0)}(1) - \frac{\mu}{a}\right] e^{-ak} + \frac{\mu}{a}}_{\text{原模型基础预测}} + \underbrace{\delta(k-1)(-a_e)\left[e^{(0)}(1)-\frac{\mu_e}{a_e}\right] e^{-a_e(k-1)}}_{\text{误差修正项}} \]
+                </div></div>
+            </div>
+            
+            
+        </div>
+    </div>
+
+    <div class="slide" id="slide-residual-model-detailed">
+    <h2 class="slide-title"> <i class="fas fa-tools"></i> 一、残差修正模型</h2>
+
+    <div class="content-area">
+
+        <!-- Step1 -->
+        <div class="step tile">
+            <h3 style="color:#2563eb;font-size:20px;">
+                Step1：为什么需要残差修正？
+            </h3>
+
+            <p style="font-size:16px;">
+                GM(1,1) 假设数据近似满足指数规律：
+            </p>
+
+            <div class="math-center">
+                <div class="math-box">
+                \[
+                \hat X^{(1)}(i+1)
+                =
+                \left[
+                X^{(0)}(1)-\frac{\mu}{a}
+                \right]
+                e^{-ai}
+                +
+                \frac{\mu}{a}
+                \]
+                </div>
+            </div>
+
+            <p style="font-size:15px;">
+                如果模型检验发现平均相对误差较大、后验差比不达标，说明原模型未能完全描述系统规律。 此时剩余误差可能仍包含规律信息，而不是随机噪声，因此可进一步建模。
+            </p>
+        </div>
+
+        <!-- Step2 -->
+        <div class="step tile">
+
+            <h3 style="color:#dc2626;font-size:20px;">
+                Step2：构造残差序列
+            </h3>
+
+            <p style="font-size:16px;">
+                原模型得到累计序列预测值：
+            </p>
+
+            <div class="math-center">
+                <div class="math-box">
+                \[
+                \hat X^{(1)}
+                =
+                \{
+                \hat X^{(1)}(1),
+                \hat X^{(1)}(2),
+                \cdots,
+                \hat X^{(1)}(n)
+                \},\quad \text{定义预测误差：} e^{(0)}(j)
+                =
+                X^{(1)}(j)
+                -
+                \hat X^{(1)}(j)
+                \]
+                </div>
+            </div>
+
+           
+
+            <p style="font-size:15px;">
+                所有误差构成残差序列：
+            </p>
+
+            <div class="math-center">
+                <div class="math-box" style="font-size:16px;">
+                \[
+                e^{(0)}
+                =
+                \{
+                e^{(0)}(1'),
+                e^{(0)}(2'),
+                \cdots,
+                e^{(0)}(n')
+                \}
+                \]
+                </div>
+            </div>
+
+            <p style="font-size:14px;color:#666;">
+                含义：把“模型没有解释掉的部分”单独提取出来。
+            </p>
+
+        </div>
+
+
+        
+    </div>
+
+</div>
+
+
+
+    <div class="slide" id="slide-residual-model-detailed">
+
+    <h2 class="slide-title">
+        <i class="fas fa-tools"></i>
+        一、残差修正模型
+    </h2>
+
+    <div class="content-area">
+
+        <!-- Step3 -->
+
+        <div class="step two-column">
+
+            <div class="tile" style="border-top-color:#f59e0b;">
+
+                <h3 style="color:#b45309;font-size:18px;">
+                    Step3：再次累加
+                </h3>
+
+                <p style="font-size:15px;">
+                    为削弱随机波动，对残差进行一次累加：
+                </p>
+
+                <div class="math-center">
+                    <div class="math-box" style="font-size:16px;">
+                    \[
+                    e^{(1)}
+                    =
+                    \{
+                    e^{(1)}(1'),
+                    e^{(1)}(2'),
+                    \cdots,
+                    e^{(1)}(n')
+                    \}
+                    \]
+                    </div>
+                </div>
+
+                <p style="font-size:14px;">
+                    累加后波动通常变平滑。
+                </p>
+
+            </div>
+
+            <div class="tile" style="border-top-color:#10b981;">
+
+                <h3 style="color:#047857;font-size:18px;">
+                    Step4：建立残差GM(1,1)
+                </h3>
+
+                <div class="math-center">
+                    <div class="math-box"
+                    style="font-size:15px;border-left-color:#10b981;">
+                    \[
+                    \hat e^{(1)}(k+1)
+                    =
+                    \left[
+                    e^{(0)}(1)
+                    -
+                    \frac{\mu_e}{a_e}
+                    \right]
+                    e^{-a_e k}
+                    +
+                    \frac{\mu_e}{a_e}
+                    \]
+                    </div>
+                </div>
+
+                <p style="font-size:14px;">
+                    参数：
+                    \(a_e\) 为发展系数，
+                    \(\mu_e\) 为灰作用量
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- Step5 -->
+        <div class="step tile">
+
+            <h3 style="color:#7c3aed;font-size:20px;">
+                Step5：为什么要求导？
+            </h3>
+
+            <p style="font-size:15px;">
+                注意：残差模型预测的是累计序列
+                \(e^{(1)}\)，
+                而原模型修正需要的是增量信息。因此求导恢复变化速度：
+            </p>
+
+           
+
+            <div class="math-center">
+                <div class="math-box">
+                \[
+                \hat e'(k+1)
+                =
+                (-a_e)
+                \left[
+                e^{(0)}(1)
+                -
+                \frac{\mu_e}{a_e}
+                \right]
+                e^{-a_e(k-1)}
+                \]
+                </div>
+            </div>
+
+            <p style="font-size:14px;color:#666;">
+                导数表示误差变化率，相当于提取残差的动态补偿量。
+            </p>
+
+        </div>
+
+
+       
+
+      
+
+    </div>
+
+</div>
+
+
+
+    <div class="slide" id="slide-residual-model-detailed">
+
+    <h2 class="slide-title">
+        <i class="fas fa-tools"></i>
+        一、残差修正模型
+    </h2>
+
+    <div class="content-area">
+
+
+        <!-- Step6 -->
+
+        <div class="step tile">
+
+            <h3 style="color:#ef4444;font-size:20px;">
+                Step6：加入补偿项形成修正模型
+            </h3>
+
+            <div class="math-center">
+                <div class="math-box"
+                style="font-size:15px;padding:10px;">
+
+                \[
+                \hat X^{(1)}(k+1)
+                =
+                \underbrace{
+                \left[
+                X^{(0)}(1)
+                -
+                \frac{\mu}{a}
+                \right]
+                e^{-ak}
+                +
+                \frac{\mu}{a}
+                }_{\text{原预测}}
+
+                +
+
+                \underbrace{
+                \delta(k-1)
+                (-a_e)
+                \left[
+                e^{(0)}(1)
+                -
+                \frac{\mu_e}{a_e}
+                \right]
+                e^{-a_e(k-1)}
+                }_{\text{残差修正}}
+                \]
+
+                </div>
+            </div>
+
+            <p style="font-size:14px;">
+                修正系数：
+            </p>
+
+            <div class="math-center">
+                <div class="math-box">
+                \[
+                \delta(k-1)
+                =
+                \begin{cases}
+                1,&k\ge2\\
+                0,&k<2
+                \end{cases}
+                \]
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- Step7 -->
+
+        <div class="step tile">
+
+            <h3 style="color:#0f766e;font-size:20px;">
+                Step7：恢复原始预测序列
+            </h3>
+
+            <p style="font-size:16px;">
+                因为前面建立的是累计模型，所以最后还需逆累加：
+            </p>
+
+            <div class="math-center">
+                <div class="math-box">
+                \[
+                \hat X^{(0)}(k+1)
+                =
+                \hat X^{(1)}(k+1)
+                -
+                \hat X^{(1)}(k)
+                \]
+                </div>
+            </div>
+
+            <p style="font-size:15px;color:#2563eb;">
+                完整流程：
+                原GM(1,1)
+                → 求残差
+                → 再建GM(1,1)
+                → 提取补偿项
+                → 修正预测结果
+            </p>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+    <!-- ==================== 新增完整版：例10-5 GM建模1 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-1">
+        <h2 class="slide-title"><i class="fas fa-city"></i> 【例10-5】总消费预测：原始序列与累加生成</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:15px;">原始序列单位为亿元：$X^{(0)}=\{386.06,476.57,679.35,873.89,1085.33,1252.33\}$，分别对应 2015—2020 年。</p></div>
+            <div class="step table-wrapper" style="max-height:330px;">
+                <table class="data-table" style="font-size:14px;">
+                    <tr><th>年份</th><th>$k$</th><th>$X^{(0)}(k)$</th><th>累加计算</th><th>$X^{(1)}(k)$</th></tr>
+                    <tr><td>2015</td><td>1</td><td>386.06</td><td>386.06</td><td>386.06</td></tr>
+                    <tr><td>2016</td><td>2</td><td>476.57</td><td>386.06+476.57</td><td>862.63</td></tr>
+                    <tr><td>2017</td><td>3</td><td>679.35</td><td>862.63+679.35</td><td>1541.98</td></tr>
+                    <tr><td>2018</td><td>4</td><td>873.89</td><td>1541.98+873.89</td><td>2415.87</td></tr>
+                    <tr><td>2019</td><td>5</td><td>1085.33</td><td>2415.87+1085.33</td><td>3501.20</td></tr>
+                    <tr><td>2020</td><td>6</td><td>1252.33</td><td>3501.20+1252.33</td><td>4753.53</td></tr>
+                </table>
+            </div>
+           
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-5 GM建模2 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-2">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 【例10-5】构造 $B,Y_n$ 并估计参数</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:230px;">
+                <table class="data-table" style="font-size:13px;">
+                    <tr><th>$k$</th><th>背景值 $Z^{(1)}(k)$</th><th>$B$ 第 $k-1$ 行</th><th>$Y_n$ 对应值</th></tr>
+                    <tr><td>2</td><td>$(386.06+862.63)/2=624.345$</td><td>$[-624.345,1]$</td><td>476.57</td></tr>
+                    <tr><td>3</td><td>$(862.63+1541.98)/2=1202.305$</td><td>$[-1202.305,1]$</td><td>679.35</td></tr>
+                    <tr><td>4</td><td>$(1541.98+2415.87)/2=1978.925$</td><td>$[-1978.925,1]$</td><td>873.89</td></tr>
+                    <tr><td>5</td><td>$(2415.87+3501.20)/2=2958.535$</td><td>$[-2958.535,1]$</td><td>1085.33</td></tr>
+                    <tr><td>6</td><td>$(3501.20+4753.53)/2=4127.365$</td><td>$[-4127.365,1]$</td><td>1252.33</td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile"><h3 style="font-size:17px;">矩阵形式</h3><div class="math-center"><div class="math-box" style="font-size:13px;">\[B=\begin{pmatrix}-624.345&1\\-1202.305&1\\-1978.925&1\\-2958.535&1\\-4127.365&1\end{pmatrix},\quad Y_n=\begin{pmatrix}476.57\\679.35\\873.89\\1085.33\\1252.33\end{pmatrix}\]</div></div></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:17px;color:#047857;">参数结果</h3><p style="font-size:14px;">按教材近似计算：</p><div class="math-center"><div class="math-box" style="font-size:14px;border-left-color:#10b981;">\[\hat\alpha=(B^TB)^{-1}B^TY_n=\begin{pmatrix}-0.207987503\\396.8903031\end{pmatrix}\]</div></div><p style="font-size:14px;">即 $a=-0.207987503$，$\mu=396.8903031$。</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-5 时间响应与残差 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-3">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 【例10-5】时间响应函数、拟合值与残差</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:15px;">由 $\mu/a=-1908.241108$，$X^{(0)}(1)-\mu/a=386.06-(-1908.241108)=2294.301108$，得到：</p><div class="math-center"><div class="math-box" style="font-size:15px;">\[\hat X^{(1)}(k+1)=2294.301108e^{0.207988k}-1908.241108\]</div></div></div>
+            <div class="step table-wrapper" style="max-height:315px;">
+                <table class="data-table" style="font-size:13px;">
+                    <tr><th>年份</th><th>$\hat X^{(1)}$</th><th>累减还原 $\hat X^{(0)}$</th><th>实际 $X^{(0)}$</th><th>绝对误差</th><th>相对误差</th></tr>
+                    <tr><td>2015</td><td>386.06</td><td>386.06</td><td>386.06</td><td>0</td><td>0</td></tr>
+                    <tr><td>2016</td><td>916.50</td><td>530.44</td><td>476.57</td><td>53.87</td><td>11.30%</td></tr>
+                    <tr><td>2017</td><td>1569.57</td><td>653.07</td><td>679.35</td><td>26.28</td><td>3.87%</td></tr>
+                    <tr><td>2018</td><td>2373.64</td><td>804.07</td><td>873.89</td><td>69.82</td><td>7.99%</td></tr>
+                    <tr><td>2019</td><td>3363.60</td><td>989.96</td><td>1085.33</td><td>95.37</td><td>8.79%</td></tr>
+                    <tr><td>2020</td><td>4582.45</td><td>1218.35</td><td>1252.33</td><td>33.48</td><td>2.67%</td></tr>
+                </table>
+            </div>
+            <div class="step info-box"><p style="font-size:15px;">有些相对误差较大，尤其 2016 年达到 11.30%，所以需要进一步进行残差修正。灰色模型不是算完就跑，它也要体检。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-5 检验 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-4">
+        <h2 class="slide-title"><i class="fas fa-stethoscope"></i> 【例10-5】关联度检验与后验差检验</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="tile"><h3 style="font-size:17px;">关联度检验</h3><p style="font-size:14px;">误差序列：$\Delta=\{0,53.87,26.28,69.82,95.37,33.48\}$，$\Delta_{\min}=0$，$\Delta_{\max}=95.37$。</p><div class="math-center"><div class="math-box" style="font-size:14px;">\[\eta(k)=\frac{0.5\times95.37}{\Delta(k)+0.5\times95.37}\]</div></div><p style="font-size:14px;">得到 $\eta=\{1,0.47,0.64,0.41,0.33,0.59\}$，$r\approx0.573$。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:17px;color:#047857;">后验差检验</h3><div class="math-center"><div class="math-box" style="font-size:14px;border-left-color:#10b981;">\[\bar X^{(0)}=792.255,\qquad S_1=341.065\]\[\bar\Delta=46.47,\qquad S_2=33.8438\]\[C=\frac{33.8438}{341.065}=0.09923<0.35\]</div></div></div>
+            </div>
+            <div class="step tile" style="border-top-color:#f59e0b;"><h3 style="font-size:17px;color:#b45309;">小误差概率</h3><div class="math-center"><div class="math-box" style="font-size:14px;border-left-color:#f59e0b;">\[S_0=0.6745S_1=0.6745\times341.065=230.048\]\[e_k=|\Delta(k)-\bar\Delta|=\{46.47,7.40,20.19,23.35,48.90,12.98\}\]</div></div><p style="font-size:14px;">所有 $e_k$ 均小于 $S_0$，所以 $P=1$。后验差检验通过，但残差相对误差仍提示需要修正。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-5 残差修正1 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-5">
+        <h2 class="slide-title"><i class="fas fa-band-aid"></i> 【例10-5】残差修正：对误差再建 GM(1,1)</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:15px;">
+                    取除第一项外的绝对残差序列：</p>
+                    <div class="math-center"><div class="math-box" style="font-size:15px;">
+                        \[e^{(0)}=\{53.87,26.28,69.82,95.37,33.48\},\quad e^{(1)}=\{53.87,80.15,149.97,245.34,278.82\}\]</div></div></div>
+            <div class="step table-wrapper" style="max-height:240px;">
+                <table class="data-table" style="font-size:13px;">
+                    <tr><th>$k$</th><th>$e^{(0)}(k)$</th><th>$e^{(1)}(k)$</th><th>背景值</th><th>$B_e$ 行</th></tr>
+                    <tr><td>2</td><td>26.28</td><td>80.15</td><td>$(53.87+80.15)/2=67.01$</td><td>$[-67.01,1]$</td></tr>
+                    <tr><td>3</td><td>69.82</td><td>149.97</td><td>$(80.15+149.97)/2=115.06$</td><td>$[-115.06,1]$</td></tr>
+                    <tr><td>4</td><td>95.37</td><td>245.34</td><td>$(149.97+245.34)/2=197.655$</td><td>$[-197.655,1]$</td></tr>
+                    <tr><td>5</td><td>33.48</td><td>278.82</td><td>$(245.34+278.82)/2=262.08$</td><td>$[-262.08,1]$</td></tr>
+                </table>
+            </div>
+            <div class="step math-center"><div class="math-box" style="font-size:14px;">\[B_e^TB_e=\begin{pmatrix}125482.5691&-641.805\\-641.805&4\end{pmatrix},\quad B_e^TY_e=\begin{pmatrix}-37419.30775\\224.95\end{pmatrix}\]\[\hat\alpha_e=\begin{pmatrix}-0.0589\\46.7844\end{pmatrix}\]</div></div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增完整版：例10-5 残差修正2 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-6">
+        <h2 class="slide-title"><i class="fas fa-tools"></i> 【例10-5】写出修正模型并预测 2022 年</h2>
+        <div class="content-area">
+            <div class="step tile"><h3 style="font-size:17px;">残差模型</h3><p style="font-size:15px;">由 $a_e=-0.0589$，$\mu_e=46.7844$，$\mu_e/a_e=-794.3022$，得到：</p><div class="math-center"><div class="math-box" style="font-size:15px;">\[\hat e^{(1)}(k+1)=848.1722e^{0.0589k}-794.3022\]\[\left[\hat e^{(1)}(k+1)\right]'=49.9573e^{0.0589k}\]</div></div></div>
+            <div class="step tile" style="border-top-color:#10b981;"><h3 style="font-size:17px;color:#047857;">修正后的累加预测模型</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[\hat X^{(1)}(k+1)=2294.301108e^{0.207988k}-1908.241108+\delta(k-1)49.9573e^{0.0589(k-1)}\]</div></div><p style="font-size:14px;">其中 $\delta(k-1)=1$ 当 $k\geqslant2$，$\delta(k-1)=0$ 当 $k<2$。</p></div>
+            </div>
+    </div>
+
+   <!-- ==================== 新增完整版：例10-5 残差修正2 ==================== -->
+    <div class="slide" id="slide-added-ex105-full-6">
+        <h2 class="slide-title"><i class="fas fa-tools"></i> 【例10-5】写出修正模型并预测 2022 年</h2>
+        <div class="content-area">
+            
+
+                <div class="tile"><h3 style="font-size:17px;">预测 2021 年累加值</h3><div class="math-center"><div class="math-box" style="font-size:13px;">\[\hat X^{(1)}(7)=2294.301108e^{0.207988\times6}-1908.241108+49.9573e^{0.0589\times5}=6150.15\]</div></div></div>
+                <div class="tile" style="border-top-color:#f59e0b;"><h3 style="font-size:17px;color:#b45309;">预测 2022 年累加值</h3><div class="math-center"><div class="math-box" style="font-size:13px;border-left-color:#f59e0b;">\[\hat X^{(1)}(8)=2294.301108e^{0.207988\times7}-1908.241108+49.9573e^{0.0589\times6}=8001.80\]</div></div></div>
+    
+            <div class="step info-box"><p style="font-size:15px;">因此，2022 年总消费预测值为 $\hat X^{(0)}(8)=\hat X^{(1)}(8)-\hat X^{(1)}(7)=8001.80-6150.15=1851.65$ 亿元。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-added-gm11-flow-v2">
+        <h2 class="slide-title"><i class="fas fa-list-ol"></i> GM(1,1) 预测步骤总览：从数据到未来值</h2>
+        <div class="content-area">
+            <div class="step table-wrapper" style="max-height:410px;">
+                <table class="data-table" style="font-size:14px;">
+                    <tr><th>步骤</th><th>操作</th><th>为什么做</th><th>输出结果</th></tr>
+                    <tr><td>1</td><td>写出原始序列 $X^{(0)}$</td><td>确定预测对象</td><td>$X^{(0)}(1),...,X^{(0)}(n)$</td></tr>
+                    <tr><td>2</td><td>一次累加生成 $X^{(1)}$</td><td>弱化随机波动</td><td>$X^{(1)}(k)=\sum_{i=1}^kX^{(0)}(i)$</td></tr>
+                    <tr><td>3</td><td>构造背景值 $Z^{(1)}(k)$</td><td>近似微分方程中的状态量</td><td>$Z^{(1)}(k)=\frac12[X^{(1)}(k)+X^{(1)}(k-1)]$</td></tr>
+                    <tr><td>4</td><td>建立灰色差分方程</td><td>把微分方程离散化</td><td>$X^{(0)}(k)+aZ^{(1)}(k)=\mu$</td></tr>
+                    <tr><td>5</td><td>构造 $B,Y_n$ 并估计参数</td><td>用最小二乘估计 $a,\mu$</td><td>$\hat\alpha=(B^TB)^{-1}B^TY_n$</td></tr>
+                    <tr><td>6</td><td>写出时间响应函数</td><td>得到累加序列预测</td><td>$\hat X^{(1)}(k+1)$</td></tr>
+                    <tr><td>7</td><td>累减还原</td><td>回到原始序列单位</td><td>$\hat X^{(0)}(k+1)=\hat X^{(1)}(k+1)-\hat X^{(1)}(k)$</td></tr>
+                    <tr><td>8</td><td>检验与外推</td><td>判断能否用于预测</td><td>残差、关联度、后验差、未来预测值</td></tr>
+                </table>
+            </div>
+            <div class="step info-box"><p style="font-size:15px;">预测步骤最容易错在第 7 步：GM(1,1) 的时间响应函数预测的是累加序列 $X^{(1)}$，不是原始序列 $X^{(0)}$。</p></div>
+        </div>
+    </div>
+
+    <!-- ==================== GM(n,h) 模型 ==================== -->
+    <div class="slide" id="slide-gmnh">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 二、多变量高阶模型：GM(n,h)</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size: 16px;">当系统的发展受多个变量相互作用影响，且变化更加复杂时，我们需要扩展模型维度。<br>
+                <strong>GM($n, h$)</strong>：表示建立 $n$ 阶微分方程，系统包含 $h$ 个互相作用的变量。</p>
+            </div>
+
+            <div class="step tile" style="margin-top: 10px; border-top-color: #8b5cf6;">
+                <h3 style="font-size: 18px; color: #6d28d9;">模型形式</h3>
+                <p style="font-size: 15px;">通过构造更庞大的数据矩阵 $(A \vdots B)$ 和列向量 $Y_n$，解出包含高阶导数系数 $a_i$ 和多个相关变量系数 $b_i$ 的参数向量 $\hat{a}$：</p>
+                <div class="math-center"><div class="math-box" style="font-size: 16px; border-left-color: #8b5cf6; padding: 10px;">
+                    \[ \frac{\mathrm{d}^n X_1^{(1)}}{\mathrm{d} t^n} + a_1 \frac{\mathrm{d}^{n-1} X_1^{(1)}}{\mathrm{d} t^{n-1}} + \cdots + a_n X_1^{(1)} = b_1 X_2^{(1)} + b_2 X_3^{(1)} + \cdots + b_{h-1} X_h^{(1)} \]
+                </div></div>
+            </div>
+            
+            <div class="step info-box" style="background:#fef2f2; border-left-color:#ef4444;"><p style="font-size: 15px; color:#b91c1c;">注意：GM(1,1) 是 GM($n,h$) 在 $n=1, h=1$ 时的最简特例。高阶模型通常必须借助计算机编程求解。</p></div>
+        </div>
+    </div>
+
+    
+
+    <!-- ==================== 新增：本章学习逻辑 ==================== -->
+    <div class="slide" id="slide-added-roadmap">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 本章学习逻辑：灰色预测到底在解决什么问题？</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:21px;"><strong>一句话理解：</strong>灰色预测是在“数据少、信息不完整、但变化方向大体有规律”的情况下，用累加生成把随机波动压平，再用一个指数型微分方程刻画趋势。它很像在雾里看路灯，虽然看不清整条街，但能判断光往哪边延伸。人类居然把这种事写成矩阵，值得鼓掌三秒。</p>
+            </div>
+   
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:22px;color:#1d4ed8;">1. 为什么要用灰色预测？</h3>
+                    <p style="font-size:21px;">传统统计模型通常需要较长样本、较稳定分布和较清楚机制；但很多宏观经济、产业发展、新产品销售数据只有几期，甚至还处在转型期。这时灰色预测适合做短中期趋势判断。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:22px;color:#047857;">2. 它怎么做？</h3>
+                    <p style="font-size:21px;">先累加生成 $X^{(1)}$，削弱随机波动；再建立 $\frac{\mathrm{d}X^{(1)}}{\mathrm{d}t}+aX^{(1)}=\mu$；最后累减还原成原始序列预测值。</p>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b;">
+                    <h3 style="font-size:22px;color:#b45309;">3. 什么时候谨慎用？</h3>
+                    <p style="font-size:21px;">如果数据强烈周期波动、突发冲击频繁、拐点刚出现，或者存在明显饱和上限，普通 GM(1,1) 可能会机械外推，像一只过度自信的小机器人。</p>
+                </div>
+         
+           
+        </div>
+    </div>
+
+
+
+  
+    
+
+   
+
+   
+    
+
+    <!-- ==================== 新增：实际案例 ==================== -->
+    <div class="slide" id="slide-added-case-title">
+        <h2 class="slide-title"><i class="fas fa-city"></i> 完整实际案例：某市新能源汽车保有量灰色预测</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <p style="font-size:20px;">案例背景：某市近 6 年新能源汽车保有量快速增长。政府需要预测未来两年规模，用于规划充电桩建设、配电容量和停车资源。样本只有 6 年，传统时间序列模型显然吃不饱，灰色预测刚好能上桌。</p>
+            </div>
+            <div class="step table-wrapper" style="max-height:190px;">
+                <table class="data-table">
+                    <tr><th>年份</th><th>2019</th><th>2020</th><th>2021</th><th>2022</th><th>2023</th><th>2024</th></tr>
+                    <tr><th>保有量/万辆</th><td>2.8</td><td>3.6</td><td>5.2</td><td>7.4</td><td>10.1</td><td>13.5</td></tr>
+                </table>
+            </div>
+            <div class="step info-box">
+                <p style="font-size:20px;"><strong>任务：</strong>建立 GM(1,1) 模型，预测 2025 年和 2026 年新能源汽车保有量，并解释结果如何服务决策。</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-added-case-calc">
+        <h2 class="slide-title"><i class="fas fa-square-root-alt"></i> 案例计算：建立 GM(1,1) 模型</h2>
+        <div class="content-area">
+            <div class="step tile">
+                <h3 style="font-size:18px;">第1步：原始序列与累加生成</h3>
+                <div class="math-center"><div class="math-box" style="font-size:15px;">
+                    \[ X^{(0)}=\{2.8,3.6,5.2,7.4,10.1,13.5\} \]
+                    \[ X^{(1)}=\{2.8,6.4,11.6,19.0,29.1,42.6\} \]
+                </div></div>
+            </div>
+            <div class="step two-column">
+                <div class="tile">
+                    <h3 style="font-size:17px;">第2步：参数估计</h3>
+                    <p style="font-size:14px;">按 $\hat\alpha=(B^TB)^{-1}B^TY_n$ 计算，可得：</p>
+                    <div class="math-center"><div class="math-box" style="font-size:15px;">
+                        \[ a=-0.2966,\qquad \mu=2.1629 \]
+                    </div></div>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:17px;color:#047857;">第3步：时间响应函数</h3>
+                    <div class="math-center"><div class="math-box" style="font-size:14px;border-left-color:#10b981;">
+                        \[ \hat X^{(1)}(k+1)=10.0919e^{0.2966k}-7.2919 \]
+                    </div></div>
+                    <p style="font-size:13px;">其中 $k=0$ 对应 2019 年。</p>
+                </div>
+            </div>
+            <div class="step info-box">
+                <p style="font-size:15px;"><strong>解释：</strong>$a<0$，说明累加序列呈增长状态；指数项 $e^{0.2966k}$ 表明增长速度较快，但实际政策预测时应结合市场饱和、补贴退坡、基础设施约束进行判断。</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" id="slide-added-nev-case-3-v2">
+        <h2 class="slide-title"><i class="fas fa-forward"></i> 案例步骤 4：预测 2025 与 2026 年</h2>
+        <div class="content-area">
+            <div class="step tile"><p style="font-size:16px;">先用时间响应函数计算累加预测值，再累减还原成原始保有量预测值。</p></div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#3b82f6;"><h3 style="font-size:18px;color:#1d4ed8;">2025 年</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[ \hat X^{(0)}(7)=\hat X^{(1)}(7)-\hat X^{(1)}(6)\approx15.36 \]</div></div><p style="font-size:14px;">预测 2025 年保有量约为 15.36 万辆。</p></div>
+                <div class="tile" style="border-top-color:#10b981;"><h3 style="font-size:18px;color:#047857;">2026 年</h3><div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[ \hat X^{(0)}(8)=\hat X^{(1)}(8)-\hat X^{(1)}(7)\approx20.67 \]</div></div><p style="font-size:14px;">预测 2026 年保有量约为 20.67 万辆。</p></div>
+            </div>
+            <div class="step info-box"><p style="font-size:15px;"><strong>预测步骤一定要讲清：</strong>不能直接把 $\hat X^{(1)}$ 当作保有量，因为 $\hat X^{(1)}$ 是累加量。最终预测值必须做累减。</p></div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-added-nev-case-4-v2">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 案例结果图与决策解释</h2>
+        <div class="content-area">
+            <div class="step two-column">
+                <div class="svg-container" style="height:330px;background:#f8fafc;">
+                    <svg viewBox="0 0 540 320" style="width:100%;height:100%;">
+                        <line x1="55" y1="260" x2="500" y2="260" stroke="#334155"/>
+                        <line x1="55" y1="40" x2="55" y2="260" stroke="#334155"/>
+                        <polyline points="80,232 135,220 190,195 245,160 300,118 355,65" fill="none" stroke="#64748b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <polyline points="355,65 410,36 465,20" fill="none" stroke="#ef4444" stroke-width="5" stroke-dasharray="9 6" stroke-linecap="round" stroke-linejoin="round"/>
+                        <text x="235" y="45" font-size="15" fill="#64748b" font-weight="700">历史值</text>
+                        <text x="398" y="35" font-size="15" fill="#ef4444" font-weight="700">预测值</text>
+                        <text x="63" y="286" font-size="12">2019</text><text x="118" y="286" font-size="12">2020</text><text x="173" y="286" font-size="12">2021</text><text x="228" y="286" font-size="12">2022</text><text x="283" y="286" font-size="12">2023</text><text x="338" y="286" font-size="12">2024</text><text x="393" y="286" font-size="12">2025</text><text x="448" y="286" font-size="12">2026</text>
+                    </svg>
+                </div>
+                <div class="tile" style="border-top-color:#f59e0b;"><h3 style="font-size:18px;color:#b45309;">如何解释给决策者？</h3><ul style="font-size:14px;line-height:1.6;"><li>如果 2026 年接近 20.67 万辆，充电需求会明显上升。</li><li>可据此提前规划充电桩数量、电网负荷、维修服务网点。</li><li>预测值是趋势参考，应结合政策、补贴、油价和基础设施约束动态修正。</li><li>若后续数据出现拐点，应重新建模，而不是抱着旧模型不撒手。</li></ul></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" id="slide-added-case-result">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 案例结果：预测、检验与决策解释</h2>
+        <div class="content-area">
+            <div class="step table" style="max-height:300px;">
+                <table class="data-table">
+                    <tr><th>年份</th><th>实际值</th><th>拟合/预测值</th><th>说明</th></tr>
+                    <tr><td>2019</td><td>2.80</td><td>2.80</td><td>初始值</td></tr>
+                    <tr><td>2020</td><td>3.60</td><td>3.49</td><td>拟合较接近</td></tr>
+                    <tr><td>2021</td><td>5.20</td><td>4.69</td><td>略低估</td></tr>
+                    <tr><td>2022</td><td>7.40</td><td>6.31</td><td>低估增长加速</td></tr>
+                    <tr><td>2023</td><td>10.10</td><td>8.49</td><td>低估趋势仍存在</td></tr>
+                    <tr><td>2024</td><td>13.50</td><td>11.42</td><td>低估较明显</td></tr>
+                    <tr style="background:#f0fdf4;"><td>2025</td><td>-</td><td><strong>15.36</strong></td><td>预测值</td></tr>
+                    <tr style="background:#f0fdf4;"><td>2026</td><td>-</td><td><strong>20.67</strong></td><td>预测值</td></tr>
+                </table>
+            </div>
+            <div class="step two-column">
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3 style="font-size:21px;color:#b91c1c;">模型检验与风险提示</h3>
+                    <p style="font-size:20px;">模型对后期有低估，说明实际增长可能比单一指数趋势更快，原因可能是政策推动和基础设施改善。若用于正式预测，应考虑残差修正或加入充电桩数量、补贴政策等因素构建 GM(n,h)。</p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:21px;color:#047857;">决策应用</h3>
+                    <p style="font-size:20px;">若按 2026 年约 20.67 万辆测算，政府需提前规划充电桩、配电容量、维修服务网点和停车资源。预测值不是水晶球，是预算会议上的防吵架工具。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 新增：逻辑总结 ==================== -->
+    <div class="slide" id="slide-added-summary-logic">
+        <h2 class="slide-title"><i class="fas fa-brain"></i> 逻辑过程总结：灰色预测七步法</h2>
+        <div class="content-area">
+           
+            <div class="step table-wrapper" style="max-height:360px;">
+                <table class="data-table">
+                    <tr><th>步骤</th><th>名称</th><th>要回答的问题</th><th>课堂提示</th></tr>
+                    <tr><td>1</td><td>判断是否适用</td><td>样本是否少？趋势是否相对清楚？</td><td>不是所有小样本都适合</td></tr>
+                    <tr><td>2</td><td>累加生成</td><td>能否削弱随机波动？</td><td>AGO 是灰色建模的核心预处理</td></tr>
+                    <tr><td>3</td><td>构造矩阵</td><td>如何把微分方程变成可估计问题？</td><td>$B$ 来自背景值，$Y_n$ 来自原始序列后 $n-1$ 项</td></tr>
+                    <tr><td>4</td><td>估计参数</td><td>$a$ 与 $\mu$ 分别是多少？</td><td>$a$ 反映发展趋势，$\mu$ 反映内生推动</td></tr>
+                    <tr><td>5</td><td>预测还原</td><td>如何从累加预测回到原序列？</td><td>必须累减，否则预测对象就错层了</td></tr>
+                    <tr><td>6</td><td>模型检验</td><td>模型能不能信？</td><td>残差、关联度、后验差都要看</td></tr>
+                    <tr><td>7</td><td>解释与决策</td><td>预测结果能怎么用？</td><td>结合政策、市场和现实约束，不要迷信数字</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+
+  
+    
+
+    <!-- ==================== 本章小结 ==================== -->
+    <div class="slide" id="slide-final">
+      
+        <h2 style=" border:none; margin-bottom: 20px;align-self: center;">本章小结</h2>
+        <div class="content-area" style="max-width:900px; margin: 0 auto; text-align: left;">
+            <div class="step tile" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                <ul style="color: #cbd5e1; line-height: 1.8; font-size: 16px;">
+                    <li><strong>灰色系统思想：</strong> 介于“信息全知(白)”和“信息全无(黑)”之间的“部分已知(灰)”系统。专门应对少数据、贫信息的预测难题。</li>
+                    <li><strong>数据生成：</strong> 利用累加(AGO)将无序的随机序列转化为呈现指数规律的生成列，是建模的前提。</li>
+                    <li><strong>GM(1,1) 模型：</strong> 是应用最广的一阶单变量灰色模型。通过最小二乘法求得发展灰数和控制灰数，利用时间响应方程外推预测。</li>
+                    <li><strong>模型检验：</strong> 必须通过残差检验、关联度检验和后验差检验（P, C值）才能用于实际预测。精度不够可引入残差修正。</li>
+                    <li><strong>多维扩展：</strong> GM(n,h) 提供了多变量、高阶复杂动态系统的灰色建模框架。</li>
+                </ul>
+            </div>
+            <div class="step math-center" style="margin-top: 30px;">
+                <a class="hw-btn" href="https://www.example.com/chapter10-homework" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-laptop-code"></i> 本章作业 (Homework)
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- 放映逻辑 -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    function refreshMath() { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise(); }
+
+    function updateProgress() {
+        const progressBar = document.getElementById('progress-bar');
+        const slideCounter = document.getElementById('slide-counter');
+        if (progressBar) progressBar.style.width = ((currentSlideIndex + 1) / slides.length * 100) + '%';
+        if (slideCounter) slideCounter.textContent = (currentSlideIndex + 1) + ' / ' + slides.length;
+    }
+
+    function showSlide(index) {
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        currentSlideIndex = index;
+        updateProgress();
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode'); body.classList.add('presentation-mode');
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.remove('visible')));
+        showSlide(startIndex);
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function exitPresentationMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode'); body.classList.add('browse-mode');
+        container.style.transform = 'none';
+        slides.forEach(s => s.classList.remove('active'));
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            refreshMath();
+        } else if (currentSlideIndex < slides.length - 1) {
+            showSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            refreshMath();
+        } else if (currentSlideIndex > 0) {
+            showSlide(currentSlideIndex - 1);
+            slides[currentSlideIndex].querySelectorAll('.step').forEach(st => st.classList.add('visible'));
+        }
+    }
+
+    document.addEventListener('click', (e) => { if (isPresentationMode && !e.target.closest('.hw-btn')) advance(); });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5') { 
+            e.preventDefault(); 
+            let startIndex = currentSlideIndex;
+            if(!isPresentationMode) {
+                let bestIndex = 0, minDist = Infinity;
+                slides.forEach((s, i) => {
+                    const dist = Math.abs(s.getBoundingClientRect().top);
+                    if(dist < minDist) { minDist = dist; bestIndex = i; }
+                });
+                startIndex = bestIndex;
+            }
+            enterPresentationMode(startIndex); 
+            document.documentElement.requestFullscreen().catch(()=>{}); 
+        }
+        if (e.key === 'Escape' && isPresentationMode) { 
+            e.preventDefault();
+            document.exitFullscreen().catch(()=>{});
+            exitPresentationMode(); 
+        }
+        if (isPresentationMode) {
+            if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter' || e.key === 'NumpadEnter' || e.key === 'PageDown') advance();
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp') goBack();
+            if (e.key === 'Home') showSlide(0);
+            if (e.key === 'End') showSlide(slides.length - 1);
+        }
+    });
+
+    window.addEventListener('resize', () => { if(isPresentationMode) enterPresentationMode(currentSlideIndex); });
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isPresentationMode) exitPresentationMode();
+    });
+    
+    // 初始化浏览模式下所有 step 可见
+    if(!isPresentationMode){
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+});
+</script>
+
+</body>
+</html>
