@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用多元统计分析 - 全课程方法复盘与方法选择</title>
+    
+    <!-- 引入字体与图标 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- 引入 MathJax 渲染数学公式 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: {
+                scale: 1.05
+            }
+        };
+    </script>
+     <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* -------------------------------------------------------------
+           全局重置与黑底放映边框背景
+           ------------------------------------------------------------- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            background-color: #1e293b; 
+            width: 100vw; min-height: 100vh;
+            font-family: 'Noto Sans SC', sans-serif;
+            overflow-x: hidden;
+            overflow-y: auto;
+            margin: 0; padding: 0;
+            scroll-behavior: smooth;
+        }
+
+        body.browse-mode {
+            background-color: #0f172a;
+            padding: 24px 0 48px;
+        }
+
+        body.slideshow-mode {
+            overflow: hidden;
+            padding: 0;
+        }
+
+        /* -------------------------------------------------------------
+           幻灯片主容器 (严格锁定 1280x720)
+           ------------------------------------------------------------- */
+        #presentation-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 1280px; height: 720px;
+            transform: translate(-50%, -50%);
+            transform-origin: center center;
+            background-color: #ffffff;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        body.browse-mode #presentation-container {
+            position: relative;
+            top: auto; left: auto;
+            width: min(1280px, calc(100vw - 48px));
+            height: auto;
+            min-height: unset;
+            transform: none !important;
+            margin: 0 auto;
+            box-shadow: none;
+            border-radius: 0;
+            background: transparent;
+            overflow: visible;
+        }
+
+        #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #2563eb, #8b5cf6, #db2777);
+            z-index: 100;
+        }
+
+        /* -------------------------------------------------------------
+           单页幻灯片基本结构
+           ------------------------------------------------------------- */
+        .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+            background-color: #ffffff;
+            overflow: hidden; 
+        }
+        .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        body.browse-mode .slide {
+            position: relative;
+            top: auto; left: auto;
+            width: 1280px; height: 720px;
+            opacity: 1 !important;
+            pointer-events: auto;
+            z-index: auto;
+            margin: 0 auto 28px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+            overflow: hidden;
+            page-break-after: always;
+            break-after: page;
+        }
+
+        body.browse-mode .slide:last-of-type {
+            margin-bottom: 0;
+        }
+
+        body.browse-mode .step {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .step {
+            opacity: 0; transform: translateY(15px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .step.visible {
+            opacity: 1; transform: translateY(0);
+        }
+
+        /* -------------------------------------------------------------
+           排版对齐与大字体规范 (适用投影仪)
+           ------------------------------------------------------------- */
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 42px; color: #0f172a;
+            margin: 0 0 20px 0; padding-bottom: 12px; border-bottom: 3px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+            height: 65px;
+        }
+        .slide-title i { color: #2563eb; }
+        
+        .content-area { 
+            flex-grow: 1; display: flex; flex-direction: column; gap: 15px; 
+            justify-content: flex-start; 
+        }
+
+        /* 超大正文字体 */
+        p { font-size: 26px; color: #334155; line-height: 1.7; margin: 0; }
+        ul { list-style: none; margin-left: 10px; margin: 0; }
+        li { position: relative; padding-left: 40px; margin-bottom: 12px; font-size: 26px; color: #475569; line-height: 1.6;}
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 6px; color: #3b82f6; font-size: 24px;}
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; }
+        .two-column-top { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: flex-start; }
+        
+        .tiled-content { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .tiled-content-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        
+        .tile { 
+            background: #f8fafc; padding: 25px 30px; border-radius: 12px; 
+            border: 1px solid #cbd5e1; border-top: 6px solid #2563eb;
+        }
+        .tile h3 { font-size: 30px; color: #0f172a; margin-bottom: 15px; font-family: 'Noto Serif SC', serif;}
+
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 24px; background: #fff;}
+        th, td { border: 2px solid #cbd5e1; padding: 10px 15px; text-align: center; color: #1e293b;}
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+        .table-small { font-size: 20px; } 
+
+        /* 公式框：浅色背景，绝对纯黑公式，自适应大小居中 */
+        .math-center { text-align: center; width: 100%; margin: 10px 0; }
+        .math-box {
+            background: #f1f5f9; border-left: 6px solid #7c3aed; border-radius: 8px;
+            padding: 12px 25px;
+            color: #000000 !important; /* 强制纯黑 */
+            font-size: 28px; 
+            display: inline-block; width: fit-content; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            line-height: 1.5;
+        }
+        .math-box mjx-container, .math-box * { color: #000000 !important; }
+        .math-box.inline { display: inline-block; margin: 0 5px; padding: 2px 10px; font-size: 28px;}
+        
+        .info-box {
+            background: #e0f2fe; border-left: 8px solid #3b82f6; padding: 20px 30px; border-radius: 8px; margin: 15px 0;
+        }
+        .info-box p { margin: 0; color: #0369a1; font-size: 26px; font-weight: bold; line-height: 1.6; }
+
+        .highlight { color: #db2777; font-weight: bold; }
+        .highlight-blue { color: #2563eb; font-weight: bold; }
+
+        /* 图片占位符 */
+        .image-placeholder {
+            width: 100%; height: 350px; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; color: #64748b; font-size: 22px;
+        }
+        .image-placeholder i { font-size: 64px; color: #94a3b8; margin-bottom: 15px; }
+
+        /* -------------------------------------------------------------
+           特殊页面 (封面、过渡页)
+           ------------------------------------------------------------- */
+         .title-slide { 
+            background: #0f172a;
+            color: white; justify-content: center; align-items: center; text-align: center; 
+            padding: 0;
+        }
+          .title-slide::after {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: 1;
+        }
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(37,99,235,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        
+        .title-content {
+            position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center;
+            background: rgba(15, 23, 42, 0.8); padding: 80px 100px; border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.15); backdrop-filter: blur(12px);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 72px; margin: 0 0 25px 0; letter-spacing: 2px; color: #fff;}
+        .title-content h1 span { background: linear-gradient(to right, #60a5fa, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .title-content p.subtitle { color: #94a3b8; font-size: 36px; font-weight: 300; letter-spacing: 1px; margin: 0;}
+        .title-content .badge { 
+            background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.6); color: #60a5fa;
+            padding: 12px 35px; border-radius: 50px; font-size: 26px; margin-bottom: 40px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        
+        .section-slide {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff; justify-content: center; align-items: center; text-align: center;
+        }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 64px; margin: 0 0 20px 0; color: #ffffff;}
+        .section-slide hr { width: 120px; height: 6px; background: #3b82f6; border: none; margin: 25px 0; }
+
+        /* 底部作业按钮与进度指示 */
+        .hw-btn {
+            background: linear-gradient(135deg, #2563eb, #7c3aed); color: white;
+            padding: 18px 50px; border-radius: 50px; font-size: 30px; font-weight: bold;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 15px;
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.4); transition: transform 0.2s;
+            border: none; cursor: pointer; margin-top: 30px;
+        }
+        .hw-btn:hover { transform: translateY(-4px); box-shadow: 0 15px 30px rgba(37, 99, 235, 0.5); }
+
+        .progress-bar {
+            position: absolute; bottom: 0; left: 0; height: 6px; background: #2563eb;
+            transition: width 0.3s ease; z-index: 200;
+        }
+        .slide-counter {
+            position: absolute; bottom: 20px; right: 30px; font-size: 22px; font-weight: bold; color: #94a3b8; z-index: 100;
+        }
+
+        body.browse-mode .progress-bar,
+        body.browse-mode .slide-counter {
+            display: none !important;
+        }
+       body.browse-mode .slide.title-slide {
+    background: #0f172a !important;
+    color: #ffffff !important;
+}
+
+body.browse-mode .slide.title-slide::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    z-index: 1;
+}
+
+body.browse-mode .slide.section-slide {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #ffffff !important;
+}
+
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 0;
+            }
+
+            html, body {
+                width: 100%;
+                min-height: auto;
+                background: #ffffff !important;
+                overflow: visible !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            body {
+                display: block;
+            }
+
+            #presentation-container {
+                position: relative !important;
+                top: auto !important;
+                left: auto !important;
+                width: 100% !important;
+                height: auto !important;
+                margin: 0 !important;
+                transform: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
+            }
+
+            .slide {
+                position: relative !important;
+                width: 100vw !important;
+                height: calc(100vw * 9 / 16) !important;
+                max-height: 100vh !important;
+                min-height: 0 !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                page-break-after: always;
+                break-after: page;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: hidden !important;
+            }
+
+            .slide:last-of-type {
+                page-break-after: auto;
+                break-after: auto;
+            }
+
+            .step {
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            .progress-bar,
+            .slide-counter {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+
+<div id="presentation-container">
+    <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+<div class="slide title-slide active" id="slide-0">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-compass"></i> 复盘专题</div>
+            <h1>全课程方法复盘与<span>方法选择</span></h1>
+            <p class="subtitle">什么时候用什么方法</p>
+        </div>
+    </div>
+
+<div class="slide" id="slide-1">
+        <h2 class="slide-title"><i class="fas fa-calendar-alt"></i> 把工具箱装明白</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:27px;">本次课的核心任务：把前面学过的所有方法重新组织成一张“研究问题 → 数据结构 → 方法选择 → 结果解释”的路线图。</p>
+<div class="step tiled-content" style="grid-template-columns: repeat(4, 1fr); gap:16px; margin-top:18px;">
+  <div class="tile" style="border-top-color:#3b82f6;padding:18px;"><h3 style="font-size:23px;color:#2563eb;">第1节</h3><p style="font-size:20px;">全课程知识地图：从研究目标看方法。</p></div>
+  <div class="tile" style="border-top-color:#10b981;padding:18px;"><h3 style="font-size:23px;color:#059669;">第2节</h3><p style="font-size:20px;">容易混的方法：一组一组拆开讲。</p></div>
+  <div class="tile" style="border-top-color:#f59e0b;padding:18px;"><h3 style="font-size:23px;color:#b45309;">第3节</h3><p style="font-size:20px;">案例判断训练：看到问题会选模型。</p></div>
+  <div class="tile" style="border-top-color:#ec4899;padding:18px;"><h3 style="font-size:23px;color:#db2777;">第4节</h3><p style="font-size:20px;">软件输出解读：会读表、会写结论。</p></div>
+</div>
+<div class="step info-box" style="margin-top:20px;"><p>最后目标：不是“背出方法名”，而是看到一个真实课题时，知道它该进哪个统计模型的门。别让数据站在门口等到天荒地老。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide section-slide" id="sec-1">
+        <h2>第一节：全课程知识地图</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">先把所有方法放回同一张地图里</p>
+    </div>
+
+<div class="slide" id="s1-1">
+        <h2 class="slide-title"><i class="fas fa-question-circle"></i> 方法乱？</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#ef4444;">
+<h3><i class="fas fa-brain"></i> 常见学习状态</h3>
+<ul>
+<li>聚类分析会做谱系图，但不知道什么时候该用。</li>
+<li>主成分和因子都会提取几个“东西”，但分不清目的。</li>
+<li>对应分析图看起来很高级，但不会解释距离。</li>
+<li>Logistic 回归会跑软件，但把优势比解释成概率。</li>
+</ul>
+</div>
+<div class="step info-box"><p>本次复盘的主线：先判断研究目标，再判断变量类型，最后选择方法。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-2">
+        <h2 class="slide-title"><i class="fas fa-bullseye"></i> 多元统计分析的五类核心任务</h2>
+        <div class="content-area">
+            
+<div class="step tiled-content-3" style="gap:18px;">
+<div class="tile" style="border-top-color:#3b82f6;padding:18px;"><h3 style="font-size:24px;">1. 描述对象</h3><p style="font-size:21px;">多个指标共同描述一个对象，例如城市、学生、企业。</p></div>
+<div class="tile" style="border-top-color:#10b981;padding:18px;"><h3 style="font-size:24px;">2. 区分对象</h3><p style="font-size:21px;">发现对象之间是否存在类别差异。</p></div>
+<div class="tile" style="border-top-color:#f59e0b;padding:18px;"><h3 style="font-size:24px;">3. 压缩变量</h3><p style="font-size:21px;">指标很多，提取少数综合指标。</p></div>
+<div class="tile" style="border-top-color:#8b5cf6;padding:18px;"><h3 style="font-size:24px;">4. 解释结构</h3><p style="font-size:21px;">寻找变量背后的潜在维度。</p></div>
+<div class="tile" style="border-top-color:#ec4899;padding:18px;"><h3 style="font-size:24px;">5. 建模预测</h3><p style="font-size:21px;">根据解释变量预测类别或概率。</p></div>
+<div class="tile" style="border-top-color:#64748b;padding:18px;"><h3 style="font-size:24px;">一句话</h3><p style="font-size:21px;">不同目标对应不同方法，别拿锤子修所有东西。</p></div>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-3">
+        <h2 class="slide-title"><i class="fas fa-map"></i> 方法选择总地图：先看研究目标</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:22px;">
+<tr><th>研究目标</th><th>典型问题</th><th>优先方法</th><th>输出结果</th></tr>
+<tr><td>自动分组</td><td>这些城市能分几类？</td><td>聚类分析</td><td>类别划分、谱系图、类特征</td></tr>
+<tr><td>已知类别分类</td><td>新客户属于哪类风险？</td><td>判别分析</td><td>判别函数、分类准确率</td></tr>
+<tr><td>多指标综合评价</td><td>城市综合发展如何排序？</td><td>主成分分析</td><td>主成分、贡献率、综合得分</td></tr>
+<tr><td>潜在结构解释</td><td>问卷背后有哪些维度？</td><td>因子分析</td><td>因子载荷、共同度、因子命名</td></tr>
+<tr><td>类别变量关系</td><td>专业与就业去向有关吗？</td><td>对应分析</td><td>对应图、惯量解释</td></tr>
+<tr><td>两组变量整体关系</td><td>学习投入与学习效果关系？</td><td>典型相关分析</td><td>典型相关、载荷、冗余</td></tr>
+<tr><td>类别因变量建模</td><td>是否通过、满意度等级？</td><td>Logistic类模型</td><td>概率、优势比、分类预测</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-4">
+        <h2 class="slide-title"><i class="fas fa-database"></i> 从数据结构看方法：一张表，不同命运</h2>
+        <div class="content-area">
+            
+<div class="step two-column-top">
+<div class="tile" style="border-top-color:#3b82f6;">
+<h3>样品 × 指标矩阵</h3>
+<table class="table-small"><tr><th>对象</th><th>x1</th><th>x2</th><th>x3</th></tr><tr><td>A</td><td>80</td><td>62</td><td>91</td></tr><tr><td>B</td><td>55</td><td>70</td><td>60</td></tr></table>
+<p style="font-size:21px;">可做：聚类、主成分、因子、判别。</p>
+</div>
+<div class="tile" style="border-top-color:#10b981;">
+<h3>列联表</h3>
+<table class="table-small"><tr><th>专业</th><th>升学</th><th>企业</th><th>考公</th></tr><tr><td>统计</td><td>35</td><td>48</td><td>12</td></tr><tr><td>法学</td><td>18</td><td>25</td><td>40</td></tr></table>
+<p style="font-size:21px;">可做：对应分析、卡方检验。</p>
+</div>
+</div>
+<div class="step info-box"><p>不要只看“变量多不多”，还要看数据是一行一个个体，还是已经汇总成表。软件按钮不会替你思考。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-5">
+        <h2 class="slide-title"><i class="fas fa-tags"></i> 从变量类型看方法：定量、定性、分组</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:22px;">
+<tr><th>变量结构</th><th>例子</th><th>方法选择</th><th>关键解释</th></tr>
+<tr><td>全是定量指标，无明确因变量</td><td>GDP、收入、教育、医疗</td><td>主成分 / 因子 / 聚类</td><td>看目标是降维、解释还是分组</td></tr>
+<tr><td>定量指标 + 已知类别</td><td>客户指标 + 风险等级</td><td>判别分析 / Logistic</td><td>分类或概率解释</td></tr>
+<tr><td>两个定性变量</td><td>专业 × 就业去向</td><td>对应分析</td><td>展示类别对应关系</td></tr>
+<tr><td>两组定量变量</td><td>学习投入组 × 成绩组</td><td>典型相关</td><td>看变量组整体关系</td></tr>
+<tr><td>因变量是类别</td><td>是否通过、满意度</td><td>Logistic类模型</td><td>解释概率和优势比</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-6">
+        <h2 class="slide-title"><i class="fas fa-city"></i> 贯穿例子1：城市生活品质数据</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;">设有 6 个城市，记录 6 个指标。为了课堂演示，数据做了简化，但逻辑完整。</p>
+<table class="step table-small" style="font-size:20px;">
+<tr><th>城市</th><th>收入</th><th>医疗</th><th>教育</th><th>交通</th><th>绿化</th><th>房价压力</th></tr>
+<tr><td>A</td><td>92</td><td>88</td><td>90</td><td>86</td><td>70</td><td>82</td></tr>
+<tr><td>B</td><td>78</td><td>75</td><td>80</td><td>82</td><td>85</td><td>60</td></tr>
+<tr><td>C</td><td>65</td><td>68</td><td>70</td><td>62</td><td>92</td><td>45</td></tr>
+<tr><td>D</td><td>55</td><td>50</td><td>58</td><td>54</td><td>75</td><td>35</td></tr>
+<tr><td>E</td><td>88</td><td>82</td><td>85</td><td>80</td><td>62</td><td>90</td></tr>
+<tr><td>F</td><td>60</td><td>62</td><td>64</td><td>59</td><td>88</td><td>42</td></tr>
+</table>
+<div class="step info-box"><p>注意：“房价压力”是逆向指标。若做综合评价，需要先正向化，否则房价越压人，得分越高。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-7">
+        <h2 class="slide-title"><i class="fas fa-exchange-alt"></i> 逆向指标处理：房价压力如何正向化？</h2>
+        <div class="content-area">
+            
+<p class="step">对于正向指标，数值越大越好；对于逆向指标，数值越小越好。房价压力属于逆向指标。</p>
+<div class="step math-center"><div class="math-box">
+\[
+x_{ij}^{+}=\max(x_j)-x_{ij}
+\]
+</div></div>
+<table class="step table-small" style="font-size:21px;">
+<tr><th>城市</th><th>原房价压力</th><th>正向化：90 - 原值</th><th>解释</th></tr>
+<tr><td>A</td><td>82</td><td>8</td><td>压力大，宜居得分低</td></tr>
+<tr><td>B</td><td>60</td><td>30</td><td>压力中等</td></tr>
+<tr><td>C</td><td>45</td><td>45</td><td>压力较小</td></tr>
+<tr><td>D</td><td>35</td><td>55</td><td>压力最小</td></tr>
+<tr><td>E</td><td>90</td><td>0</td><td>压力最大，救命</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-8">
+        <h2 class="slide-title"><i class="fas fa-ruler"></i> 标准化：为什么不能直接比较？</h2>
+        <div class="content-area">
+            
+<p class="step">多元统计中，不同变量量纲不同，直接分析会让量纲大的变量“霸占麦克风”。</p>
+<div class="step math-center"><div class="math-box">
+\[
+z_{ij}=\frac{x_{ij}-\bar{x}_j}{s_j}
+\]
+</div></div>
+<div class="step two-column">
+<div class="tile" style="border-top-color:#ef4444;">
+<h3>不标准化的后果</h3>
+<ul><li>单位大的指标支配距离。</li><li>聚类结果可能只反映某一个量纲。</li><li>主成分贡献率被尺度扭曲。</li></ul>
+</div>
+<div class="tile" style="border-top-color:#10b981;">
+<h3>标准化后的好处</h3>
+<ul><li>各指标在同一尺度上比较。</li><li>距离、相关、贡献率更合理。</li><li>便于解释不同指标的重要性。</li></ul>
+</div>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-9">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 标准化手算示例：收入指标</h2>
+        <div class="content-area">
+            
+<p class="step">以 6 个城市的收入为例：92, 78, 65, 55, 88, 60。</p>
+<div class="step math-center"><div class="math-box" style="font-size:25px;">
+\[
+\bar{x}=\frac{92+78+65+55+88+60}{6}=73
+\]
+</div></div>
+<p class="step">样本标准差约为：</p>
+<div class="step math-center"><div class="math-box" style="font-size:25px;">
+\[
+s=\sqrt{\frac{\sum (x_i-\bar{x})^2}{n-1}}\approx 15.70
+\]
+</div></div>
+
+
+        </div>
+    </div>
+
+    <div class="slide" id="s1-9-2">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> 标准化手算示例：收入指标</h2>
+        <div class="content-area">
+
+<table class="step table-small" style="font-size:21px;">
+<tr><th>城市</th><th>收入</th><th>标准化值</th></tr>
+<tr><td>A</td><td>92</td><td>\((92-73)/15.70=1.21\)</td></tr>
+<tr><td>D</td><td>55</td><td>\((55-73)/15.70=-1.15\)</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-10">
+        <h2 class="slide-title"><i class="fas fa-sitemap"></i> 同一数据，不同问题，对应不同方法</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:25px;">
+<tr><th>基于城市数据提出的问题</th><th>方法</th><th>为什么</th></tr>
+<tr><td>想把 6 个指标压缩成 1 到 2 个综合指标</td><td>主成分分析</td><td>目标是降维和综合评价</td></tr>
+<tr><td>想判断城市可以分成几类</td><td>聚类分析</td><td>类别未知，按相似性自动分组</td></tr>
+<tr><td>如果已有“高/中/低生活品质”标签，想判断新城市</td><td>判别分析</td><td>类别已知，建立分类规则</td></tr>
+<tr><td>想解释“生活品质”背后有哪些维度</td><td>因子分析</td><td>寻找潜在公共因子</td></tr>
+</table>
+<div class="step info-box"><p>同一张表，不同研究问题，方法完全不同。数据没变，脑子要变。统计学最怕“看见数据就开跑”。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-11">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 方法选择的三问路线</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;padding:18px;">
+<svg viewBox="0 0 1100 420" style="width:100%;height:390px;background:#f8fafc;border-radius:16px;border:1px solid #dbeafe;">
+<style>
+.node{fill:#ffffff;stroke:#2563eb;stroke-width:3}
+.node2{fill:#eff6ff;stroke:#10b981;stroke-width:3}
+.txt{font-size:22px;fill:#0f172a;font-weight:700}
+.small{font-size:18px;fill:#475569}
+.arr{stroke:#64748b;stroke-width:4;marker-end:url(#arrow)}
+.pulse{animation:pulse 1.8s infinite alternate}
+@keyframes pulse{from{opacity:.35}to{opacity:1}}
+</style>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
+<rect class="node pulse" x="40" y="145" width="210" height="90" rx="18"/>
+<text class="txt" x="75" y="182">第一问</text><text class="small" x="68" y="215">研究目标是什么？</text>
+<line class="arr" x1="250" y1="190" x2="350" y2="190"/>
+<rect class="node pulse" x="350" y="145" width="210" height="90" rx="18" style="animation-delay:.3s"/>
+<text class="txt" x="385" y="182">第二问</text><text class="small" x="378" y="215">变量类型是什么？</text>
+<line class="arr" x1="560" y1="190" x2="660" y2="190"/>
+<rect class="node pulse" x="660" y="145" width="210" height="90" rx="18" style="animation-delay:.6s"/>
+<text class="txt" x="695" y="182">第三问</text><text class="small" x="688" y="215">数据结构是什么？</text>
+<line class="arr" x1="870" y1="190" x2="955" y2="190"/>
+<rect class="node2 pulse" x="955" y="125" width="120" height="130" rx="18" style="animation-delay:.9s"/>
+<text class="txt" x="982" y="180">选</text><text class="txt" x="982" y="215">方法</text>
+<text class="small" x="90" y="315">分组 / 分类 / 降维 / 解释 / 预测</text>
+<text class="small" x="390" y="315">定量 / 定性 / 二分类 / 有序</text>
+<text class="small" x="690" y="315">原始数据 / 列联表 / 分组数据</text>
+</svg>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s1-12">
+        <h2 class="slide-title"><i class="fas fa-clipboard-check"></i> 第1节小结：方法选择不是背诵题</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;">
+<h3>三句必须记住的话</h3>
+<ul>
+<li>先问研究目标：我要分组、分类、降维、解释结构，还是预测类别？</li>
+<li>再问变量类型：变量是定量、定性，还是有明确因变量？</li>
+<li>最后看数据结构：是个体数据、样品指标矩阵，还是列联表？</li>
+</ul>
+</div>
+<div class="step info-box"><p>如果这三问都没问，直接打开软件，那不是数据分析，是拜软件。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide section-slide" id="sec-2">
+        <h2>第二节：方法之间的区别与联系</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">最容易混的地方，逐组拆开</p>
+    </div>
+
+<div class="slide" id="s2-1">
+        <h2 class="slide-title"><i class="fas fa-object-group"></i> 聚类分析 vs 判别分析：类别是否已知</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:23px;">
+<tr><th>比较角度</th><th>聚类分析</th><th>判别分析</th></tr>
+<tr><td>类别是否已知</td><td>未知</td><td>已知</td></tr>
+<tr><td>模型任务</td><td>探索数据自然分组</td><td>学习已有类别的分类规则</td></tr>
+<tr><td>典型输出</td><td>谱系图、类中心、分类结果</td><td>判别函数、混淆矩阵、准确率</td></tr>
+<tr><td>一句话</td><td>让数据自己抱团</td><td>用已知类别训练分类器</td></tr>
+</table>
+<div class="step info-box"><p>判断关键：题目里有没有“已知类别”或“历史标签”。有标签就别硬聚类。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-2">
+    <h2 class="slide-title"><i class="fas fa-users"></i> 聚类手算例子：4名学生学习画像</h2>
+    <div class="content-area">
+
+        <p class="step">用两个已经标准化的指标：学习投入 \(x_1\)、实践能力 \(x_2\)。</p>
+
+        <table class="step table-small" style="font-size:22px;">
+            <tr><th>学生</th><th>学习投入 \(x_1\)</th><th>实践能力 \(x_2\)</th><th>直观画像</th></tr>
+            <tr><td>A</td><td>1.2</td><td>1.0</td><td>高投入、高实践</td></tr>
+            <tr><td>B</td><td>1.0</td><td>0.8</td><td>高投入、较高实践</td></tr>
+            <tr><td>C</td><td>-0.9</td><td>-1.1</td><td>低投入、低实践</td></tr>
+            <tr><td>D</td><td>-1.1</td><td>-0.8</td><td>低投入、较低实践</td></tr>
+        </table>
+
+        <div class="step info-box" style="margin-top:20px;">
+            <p>目标：根据欧氏距离判断这 4 名学生的相似程度，并进行系统聚类。</p>
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="s2-2-2">
+    <h2 class="slide-title"><i class="fas fa-ruler"></i> 第一步：计算两两欧氏距离</h2>
+    <div class="content-area">
+
+        <p class="step">欧氏距离公式为：</p>
+
+        <div class="step math-center">
+            <div class="math-box">
+                \[
+                d(i,j)=\sqrt{(x_{i1}-x_{j1})^2+(x_{i2}-x_{j2})^2}
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size:24px;">
+                \[
+                d(A,B)=\sqrt{(1.2-1.0)^2+(1.0-0.8)^2}
+                =\sqrt{0.04+0.04}=0.283
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size:24px;">
+                \[
+                d(C,D)=\sqrt{(-0.9+1.1)^2+(-1.1+0.8)^2}
+                =\sqrt{0.04+0.09}=0.361
+                \]
+            </div>
+        </div>
+
+        <p class="step">但只算这两个距离还不够，还必须比较所有学生两两之间的距离。</p>
+
+    </div>
+</div>
+
+<div class="slide" id="s2-2-3">
+    <h2 class="slide-title"><i class="fas fa-table"></i> 完整距离矩阵：不能只挑两个算</h2>
+    <div class="content-area">
+
+        <p class="step">继续计算其余距离：</p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size:22px;">
+                \[
+                \begin{aligned}
+                d(A,C)&=\sqrt{(1.2+0.9)^2+(1.0+1.1)^2}
+                =\sqrt{2.1^2+2.1^2}=2.970,\\
+                d(A,D)&=\sqrt{(1.2+1.1)^2+(1.0+0.8)^2}
+                =\sqrt{2.3^2+1.8^2}=2.921,\\
+                d(B,C)&=\sqrt{(1.0+0.9)^2+(0.8+1.1)^2}
+                =\sqrt{1.9^2+1.9^2}=2.687,\\
+                d(B,D)&=\sqrt{(1.0+1.1)^2+(0.8+0.8)^2}
+                =\sqrt{2.1^2+1.6^2}=2.640.
+                \end{aligned}
+                \]
+            </div>
+        </div>
+
+      
+
+    </div>
+</div>
+
+
+
+<div class="slide" id="s2-2-3">
+    <h2 class="slide-title"><i class="fas fa-table"></i> 完整距离矩阵：不能只挑两个算</h2>
+    <div class="content-area">
+
+       
+        <table class="step table-small" style="font-size:22px;">
+            <tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th></tr>
+            <tr><th>A</th><td>0</td><td>0.283</td><td>2.970</td><td>2.921</td></tr>
+            <tr><th>B</th><td>0.283</td><td>0</td><td>2.687</td><td>2.640</td></tr>
+            <tr><th>C</th><td>2.970</td><td>2.687</td><td>0</td><td>0.361</td></tr>
+            <tr><th>D</th><td>2.921</td><td>2.640</td><td>0.361</td><td>0</td></tr>
+        </table>
+
+    </div>
+</div>
+<div class="slide" id="s2-2-4">
+    <h2 class="slide-title"><i class="fas fa-code-branch"></i> 第二步：根据最小距离逐步合并</h2>
+    <div class="content-area">
+
+        <div class="step tile" style="border-top-color:#3b82f6;">
+            <h3>第一次合并</h3>
+            <p>距离矩阵中最小距离为：</p>
+            <div class="math-center">
+                <div class="math-box">
+                    \[
+                    d(A,B)=0.283
+                    \]
+                </div>
+            </div>
+            <p>所以首先把 A 与 B 合并为一类，记为 \(G_1=\{A,B\}\)。</p>
+        </div>
+
+       
+
+    </div>
+</div>
+
+
+
+<div class="slide" id="s2-2-5">
+    <h2 class="slide-title"><i class="fas fa-code-branch"></i> 第二步：根据最小距离逐步合并</h2>
+    <div class="content-area">
+
+       
+
+        <div class="step tile" style="border-top-color:#10b981;">
+            <h3>第二次合并</h3>
+            <p>剩余单个样品中，\(C\) 与 \(D\) 的距离为：</p>
+            <div class="math-center">
+                <div class="math-box">
+                    \[
+                    d(C,D)=0.361
+                    \]
+                </div>
+            </div>
+            <p>而 \(C,D\) 与 \(G_1\) 的距离都明显大于 2，因此第二次合并 \(C\) 与 \(D\)，得到 \(G_2=\{C,D\}\)。</p>
+        </div>
+
+    </div>
+</div> 
+<div class="slide" id="s2-2-6-1">
+    <h2 class="slide-title"><i class="fas fa-layer-group"></i> 第三步：类平均法计算两类之间距离</h2>
+    <div class="content-area">
+
+        <p class="step">若采用<strong>类平均法</strong>，两个类之间的距离等于两类中所有样品两两距离的平均值。</p>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size:24px;">
+                \[
+                d(G_1,G_2)
+                =
+                \frac{
+                d(A,C)+d(A,D)+d(B,C)+d(B,D)
+                }{4}
+                \]
+            </div>
+        </div>
+
+        <div class="step math-center">
+            <div class="math-box" style="font-size:24px;">
+                \[
+                d(G_1,G_2)
+                =
+                \frac{
+                2.970+2.921+2.687+2.640
+                }{4}
+                =
+                2.805
+                \]
+            </div>
+        </div>
+
+        <div class="step info-box" style="margin-top:20px;">
+            <p>最终聚类过程：先合并 \(A,B\)，再合并 \(C,D\)，最后把两大类合并。</p>
+        </div>
+
+    </div>
+</div>
+
+
+
+<div class="slide" id="s2-4">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 判别分析思想</h2>
+        <div class="content-area">
+            
+<p class="step">假设聚类后得到两类中心：</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>类别</th><th>学习投入中心</th><th>实践能力中心</th><th>解释</th></tr>
+<tr><td>第1类</td><td>1.1</td><td>0.9</td><td>高投入高能力</td></tr>
+<tr><td>第2类</td><td>-1.0</td><td>-0.95</td><td>低投入低能力</td></tr>
+</table>
+
+
+</div>
+</div>
+
+
+<div class="slide" id="s2-3">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 系统聚类的合并过程</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#10b981;padding:10px;">
+<svg viewBox="0 0 1000 430" style="width:100%;height:400px;background:#f8fafc;border-radius:16px;border:1px solid #dbeafe;">
+<style>
+.pt{animation:float 2s infinite alternate}
+.merge1{stroke:#2563eb;stroke-width:5;stroke-dasharray:8 6;animation:dash 2s linear infinite}
+.merge2{stroke:#10b981;stroke-width:5;stroke-dasharray:8 6;animation:dash 2s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
+@keyframes float{from{transform:translateY(0)}to{transform:translateY(-5px)}}
+</style>
+<line x1="80" y1="360" x2="920" y2="360" stroke="#94a3b8" stroke-width="2"/>
+<line x1="500" y1="40" x2="500" y2="380" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="6 6"/>
+<circle class="pt" cx="700" cy="120" r="20" fill="#3b82f6"/><text x="692" y="128" font-size="22" fill="#fff">A</text>
+<circle class="pt" cx="665" cy="150" r="20" fill="#60a5fa"/><text x="657" y="158" font-size="22" fill="#fff">B</text>
+<circle class="pt" cx="310" cy="310" r="20" fill="#ef4444"/><text x="302" y="318" font-size="22" fill="#fff">C</text>
+<circle class="pt" cx="275" cy="280" r="20" fill="#f97316"/><text x="267" y="288" font-size="22" fill="#fff">D</text>
+<ellipse class="merge1" cx="682" cy="135" rx="70" ry="55" fill="none"/>
+<ellipse class="merge2" cx="292" cy="295" rx="70" ry="55" fill="none"/>
+<text x="610" y="235" font-size="24" fill="#2563eb" font-weight="700">第一类：高投入高能力</text>
+<text x="200" y="210" font-size="24" fill="#dc2626" font-weight="700">第二类：低投入低能力</text>
+<text x="360" y="400" font-size="22" fill="#475569">横轴、纵轴为标准化后的两个画像指标</text>
+</svg>
+</div>
+
+        </div>
+    </div>
+
+
+<div class="slide" id="s2-4">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 判别分析手算思想：新学生归哪类？</h2>
+        <div class="content-area">
+            
+
+<p class="step">新学生 E：\((x_1,x_2)=(0.7,0.6)\)。比较到两个类中心的距离：</p>
+<div class="step math-center"><div class="math-box" style="font-size:24px;">
+\[
+d(E,C_1)=\sqrt{(0.7-1.1)^2+(0.6-0.9)^2}=0.50
+\]
+</div></div>
+<div class="step math-center"><div class="math-box" style="font-size:24px;">
+\[
+d(E,C_2)=\sqrt{(0.7+1.0)^2+(0.6+0.95)^2}=2.30
+\]
+</div></div>
+<div class="step info-box"><p>判别结论：E 更接近第1类。注意：这是“已有类别后”的分类规则，不是重新聚类。</p></div>
+
+        </div>
+    </div>
+<div class="slide" id="s2-5">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 聚类与判别的串联用法</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;">
+<h3>一个完整应用流程</h3>
+<ul>
+<li>第一步：对历史样本做聚类，探索自然类别。</li>
+<li>第二步：解释每一类特征，给类别命名。</li>
+<li>第三步：把聚类结果当作训练标签，建立判别函数。</li>
+<li>第四步：对新样本进行类别预测。</li>
+</ul>
+</div>
+<div class="step info-box"><p>聚类负责“发现类别”，判别负责“推广类别”。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-6">
+        <h2 class="slide-title"><i class="fas fa-compress-arrows-alt"></i> 主成分分析 vs 因子分析：压缩还是解释？</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:22px;">
+<tr><th>比较角度</th><th>主成分分析 PCA</th><th>因子分析 FA</th></tr>
+<tr><td>主要目标</td><td>降维、综合评价、排序</td><td>解释潜在公共结构</td></tr>
+<tr><td>模型思想</td><td>主成分是原变量的线性组合</td><td>原变量由公共因子和特殊因子构成</td></tr>
+<tr><td>关注结果</td><td>特征值、贡献率、得分</td><td>因子载荷、共同度、旋转</td></tr>
+<tr><td>常见问题</td><td>综合排名如何计算？</td><td>问卷背后有几个维度？</td></tr>
+</table>
+<div class="step info-box"><p>PCA 像压缩包，FA 像拆盲盒。一个重在保留信息，一个重在解释结构。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-7">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> PCA 计算步骤：从相关矩阵开始</h2>
+        <div class="content-area">
+            
+<p class="step">假设三个指标：收入、教育、医疗。标准化后得到相关矩阵：</p>
+<div class="step math-center"><div class="math-box" style="font-size:25px;">
+\[
+R=
+\begin{bmatrix}
+1 & 0.86 & 0.80\\
+0.86 & 1 & 0.78\\
+0.80 & 0.78 & 1
+\end{bmatrix}
+\]
+</div></div>
+<p class="step">求特征值：</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>主成分</th><th>特征值</th><th>方差贡献率</th><th>累计贡献率</th></tr>
+<tr><td>PC1</td><td>2.63</td><td>87.7%</td><td>87.7%</td></tr>
+<tr><td>PC2</td><td>0.23</td><td>7.7%</td><td>95.4%</td></tr>
+<tr><td>PC3</td><td>0.14</td><td>4.6%</td><td>100%</td></tr>
+</table>
+<p class="step">第一主成分已解释 87.7% 信息，可作为综合发展指标。</p>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-8">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> PCA：为什么能把二维压成一条主轴？</h2>
+    <div class="content-area">
+
+        <p class="step" style="font-size:24px; line-height:1.6;">
+            主成分分析是在所有方向中，寻找
+            <strong style="color:#2563eb;">投影后方差最大</strong> 的方向。
+            这条方向就是第一主成分方向；第二主成分方向必须与第一主成分方向正交。
+        </p>
+
+        <div class="step two-column" style="grid-template-columns: 1.28fr 0.72fr; gap:22px; align-items:stretch;">
+
+            <!-- 左侧动态图 -->
+            <div class="tile" style="border-top-color:#8b5cf6; padding:10px;">
+                <svg viewBox="0 0 720 430" style="width:100%; height:390px; background:#f8fafc; border-radius:16px; border:1px solid #dbeafe;">
+                    <style>
+                        .proj {
+                            stroke:#ef4444;
+                            stroke-width:3;
+                            stroke-dasharray:7 7;
+                            animation:dash 2s linear infinite;
+                        }
+                        .axis1 {
+                            stroke:#2563eb;
+                            stroke-width:6;
+                            animation:glow 1.8s infinite alternate;
+                        }
+                        .axis2 {
+                            stroke:#64748b;
+                            stroke-width:4;
+                            stroke-dasharray:8 8;
+                        }
+                        .score-dot {
+                            fill:#f97316;
+                            animation:pulse 1.6s infinite alternate;
+                        }
+                        @keyframes dash {
+                            to { stroke-dashoffset:-28; }
+                        }
+                        @keyframes glow {
+                            from { opacity:.55; }
+                            to { opacity:1; }
+                        }
+                        @keyframes pulse {
+                            from { r:5; opacity:.65; }
+                            to { r:8; opacity:1; }
+                        }
+                    </style>
+
+                    <!-- 坐标轴 -->
+                    <line x1="80" y1="350" x2="660" y2="350" stroke="#94a3b8" stroke-width="2"/>
+                    <line x1="90" y1="360" x2="90" y2="55" stroke="#94a3b8" stroke-width="2"/>
+                    <text x="610" y="378" font-size="20" fill="#475569" font-weight="700">指标 \(X_1\)</text>
+                    <text x="25" y="70" font-size="20" fill="#475569" font-weight="700">指标 \(X_2\)</text>
+
+                    <!-- 数据点 -->
+                    <circle cx="160" cy="295" r="9" fill="#10b981"/>
+                    <circle cx="235" cy="260" r="9" fill="#10b981"/>
+                    <circle cx="315" cy="220" r="9" fill="#10b981"/>
+                    <circle cx="410" cy="178" r="9" fill="#10b981"/>
+                    <circle cx="510" cy="130" r="9" fill="#10b981"/>
+                    <circle cx="600" cy="96" r="9" fill="#10b981"/>
+
+                    <text x="143" y="286" font-size="18" fill="#047857" font-weight="700">A</text>
+                    <text x="218" y="250" font-size="18" fill="#047857" font-weight="700">B</text>
+                    <text x="298" y="210" font-size="18" fill="#047857" font-weight="700">C</text>
+                    <text x="393" y="168" font-size="18" fill="#047857" font-weight="700">D</text>
+                    <text x="493" y="120" font-size="18" fill="#047857" font-weight="700">E</text>
+                    <text x="583" y="86" font-size="18" fill="#047857" font-weight="700">F</text>
+
+                    <!-- 第一主轴：方向向量 (515,-240) -->
+                    <line class="axis1" x1="120" y1="320" x2="635" y2="80"/>
+                    <text x="415" y="72" font-size="21" fill="#2563eb" font-weight="700">第一主成分方向</text>
+                    <text x="440" y="100" font-size="18" fill="#2563eb">投影后离散程度最大</text>
+
+                    <!-- 第二主轴：方向向量 (240,515)，与第一主轴正交 -->
+                    <line class="axis2" x1="259" y1="48" x2="499" y2="563"/>
+                    <text x="160" y="90" font-size="18" fill="#475569" font-weight="700">第二主成分方向</text>
+                    <text x="160" y="116" font-size="17" fill="#64748b">与第一主轴正交</text>
+
+                    <!-- 正交标记小直角 -->
+                    <path d="M374 202 L389 195 L396 210" fill="none" stroke="#475569" stroke-width="3"/>
+                    <text x="400" y="208" font-size="17" fill="#475569" font-weight="700">90°</text>
+
+                    <!-- 垂直投影线：每条线都沿第二主成分方向 -->
+                    <line class="proj" x1="160" y1="295" x2="164.9" y2="305.5"/>
+                    <line class="proj" x1="235" y1="260" x2="241.4" y2="273.8"/>
+                    <line class="proj" x1="315" y1="220" x2="322.5" y2="236.1"/>
+                    <line class="proj" x1="410" y1="178" x2="421.3" y2="202.3"/>
+                    <line class="proj" x1="510" y1="130" x2="522.7" y2="157.2"/>
+                    <line class="proj" x1="600" y1="96" x2="611.4" y2="120.5"/>
+
+                    <!-- 投影点：全部落在第一主轴上 -->
+                    <circle class="score-dot" cx="164.9" cy="305.5" r="6"/>
+                    <circle class="score-dot" cx="241.4" cy="273.8" r="6"/>
+                    <circle class="score-dot" cx="322.5" cy="236.1" r="6"/>
+                    <circle class="score-dot" cx="421.3" cy="202.3" r="6"/>
+                    <circle class="score-dot" cx="522.7" cy="157.2" r="6"/>
+                    <circle class="score-dot" cx="611.4" cy="120.5" r="6"/>
+
+                    <!-- 得分轴说明 -->
+                    <line x1="165" y1="380" x2="612" y2="380" stroke="#f97316" stroke-width="4" marker-end="url(#arrowScore)"/>
+                    <defs>
+                        <marker id="arrowScore" markerWidth="12" markerHeight="12" refX="8" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#f97316"/>
+                        </marker>
+                    </defs>
+                    <text x="225" y="410" font-size="20" fill="#ea580c" font-weight="700">投影点在主轴上的位置 = 第一主成分得分</text>
+
+                    <!-- 方差标注 -->
+                    <rect x="405" y="300" width="250" height="58" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+                    <text x="422" y="325" font-size="18" fill="#1d4ed8" font-weight="700">主轴方向拉得最开</text>
+                    <text x="422" y="350" font-size="17" fill="#475569">所以保留的信息最多</text>
+                </svg>
+            </div>
+
+            <!-- 右侧解释 -->
+            <div class="tile" style="border-top-color:#3b82f6; padding:18px;">
+                <h3 style="font-size:24px; color:#2563eb;">
+                    <i class="fas fa-calculator"></i>图像解释
+                </h3>
+
+               
+
+                <p style="font-size:21px; line-height:1.7; margin-top:12px;">
+                    图中红色虚线表示：
+                    <strong>原始二维点到第一主轴的垂直投影</strong>。
+                </p>
+
+                <p style="font-size:21px; line-height:1.7;">
+                    橙色点越分散，说明第一主成分保留的信息越多。
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+<div class="slide" id="s2-8">
+    <h2 class="slide-title"><i class="fas fa-chart-line"></i> PCA：为什么能把二维压成一条主轴？</h2>
+    <div class="content-area">
+
+     
+
+
+            <!-- 左侧动态图 -->
+           
+
+            <!-- 右侧解释 -->
+            <div class="tile" style="border-top-color:#3b82f6; padding:18px;">
+                <h3 style="font-size:24px; color:#2563eb;">
+                    <i class="fas fa-calculator"></i> 数学解释
+                </h3>
+
+                <p style="font-size:21px; line-height:1.7;">
+                    若第一主成分方向为：
+                </p>
+
+                <div class="math-center">
+                    <div class="math-box" style="font-size:18px; padding:5px 14px;">
+                        \[
+                        Z_1=a_1X_1+a_2X_2
+                        \]
+                    </div>
+                </div>
+
+                <p style="font-size:21px; line-height:1.7; margin-top:10px;">
+                    那么每个样品都会被压缩成一个综合得分 \(Z_1\)。
+                </p>
+
+                <div class="info-box" style="margin-top:14px; padding:12px 16px;">
+                    <p style="font-size:20px; line-height:1.6;">
+                        PCA 的目标：在约束 \(a_1^2+a_2^2=1\) 下，让
+                        \(Var(Z_1)\) 最大。
+                    </p>
+                </div>
+           <div class="info-box" style="margin-top:14px; padding:5px 16px;">
+    <p style="font-size:20px; line-height:1.6;">
+        为什么要约束 \(a_1^2+a_2^2=1\)？
+        因为如果不限制系数长度，只要把 \(a_1,a_2\) 同时放大，\(Var(Z_1)\) 就会被无限放大。
+        这个约束的作用是：只比较方向，不允许靠放大系数作弊。
+    </p>
+</div>
+                <div class="math-center" style="margin-top:12px;">
+                    <div class="math-box" style="font-size:20px; padding:5px 14px;">
+                        \[
+                        Z_2=b_1X_1+b_2X_2,\quad 
+                        a_1b_1+a_2b_2=0
+                        \]
+                    </div>
+                </div>
+
+               
+            </div>
+
+       
+
+    </div>
+</div>
+
+<div class="slide" id="s2-9">
+        <h2 class="slide-title"><i class="fas fa-star-half-alt"></i> 主成分综合得分如何算？</h2>
+        <div class="content-area">
+            
+<p class="step">若第一主成分载荷近似为：</p>
+<div class="step math-center"><div class="math-box">
+\[
+F_1=0.59Z_{	\text{收入}}+0.58Z_{	\text{教育}}+0.56Z_{	\text{医疗}}
+\]
+</div></div>
+
+
+
+        </div>
+    </div>
+
+
+    <div class="slide" id="s2-9-2">
+        <h2 class="slide-title"><i class="fas fa-star-half-alt"></i> 主成分综合得分如何算？</h2>
+        <div class="content-area">
+            
+
+<p class="step">城市 A 的标准化值为：收入 1.21，教育 1.10，医疗 1.05，则：</p>
+<div class="step math-center"><div class="math-box">
+\[
+F_{1,A}=0.59(1.21)+0.58(1.10)+0.56(1.05)=1.94
+\]
+</div></div>
+<p class="step">城市 D 的标准化值为：收入 -1.15，教育 -1.20，医疗 -1.35，则：</p>
+<div class="step math-center"><div class="math-box">
+\[
+F_{1,D}=0.59(-1.15)+0.58(-1.20)+0.56(-1.35)=-2.13
+\]
+</div></div>
+<div class="step info-box"><p>解释：A 的综合发展水平明显高于 D。排名是投影得分。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-10">
+        <h2 class="slide-title"><i class="fas fa-puzzle-piece"></i> 因子分析：为什么还需要“共同因子”？</h2>
+        <div class="content-area">
+            
+<p class="step">假设问卷有 6 个题项：</p>
+<table class="step table-small" style="font-size:21px;">
+<tr><th>题项</th><th>内容</th><th>可能潜在因子</th></tr>
+<tr><td>Q1</td><td>我能坚持完成学习任务</td><td>自我管理</td></tr>
+<tr><td>Q2</td><td>我会主动安排复习计划</td><td>自我管理</td></tr>
+<tr><td>Q3</td><td>我愿意和同学讨论问题</td><td>互动学习</td></tr>
+<tr><td>Q4</td><td>我会参加课堂讨论</td><td>互动学习</td></tr>
+<tr><td>Q5</td><td>我能熟练使用统计软件</td><td>技术能力</td></tr>
+<tr><td>Q6</td><td>我能独立完成数据分析</td><td>技术能力</td></tr>
+</table>
+<p class="step">因子分析的目标：不是排名，而是找出这些题项背后的公共结构。</p>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-11">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 因子载荷矩阵怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>变量</th><th>因子1</th><th>因子2</th><th>因子3</th><th>命名依据</th></tr>
+<tr><td>Q1 任务坚持</td><td>0.86</td><td>0.18</td><td>0.12</td><td rowspan="2">因子1：自我管理</td></tr>
+<tr><td>Q2 复习计划</td><td>0.82</td><td>0.21</td><td>0.10</td></tr>
+<tr><td>Q3 同伴讨论</td><td>0.15</td><td>0.84</td><td>0.16</td><td rowspan="2">因子2：互动学习</td></tr>
+<tr><td>Q4 课堂讨论</td><td>0.22</td><td>0.79</td><td>0.18</td></tr>
+<tr><td>Q5 软件操作</td><td>0.10</td><td>0.20</td><td>0.88</td><td rowspan="2">因子3：技术能力</td></tr>
+<tr><td>Q6 数据分析</td><td>0.18</td><td>0.16</td><td>0.83</td></tr>
+</table>
+<div class="step info-box"><p>命名不是玄学：看哪些变量在该因子上载荷高，再根据变量含义命名。不要给因子起“命运之轮”这种名字，论文会报警。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-12">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 对应分析 vs Logistic 回归：看关系图还是建概率模型？</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:22px;">
+<tr><th>比较角度</th><th>对应分析</th><th>Logistic 回归</th></tr>
+<tr><td>数据形式</td><td>列联表</td><td>个体数据或分组数据</td></tr>
+<tr><td>因变量是否明确</td><td>不强调方向</td><td>有明确因变量</td></tr>
+<tr><td>核心目标</td><td>展示类别之间的结构关系</td><td>解释类别发生概率</td></tr>
+<tr><td>结果形式</td><td>二维对应图</td><td>系数、优势比、预测概率</td></tr>
+</table>
+<div class="step info-box"><p>想看“专业更接近哪种就业去向”，用对应分析；想解释“哪些因素影响是否考研成功”，用 Logistic。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-13">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 对应分析例子：专业 × 就业去向</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>专业</th><th>升学</th><th>企业就业</th><th>考公考编</th><th>暂缓</th><th>合计</th></tr>
+<tr><td>统计学</td><td>35</td><td>48</td><td>12</td><td>5</td><td>100</td></tr>
+<tr><td>计算机</td><td>20</td><td>75</td><td>5</td><td>0</td><td>100</td></tr>
+<tr><td>法学</td><td>18</td><td>25</td><td>50</td><td>7</td><td>100</td></tr>
+<tr><td>教育学</td><td>30</td><td>22</td><td>42</td><td>6</td><td>100</td></tr>
+</table>
+<p class="step">行轮廓示例，统计学专业：</p>
+<div class="step math-center"><div class="math-box">
+\[
+(35/100,\ 48/100,\ 12/100,\ 5/100)=(0.35,\ 0.48,\ 0.12,\ 0.05)
+\]
+</div></div>
+<p class="step">对应分析比较的就是这些行轮廓、列轮廓之间的差异。</p>
+
+        </div>
+    </div>
+
+
+  
+<div class="slide" id="s2-14">
+        <h2 class="slide-title"><i class="fas fa-project-diagram"></i> 对应分析图怎么讲？</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#ec4899;padding:10px;">
+<svg viewBox="0 0 1000 410" style="width:100%;height:380px;background:#f8fafc;border-radius:16px;border:1px solid #dbeafe;">
+<line x1="80" y1="205" x2="920" y2="205" stroke="#94a3b8" stroke-width="2"/>
+<line x1="500" y1="40" x2="500" y2="360" stroke="#94a3b8" stroke-width="2"/>
+<circle cx="390" cy="150" r="12" fill="#2563eb"/><text x="405" y="155" font-size="22" fill="#2563eb" font-weight="700">统计学</text>
+<circle cx="750" cy="160" r="12" fill="#2563eb"/><text x="765" y="165" font-size="22" fill="#2563eb" font-weight="700">计算机</text>
+<circle cx="300" cy="285" r="12" fill="#2563eb"/><text x="315" y="292" font-size="22" fill="#2563eb" font-weight="700">法学</text>
+<circle cx="420" cy="295" r="12" fill="#2563eb"/><text x="435" y="302" font-size="22" fill="#2563eb" font-weight="700">教育学</text>
+<rect x="360" y="95" width="18" height="18" fill="#ef4444"/><text x="382" y="110" font-size="22" fill="#dc2626" font-weight="700">升学</text>
+<rect x="720" y="105" width="18" height="18" fill="#ef4444"/><text x="742" y="120" font-size="22" fill="#dc2626" font-weight="700">企业就业</text>
+<rect x="315" y="320" width="18" height="18" fill="#ef4444"/><text x="337" y="335" font-size="22" fill="#dc2626" font-weight="700">考公考编</text>
+<rect x="540" y="310" width="18" height="18" fill="#ef4444"/><text x="562" y="325" font-size="22" fill="#dc2626" font-weight="700">暂缓</text>
+<text x="600" y="55" font-size="22" fill="#475569">点越近，关联越强</text>
+<text x="120" y="385" font-size="20" fill="#64748b">注意：接近表示对应关系强，不表示因果。别让二维图背黑锅。</text>
+</svg>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-15">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 普通相关 vs 典型相关：一对一还是一组对一组</h2>
+        <div class="content-area">
+            
+<div class="step two-column">
+<div class="tile" style="border-top-color:#3b82f6;">
+<h3>普通相关</h3>
+<p>研究一个变量与另一个变量的相关，例如学习时间与期末成绩。</p>
+<div class="math-center"><div class="math-box" style="font-size:24px;">\[
+r_{xy}
+\]</div></div>
+</div>
+<div class="tile" style="border-top-color:#10b981;">
+<h3>典型相关</h3>
+<p>研究一组变量与另一组变量的整体相关。</p>
+<div class="math-center"><div class="math-box" style="font-size:24px;">\[
+
+\rho=\mathrm{corr}(a'X,\ b'Y)
+\]</div></div>
+</div>
+</div>
+<div class="step info-box"><p>普通相关看“一对一”，典型相关看“一组对一组”。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-16">
+        <h2 class="slide-title"><i class="fas fa-graduation-cap"></i> 典型相关例子：学习投入组 vs 学习效果组</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>变量组</th><th>变量</th><th>含义</th></tr>
+<tr><td rowspan="4">学习投入组 \(X\)</td><td>x1</td><td>预习时间</td></tr>
+<tr><td>x2</td><td>作业完成率</td></tr>
+<tr><td>x3</td><td>课堂参与</td></tr>
+<tr><td>x4</td><td>资料阅读量</td></tr>
+<tr><td rowspan="3">学习效果组 \(Y\)</td><td>y1</td><td>平时成绩</td></tr>
+<tr><td>y2</td><td>期末成绩</td></tr>
+<tr><td>y3</td><td>项目成绩</td></tr>
+</table>
+
+
+
+        </div>
+    </div>
+
+
+    <div class="slide" id="s2-16-2">
+        <h2 class="slide-title"><i class="fas fa-graduation-cap"></i> 典型相关例子：学习投入组 vs 学习效果组</h2>
+        <div class="content-area">
+            
+
+<p class="step">典型相关不是分别看 \(x_1\) 与 \(y_1\)、\(x_1\) 与 \(y_2\)，而是构造：</p>
+<div class="step math-center"><div class="math-box">
+\[
+U=a_1x_1+a_2x_2+a_3x_3+a_4x_4,\quad
+V=b_1y_1+b_2y_2+b_3y_3
+\]
+</div></div>
+<p class="step">使 \(U\) 与 \(V\) 的相关最大。</p>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-17">
+        <h2 class="slide-title"><i class="fas fa-chart-bar"></i> 典型相关结果怎么解释？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>典型变量对</th><th>典型相关系数</th><th>Wilks 检验 p值</th><th>是否解释</th></tr>
+<tr><td>第1对</td><td>0.84</td><td>0.002</td><td>重点解释</td></tr>
+<tr><td>第2对</td><td>0.39</td><td>0.180</td><td>不重点解释</td></tr>
+</table>
+<table class="step table-small" style="font-size:21px;">
+<tr><th>变量</th><th>第一典型变量载荷</th><th>解释</th></tr>
+<tr><td>作业完成率</td><td>0.88</td><td>学习投入组的核心变量</td></tr>
+<tr><td>课堂参与</td><td>0.75</td><td>学习投入组的重要变量</td></tr>
+<tr><td>平时成绩</td><td>0.82</td><td>学习效果组的核心变量</td></tr>
+<tr><td>项目成绩</td><td>0.79</td><td>学习效果组的重要变量</td></tr>
+</table>
+<div class="step info-box"><p>结论句：第一对典型变量主要反映“持续学习投入”与“过程性学习表现”之间的整体关联。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s2-18">
+        <h2 class="slide-title"><i class="fas fa-clipboard-list"></i> 第2节总结：防混淆速查表</h2>
+        <div class="content-area">
+            
+<table class="step" style="font-size:23px;">
+<tr><th>容易混的方法</th><th>判断关键</th><th>一句话</th></tr>
+<tr><td>聚类 vs 判别</td><td>类别是否已知</td><td>未知聚类，已知判别</td></tr>
+<tr><td>主成分 vs 因子</td><td>综合评价还是结构解释</td><td>PCA压缩，FA解释</td></tr>
+<tr><td>对应分析 vs Logistic</td><td>类别关系图还是概率模型</td><td>对应看近远，Logistic看概率</td></tr>
+<tr><td>普通相关 vs 典型相关</td><td>一对变量还是两组变量</td><td>一对一 vs 一组对一组</td></tr>
+<tr><td>判别 vs Logistic</td><td>分类规则还是概率解释</td><td>判别给类别，Logistic给概率</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide section-slide" id="sec-3">
+        <h2>第三节：方法选择案例训练</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">看到研究问题，就能判断方法</p>
+    </div>
+
+<div class="slide" id="s3-1">
+        <h2 class="slide-title"><i class="fas fa-shoe-prints"></i> 方法选择四步判断法</h2>
+        <div class="content-area">
+            
+<div class="step tiled-content" style="grid-template-columns: repeat(2, 1fr); gap:18px;">
+<div class="tile" style="border-top-color:#3b82f6;"><h3>第一步：看目标</h3><p>分组、分类、降维、解释结构、研究关系、预测概率？</p></div>
+<div class="tile" style="border-top-color:#10b981;"><h3>第二步：看变量</h3><p>定量、定性、二分类、有序多分类、两组变量？</p></div>
+<div class="tile" style="border-top-color:#f59e0b;"><h3>第三步：看数据</h3><p>个体数据、样品指标矩阵、列联表、分组比例？</p></div>
+<div class="tile" style="border-top-color:#ec4899;"><h3>第四步：看输出</h3><p>要得分、分类准确率、概率、图形关系还是因子命名？</p></div>
+</div>
+<div class="step info-box"><p>按这四步走，至少不会把对应分析拿去预测个人是否挂科。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-2">
+        <h2 class="slide-title"><i class="fas fa-city"></i> 案例1：城市综合发展水平评价</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">30 个城市，15 个指标：GDP、收入、教育、医疗、交通、环境、数字基础设施。目标是评价城市综合发展水平并排序。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>研究目标</td><td>多指标综合评价与排序</td></tr><tr><td>变量类型</td><td>多个定量指标</td></tr><tr><td>数据结构</td><td>城市 × 指标矩阵</td></tr><tr><td>推荐方法</td><td>主成分分析</td></tr><tr><td>可扩展</td><td>用主成分得分进一步聚类</td></tr>
+</table>
+<div class="step info-box"><p>由于指标较多且存在相关性，主成分分析可以提取少数综合指标，并利用方差贡献率构造综合得分。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-3">
+        <h2 class="slide-title"><i class="fas fa-shopping-cart"></i> 案例2：客户消费行为分群</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">电商平台记录用户消费金额、下单频率、退货次数、浏览时长、优惠券使用次数，希望识别不同用户类型。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>研究目标</td><td>自动分组</td></tr><tr><td>类别标签</td><td>未知</td></tr><tr><td>数据结构</td><td>用户 × 行为指标</td></tr><tr><td>推荐方法</td><td>聚类分析</td></tr><tr><td>输出</td><td>用户类别画像</td></tr>
+</table>
+<div class="step info-box"><p>类别事先未知，适合根据行为相似性进行聚类，可得到高价值稳定型、价格敏感型、浏览观望型等类别。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-4">
+        <h2 class="slide-title"><i class="fas fa-credit-card"></i> 案例3：银行信用风险分类</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">银行已有历史客户的低风险、中风险、高风险标签，希望根据收入、负债率、还款记录判断新客户风险等级。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>研究目标</td><td>已知类别下的分类预测</td></tr><tr><td>类别标签</td><td>已知</td></tr><tr><td>自变量</td><td>多个财务指标</td></tr><tr><td>推荐方法</td><td>判别分析</td></tr><tr><td>替代方法</td><td>多分类 Logistic</td></tr>
+</table>
+<div class="step info-box"><p>如果重点是分类规则，可用判别分析；如果重点解释进入某风险等级的概率，可用多分类 Logistic。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-5">
+        <h2 class="slide-title"><i class="fas fa-brain"></i> 案例4：心理问卷潜在维度提取</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">一份 24 题心理问卷，希望判断是否存在学习压力、自我效能、社交支持等潜在维度。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>研究目标</td><td>解释潜在结构</td></tr><tr><td>变量类型</td><td>多个题项评分</td></tr><tr><td>数据结构</td><td>个体 × 题项</td></tr><tr><td>推荐方法</td><td>因子分析</td></tr><tr><td>输出</td><td>因子载荷、因子命名</td></tr>
+</table>
+<div class="step info-box"><p>因子分析适合从多个观测题项中提取公共因子，用于量表结构解释。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-6">
+        <h2 class="slide-title"><i class="fas fa-briefcase"></i> 案例5：专业类别与就业去向</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">统计不同专业毕业生的就业去向：升学、企业、考公、暂缓，希望看哪些专业更接近哪些去向。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>研究目标</td><td>两个定性变量的结构关系</td></tr><tr><td>数据结构</td><td>列联表</td></tr><tr><td>方向性</td><td>不强调因果方向</td></tr><tr><td>推荐方法</td><td>对应分析</td></tr><tr><td>输出</td><td>二维对应图</td></tr>
+</table>
+<div class="step info-box"><p>对应分析可以把专业类别和就业类别同时投影到图上，直观展示对应关系。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-7">
+        <h2 class="slide-title"><i class="fas fa-book-reader"></i> 案例6：学习投入与学习效果</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">学习投入变量组包括预习时间、课堂参与、作业完成率；学习效果变量组包括平时、期末、项目成绩。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>研究目标</td><td>两组定量变量整体关系</td></tr><tr><td>变量结构</td><td>X组与Y组</td></tr><tr><td>推荐方法</td><td>典型相关分析</td></tr><tr><td>输出</td><td>典型相关系数、载荷</td></tr><tr><td>解释</td><td>投入综合变量与效果综合变量</td></tr>
+</table>
+<div class="step info-box"><p>典型相关分析能够寻找两组变量线性组合之间的最大相关，而不是堆出一墙普通相关系数。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-8">
+        <h2 class="slide-title"><i class="fas fa-check-circle"></i> 案例7：是否通过考试</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">分析学生是否通过统计学考试，解释变量包括学习时间、出勤率、作业完成率和基础成绩。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>因变量</td><td>是否通过：0/1</td></tr><tr><td>研究目标</td><td>解释概率并预测</td></tr><tr><td>推荐方法</td><td>二分类 Logistic 回归</td></tr><tr><td>输出</td><td>优势比、预测概率</td></tr><tr><td>注意</td><td>优势不是概率</td></tr>
+</table>
+<div class="step info-box"><p>因变量是二分类，Logistic 回归可以解释每个因素对通过优势的影响。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-9">
+        <h2 class="slide-title"><i class="fas fa-star"></i> 案例8：满意度等级</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">用户满意度分为不满意、一般、满意、非常满意，想分析服务质量、价格、物流对满意度的影响。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>因变量</td><td>有序等级</td></tr><tr><td>研究目标</td><td>解释影响因素</td></tr><tr><td>推荐方法</td><td>有序 Logistic 回归</td></tr><tr><td>核心假设</td><td>比例优势假设</td></tr><tr><td>输出</td><td>累积概率</td></tr>
+</table>
+<div class="step info-box"><p>满意度具有自然顺序，不能简单当作无序多分类。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-10">
+        <h2 class="slide-title"><i class="fas fa-bus"></i> 案例9：出行方式选择</h2>
+        <div class="content-area">
+            
+<p class="step" style="font-size:25px;line-height:1.7;">居民出行方式为公交、地铁、网约车、步行，解释变量包括距离、收入、天气和是否赶时间。</p>
+<table class="step table-small" style="font-size:22px;">
+<tr><th>判断项目</th><th>结论</th></tr><tr><td>因变量</td><td>无序多分类</td></tr><tr><td>研究目标</td><td>预测选择概率</td></tr><tr><td>推荐方法</td><td>多项 Logistic 回归</td></tr><tr><td>基准类</td><td>可选择步行为基准</td></tr><tr><td>输出</td><td>相对风险比</td></tr>
+</table>
+<div class="step info-box"><p>出行方式没有天然高低顺序，适合多项 Logistic 回归。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-11">
+        <h2 class="slide-title"><i class="fas fa-seedling"></i> 综合案例：数字乡村建设与发展质量</h2>
+        <div class="content-area">
+            
+<p class="step">这是适合课程论文的综合案例，能串联多种方法。</p>
+<table class="step table-small" style="font-size:20px;">
+<tr><th>变量组</th><th>指标</th><th>可用方法</th></tr>
+<tr><td>数字基础设施</td><td>宽带用户数、移动互联网普及率、信息服务站</td><td rowspan="3">因子分析</td></tr>
+<tr><td>数字产业应用</td><td>农产品电商销售额、快递网点、直播销售额</td></tr>
+<tr><td>数字金融服务</td><td>数字普惠金融指数、线上贷款覆盖率</td></tr>
+<tr><td>发展质量</td><td>居民收入、产业结构、公共服务、生态效率</td><td>典型相关分析</td></tr>
+<tr><td>地区类型</td><td>高/中/低数字乡村 × 发展类型</td><td>对应分析</td></tr>
+</table>
+<div class="step info-box"><p>一个题目可以用多个方法，但要有逻辑链：先降维，再研究关系，再展示类别结构。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-12">
+        <h2 class="slide-title"><i class="fas fa-stream"></i> 综合案例分析路线：别把方法乱炖</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;padding:18px;">
+<svg viewBox="0 0 1080 390" style="width:100%;height:360px;background:#f8fafc;border-radius:16px;">
+<defs><marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#64748b"/></marker></defs>
+<rect x="40" y="120" width="190" height="90" rx="16" fill="#eff6ff" stroke="#2563eb" stroke-width="3"/><text x="75" y="155" font-size="22" font-weight="700" fill="#1d4ed8">原始指标</text><text x="62" y="188" font-size="18" fill="#334155">数字乡村多指标</text>
+<line x1="230" y1="165" x2="330" y2="165" stroke="#64748b" stroke-width="4" marker-end="url(#arr2)"/>
+<rect x="330" y="120" width="190" height="90" rx="16" fill="#ecfdf5" stroke="#10b981" stroke-width="3"/><text x="365" y="155" font-size="22" font-weight="700" fill="#047857">因子分析</text><text x="355" y="188" font-size="18" fill="#334155">提取数字因子</text>
+<line x1="520" y1="165" x2="620" y2="165" stroke="#64748b" stroke-width="4" marker-end="url(#arr2)"/>
+<rect x="620" y="120" width="190" height="90" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="3"/><text x="650" y="155" font-size="22" font-weight="700" fill="#b45309">典型相关</text><text x="642" y="188" font-size="18" fill="#334155">变量组整体关系</text>
+<line x1="810" y1="165" x2="910" y2="165" stroke="#64748b" stroke-width="4" marker-end="url(#arr2)"/>
+<rect x="910" y="120" width="130" height="90" rx="16" fill="#fdf2f8" stroke="#ec4899" stroke-width="3"/><text x="932" y="155" font-size="22" font-weight="700" fill="#be185d">结论</text><text x="928" y="188" font-size="18" fill="#334155">政策建议</text>
+<text x="95" y="280" font-size="20" fill="#475569">不是每个方法都往里塞，而是让方法服务研究问题。</text>
+</svg>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-13">
+        <h2 class="slide-title"><i class="fas fa-pencil-alt"></i> 案例判断练习：每题一句理由</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:20px;">
+<tr><th>研究问题</th><th>方法</th><th>一句理由</th></tr>
+<tr><td>根据 20 个经济指标给省份排序</td><td>主成分分析</td><td>多指标综合评价</td></tr>
+<tr><td>根据消费行为把用户自动分群</td><td>聚类分析</td><td>类别未知，需要探索分组</td></tr>
+<tr><td>已知客户是否流失，预测新客户流失概率</td><td>Logistic 回归</td><td>因变量是二分类</td></tr>
+<tr><td>研究专业与就业去向关系</td><td>对应分析</td><td>两个定性变量构成列联表</td></tr>
+<tr><td>研究两组心理量表之间的整体关系</td><td>典型相关</td><td>两组定量变量</td></tr>
+<tr><td>从 30 个问卷题项中提取潜在维度</td><td>因子分析</td><td>解释变量背后的公共因子</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s3-14">
+        <h2 class="slide-title"><i class="fas fa-route"></i> 第3节总结：方法选择速查口诀</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;padding:40px;">
+<p style="font-size:34px;line-height:2;text-align:center;color:#0f172a;font-weight:bold;">
+未知类别先聚类，已知类别做判别；<br>
+指标太多主成分，潜在结构用因子；<br>
+定性关系对应图，两组变量典型看；<br>
+因变量若是类别，Logistic 来建模。
+</p>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide section-slide" id="sec-4">
+        <h2>第四节：软件输出解读与报告表达</h2>
+        <hr>
+        <p class="step" style="font-size: 36px; color: #cbd5e1;">会跑软件只是开始，会解释结果才算完成</p>
+    </div>
+
+<div class="slide" id="s4-1">
+        <h2 class="slide-title"><i class="fas fa-laptop-code"></i> 软件输出不是结论</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#ef4444;">
+<h3>错误写法</h3>
+<p>“由 SPSS 输出结果可知，结果如表所示。”</p>
+</div>
+<div class="step tile" style="border-top-color:#10b981;">
+<h3>正确写法</h3>
+<p>“由表可知，前三个主成分累计贡献率为 82.0%，说明其能够较好保留原始变量信息，因此选取前三个主成分构造综合评价指标。”</p>
+</div>
+<div class="step info-box"><p>软件截图只是证据，不是结论。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-2">
+        <h2 class="slide-title"><i class="fas fa-object-group"></i> 聚类分析输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>输出内容</th><th>看什么</th><th>怎么写</th></tr>
+<tr><td>距离矩阵</td><td>样品之间相似程度</td><td>距离越小，相似性越强</td></tr>
+<tr><td>聚类过程表</td><td>每一步合并了哪些类</td><td>距离突然增大处可作为分类数参考</td></tr>
+<tr><td>谱系图</td><td>横向截断位置</td><td>结合图形和实际含义确定类别数</td></tr>
+<tr><td>类均值表</td><td>每类变量特征</td><td>根据高低特征给类别命名</td></tr>
+</table>
+<div class="step info-box"><p>报告句式：根据谱系图距离跳跃情况，并结合各类均值特征，最终将样品划分为 3 类。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-3">
+        <h2 class="slide-title"><i class="fas fa-table"></i> 聚类结果报告示例：城市类型命名</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>类别</th><th>收入</th><th>教育</th><th>医疗</th><th>绿化</th><th>房价压力</th><th>命名</th></tr>
+<tr><td>第1类</td><td>高</td><td>高</td><td>高</td><td>中</td><td>高</td><td>经济强压力型</td></tr>
+<tr><td>第2类</td><td>中</td><td>中</td><td>中</td><td>高</td><td>低</td><td>生态宜居型</td></tr>
+<tr><td>第3类</td><td>低</td><td>低</td><td>低</td><td>中</td><td>低</td><td>发展提升型</td></tr>
+</table>
+<div class="step tile" style="border-top-color:#3b82f6;">
+<p style="font-size:23px;">报告表达：</p>
+<p style="font-size:23px;">第1类城市经济、教育和医疗资源较好，但房价压力较高，可命名为“经济强压力型”；第2类城市绿化水平较高且生活压力较小，可命名为“生态宜居型”。</p>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-4">
+        <h2 class="slide-title"><i class="fas fa-balance-scale"></i> 判别分析输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>输出内容</th><th>解释重点</th></tr>
+<tr><td>组均值表</td><td>不同类别在哪些变量上差异明显</td></tr>
+<tr><td>Wilks' Lambda</td><td>判别函数是否显著区分类别</td></tr>
+<tr><td>标准化判别系数</td><td>哪些变量对分类贡献大</td></tr>
+<tr><td>分类结果表</td><td>总体准确率和各类误判情况</td></tr>
+<tr><td>交叉验证</td><td>分类规则的稳定性</td></tr>
+</table>
+<div class="step math-center"><div class="math-box">
+\[
+	\text{准确率}=\frac{	\text{判对样本数}}{	\text{总样本数}}
+\]
+</div></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-5">
+        <h2 class="slide-title"><i class="fas fa-th"></i> 混淆矩阵怎么解释？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>真实类别</th><th>判为A</th><th>判为B</th><th>判为C</th><th>正确率</th></tr>
+<tr><td>A</td><td>28</td><td>2</td><td>0</td><td>93.3%</td></tr>
+<tr><td>B</td><td>3</td><td>25</td><td>2</td><td>83.3%</td></tr>
+<tr><td>C</td><td>1</td><td>4</td><td>20</td><td>80.0%</td></tr>
+<tr><td>合计</td><td colspan="3">73/85</td><td>85.9%</td></tr>
+</table>
+<div class="step info-box"><p>报告句式：总体判别正确率为 85.9%，说明判别函数具有较好的分类效果；其中 A 类识别效果最好，C 类与 B 类存在一定混淆。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-6">
+        <h2 class="slide-title"><i class="fas fa-chart-line"></i> 主成分分析输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>主成分</th><th>特征值</th><th>方差贡献率</th><th>累计贡献率</th></tr>
+<tr><td>PC1</td><td>4.85</td><td>48.5%</td><td>48.5%</td></tr>
+<tr><td>PC2</td><td>2.10</td><td>21.0%</td><td>69.5%</td></tr>
+<tr><td>PC3</td><td>1.25</td><td>12.5%</td><td>82.0%</td></tr>
+<tr><td>PC4</td><td>0.70</td><td>7.0%</td><td>89.0%</td></tr>
+</table>
+<div class="step info-box"><p>报告句式：前三个主成分累计贡献率达到 82.0%，能够较好代表原始变量信息，因此选取前三个主成分进行综合评价。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-7">
+        <h2 class="slide-title"><i class="fas fa-sort-amount-up"></i> 主成分综合排名报告示例</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>城市</th><th>PC1</th><th>PC2</th><th>PC3</th><th>综合得分</th><th>排名</th></tr>
+<tr><td>A</td><td>1.94</td><td>0.32</td><td>-0.10</td><td>1.18</td><td>1</td></tr>
+<tr><td>E</td><td>1.60</td><td>-0.45</td><td>0.20</td><td>0.82</td><td>2</td></tr>
+<tr><td>B</td><td>0.55</td><td>0.80</td><td>0.30</td><td>0.52</td><td>3</td></tr>
+<tr><td>C</td><td>-0.40</td><td>1.10</td><td>-0.15</td><td>0.05</td><td>4</td></tr>
+<tr><td>F</td><td>-0.80</td><td>0.60</td><td>0.05</td><td>-0.25</td><td>5</td></tr>
+<tr><td>D</td><td>-2.13</td><td>-0.50</td><td>-0.30</td><td>-1.41</td><td>6</td></tr>
+</table>
+<div class="step math-center"><div class="math-box" style="font-size:20px;">
+\[
+F=0.485F_1+0.210F_2+0.125F_3
+\]
+</div></div>
+<p class="step">权重来自各主成分方差贡献率。</p>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-8">
+        <h2 class="slide-title"><i class="fas fa-puzzle-piece"></i> 因子分析输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>输出内容</th><th>判断标准</th><th>报告表达</th></tr>
+<tr><td>KMO</td><td>一般 \(\gt 0.7\) 较好</td><td>变量之间共同性较强</td></tr>
+<tr><td>Bartlett 检验</td><td>p 值显著</td><td>相关矩阵不是单位矩阵</td></tr>
+<tr><td>共同度</td><td>越高说明被因子解释越充分</td><td>变量信息保留程度较好</td></tr>
+<tr><td>旋转载荷</td><td>高载荷变量集中在哪个因子</td><td>据此给因子命名</td></tr>
+</table>
+<div class="step info-box"><p>报告句式：KMO 值为 0.812，Bartlett 球形检验显著，说明数据适合进行因子分析。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-9">
+        <h2 class="slide-title"><i class="fas fa-map-marked-alt"></i> 对应分析输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>维度</th><th>惯量</th><th>解释率</th><th>累计解释率</th></tr>
+<tr><td>第1维</td><td>0.182</td><td>72.4%</td><td>72.4%</td></tr>
+<tr><td>第2维</td><td>0.047</td><td>18.6%</td><td>91.0%</td></tr>
+<tr><td>第3维</td><td>0.023</td><td>9.0%</td><td>100%</td></tr>
+</table>
+<div class="step info-box"><p>报告句式：前两个维度累计解释 91.0% 的总惯量，说明二维对应分析图能够较好展示专业类别与就业去向之间的关联结构。</p></div>
+<p class="step">解释图形时写：“统计学与升学、企业就业距离较近；法学与考公考编距离较近。”不要写“统计学导致升学”，那是因果碰瓷。</p>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-10">
+        <h2 class="slide-title"><i class="fas fa-link"></i> 典型相关输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>典型变量对</th><th>典型相关</th><th>Wilks Lambda</th><th>p值</th><th>解释</th></tr>
+<tr><td>第1对</td><td>0.812</td><td>0.288</td><td>0.001</td><td>显著，重点解释</td></tr>
+<tr><td>第2对</td><td>0.436</td><td>0.732</td><td>0.082</td><td>不显著，可不解释</td></tr>
+</table>
+<div class="step info-box"><p>报告句式：第一对典型变量相关系数为 0.812，且通过显著性检验，说明两组变量之间存在较强整体相关关系。</p></div>
+<table class="step table-small" style="font-size:21px;">
+<tr><th>高载荷变量</th><th>解释</th></tr>
+<tr><td>作业完成率、课堂参与、资料阅读</td><td>持续学习投入</td></tr>
+<tr><td>平时成绩、项目成绩</td><td>过程性学习表现</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-11">
+        <h2 class="slide-title"><i class="fas fa-chart-pie"></i> Logistic 回归输出怎么读？</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:22px;">
+<tr><th>变量</th><th>系数</th><th>标准误</th><th>p值</th><th>Exp(B)</th></tr>
+<tr><td>学习时间</td><td>0.45</td><td>0.18</td><td>0.012</td><td>1.57</td></tr>
+<tr><td>作业完成率</td><td>1.80</td><td>0.60</td><td>0.003</td><td>6.05</td></tr>
+<tr><td>缺勤次数</td><td>-0.38</td><td>0.16</td><td>0.021</td><td>0.68</td></tr>
+</table>
+<div class="step info-box"><p>学习时间的 Exp(B)=1.57，表示在其他变量不变时，学习时间每增加 1 单位，通过考试的优势变为原来的 1.57 倍。</p></div>
+<div class="step tile" style="border-top-color:#ef4444;">
+<p style="font-size:23px;">不要写：“通过概率增加 57%”。优势 odds 不是概率 probability，两个东西虽然长得都像被误解的样子。</p>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-12">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> Logistic 个体预测手算</h2>
+        <div class="content-area">
+            
+<p class="step">模型：</p>
+<div class="step math-center"><div class="math-box">
+\[
+\mathrm{logit}(p)=-5.20+0.45x_1+1.80x_2-0.38x_3
+\]
+</div></div>
+<p class="step">某学生：学习时间 \(x_1=8\)，作业完成率 \(x_2=0.9\)，缺勤次数 \(x_3=1\)。</p>
+<div class="step math-center"><div class="math-box" style="font-size:24px;">
+\[
+\eta=-5.20+0.45(8)+1.80(0.9)-0.38(1)=-0.36
+\]
+</div></div>
+
+        </div>
+    </div>
+
+    <div class="slide" id="s4-12-2">
+        <h2 class="slide-title"><i class="fas fa-calculator"></i> Logistic 个体预测手算</h2>
+        <div class="content-area">
+            
+
+<div class="step math-center"><div class="math-box" style="font-size:24px;">
+\[
+p=\frac{e^{-0.36}}{1+e^{-0.36}}=0.411
+\]
+</div></div>
+<div class="step info-box"><p>解释：该学生预测通过概率约为 41.1%。如果只看“学习8小时”就断言必过，那就是把希望当模型。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-13">
+        <h2 class="slide-title"><i class="fas fa-file-alt"></i> 课程论文方法选择表述模板</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;">
+<h3>主成分分析</h3>
+<p>由于本文研究对象包含多个评价指标，且各指标之间存在一定相关性，为在尽量保留原始信息的基础上构造综合评价指标，本文采用主成分分析方法。</p>
+</div>
+<div class="step tile" style="border-top-color:#10b981;">
+<h3>聚类分析</h3>
+<p>由于本文希望根据样品多项指标自动识别类别结构，且类别事先未知，因此采用聚类分析方法对样品进行分类。</p>
+</div>
+
+
+        </div>
+    </div>
+
+
+
+    <div class="slide" id="s4-13-2">
+        <h2 class="slide-title"><i class="fas fa-file-alt"></i> 课程论文方法选择表述模板</h2>
+        <div class="content-area">
+            
+
+
+<div class="step tile" style="border-top-color:#f59e0b;">
+<h3>Logistic 回归</h3>
+<p>由于因变量为是否发生某事件，属于二分类变量，因此采用二分类 Logistic 回归模型分析各因素对事件发生概率的影响。</p>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-14">
+        <h2 class="slide-title"><i class="fas fa-pen-nib"></i> 结果解释写作模板</h2>
+        <div class="content-area">
+            
+<table class="step table-small" style="font-size:21px;">
+<tr><th>方法</th><th>结果解释句式</th></tr>
+<tr><td>聚类分析</td><td>聚类结果显示，样品可分为 3 类，各类别在经济水平、环境质量和公共服务方面表现出明显差异。</td></tr>
+<tr><td>主成分分析</td><td>前 3 个主成分累计方差贡献率达到 82.0%，说明其能够较好代表原始变量信息。</td></tr>
+<tr><td>因子分析</td><td>旋转后载荷矩阵显示，因子 1 在网络覆盖率和宽带用户数上载荷较高，可命名为数字基础设施因子。</td></tr>
+<tr><td>对应分析</td><td>从对应分析图看，高数字化地区与综合协调型发展模式距离较近，说明二者具有较强对应关系。</td></tr>
+<tr><td>Logistic</td><td>变量 \(x\) 的优势比为 1.57，表示在其他变量不变时，\(x\) 每增加 1 单位，事件发生优势变为原来的 1.57 倍。</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-15">
+        <h2 class="slide-title"><i class="fas fa-times-circle"></i> 常见错误集中处理</h2>
+        <div class="content-area">
+            
+<div class="step tiled-content" style="grid-template-columns: repeat(2, 1fr); gap:18px;">
+<div class="tile" style="border-top-color:#ef4444;"><h3>错误1：方法乱用</h3><p>类别已知还用聚类来“发现类别”。</p></div>
+<div class="tile" style="border-top-color:#ef4444;"><h3>错误2：只贴截图</h3><p>没有解释贡献率、载荷、准确率的含义。</p></div>
+<div class="tile" style="border-top-color:#ef4444;"><h3>错误3：因果乱写</h3><p>对应分析图上靠近，就写成“导致”。</p></div>
+<div class="tile" style="border-top-color:#ef4444;"><h3>错误4：OR 当概率</h3><p>优势比增加，不等于概率同比增加。</p></div>
+</div>
+<div class="step info-box"><p>统计报告最怕“软件输出很努力，作者解释很随意”。</p></div>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-16">
+        <h2 class="slide-title"><i class="fas fa-tasks"></i> 综合题示范：如何组织答案？</h2>
+        <div class="content-area">
+            
+<p class="step">题目：某高校希望根据学生学习行为数据分析学生表现。变量包括学习时间、作业完成率、课堂参与、软件能力、期末成绩、是否通过、成绩等级。</p>
+<table class="step table-small" style="font-size:21px;">
+<tr><th>问题</th><th>方法</th><th>理由</th></tr>
+<tr><td>根据学习行为把学生分成几类</td><td>聚类分析</td><td>类别未知，探索分组</td></tr>
+<tr><td>根据多个学习指标综合评价学生能力</td><td>主成分分析</td><td>多指标降维与综合得分</td></tr>
+<tr><td>解释学习能力背后潜在维度</td><td>因子分析</td><td>寻找公共因子</td></tr>
+<tr><td>预测学生是否通过</td><td>二分类 Logistic</td><td>因变量为0/1</td></tr>
+<tr><td>预测成绩等级</td><td>有序 Logistic</td><td>因变量为有序等级</td></tr>
+</table>
+
+        </div>
+    </div>
+
+<div class="slide" id="s4-17">
+        <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 四节课最终总结</h2>
+        <div class="content-area">
+            
+<div class="step tile" style="border-top-color:#3b82f6;padding:32px;">
+<ul style="line-height:2;">
+<li><span class="highlight-blue">方法选择的起点：</span>研究问题，而不是软件菜单。</li>
+<li><span class="highlight-blue">方法区别的关键：</span>类别是否已知、变量是否定性、因变量是否明确。</li>
+<li><span class="highlight-blue">案例分析的逻辑：</span>数据说明 → 方法选择 → 计算过程 → 输出解读 → 实际结论。</li>
+<li><span class="highlight-blue">报告写作的底线：</span>不能只贴结果，必须解释结果。</li>
+</ul>
+</div>
+
+        </div>
+    </div>
+
+<div class="slide title-slide " id="slide-end">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        <div class="title-content">
+            <div class="badge"><i class="fas fa-compass"></i> End</div>
+            <h1>让数据问题<span>找到合适方法</span></h1>
+            <p class="subtitle">应用多元统计分析 · 方法复盘专题</p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const body = document.body;
+        const html = document.documentElement;
+        const container = document.getElementById('presentation-container');
+        const slides = Array.from(document.querySelectorAll('.slide'));
+        const progress = document.getElementById('progress-bar');
+        const counter = document.getElementById('slide-counter');
+        let currentSlideIndex = 0;
+        let isSlideshowMode = false;
+
+        slides.forEach(slide => {
+            const steps = slide.querySelectorAll('.step');
+            steps.forEach(step => step.classList.remove('visible'));
+        });
+
+        function revealAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.add('visible'));
+        }
+
+        function hideAllSteps(slide) {
+            slide.querySelectorAll('.step').forEach(step => step.classList.remove('visible'));
+        }
+
+        function updateProgressBar() {
+            const percent = ((currentSlideIndex + 1) / slides.length) * 100;
+            progress.style.width = percent + '%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+        }
+
+        function showSlide(index) {
+            currentSlideIndex = Math.max(0, Math.min(index, slides.length - 1));
+            slides.forEach((slide, i) => {
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+        }
+
+        function advance() {
+            const currentSlide = slides[currentSlideIndex];
+            const steps = currentSlide.querySelectorAll('.step:not(.visible)');
+            if (steps.length > 0) {
+                steps[0].classList.add('visible');
+            } else if (currentSlideIndex < slides.length - 1) {
+                showSlide(currentSlideIndex + 1);
+            }
+        }
+
+        function goBack() {
+            const currentSlide = slides[currentSlideIndex];
+            const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+            if (visibleSteps.length > 0) {
+                visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            } else if (currentSlideIndex > 0) {
+                showSlide(currentSlideIndex - 1);
+                revealAllSteps(slides[currentSlideIndex]);
+            }
+        }
+
+        function updateSlideshowScale() {
+            if (!isSlideshowMode) return;
+            const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+            container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+        }
+
+        function scrollToCurrentSlide() {
+            const slide = slides[currentSlideIndex];
+            if (!slide) return;
+            slide.scrollIntoView({ block: 'start', behavior: 'auto' });
+            window.scrollBy(0, -12);
+        }
+
+        function enterBrowseMode() {
+            isSlideshowMode = false;
+            body.classList.add('browse-mode');
+            body.classList.remove('slideshow-mode');
+            html.classList.add('browse-mode');
+            slides.forEach(slide => {
+                slide.classList.add('active');
+                revealAllSteps(slide);
+            });
+            progress.style.width = '0%';
+            counter.innerText = `${currentSlideIndex + 1} / ${slides.length}`;
+            requestAnimationFrame(scrollToCurrentSlide);
+        }
+
+        function enterSlideshowMode(targetIndex = currentSlideIndex) {
+            isSlideshowMode = true;
+            currentSlideIndex = Math.max(0, Math.min(targetIndex, slides.length - 1));
+            body.classList.add('slideshow-mode');
+            body.classList.remove('browse-mode');
+            html.classList.remove('browse-mode');
+            slides.forEach((slide, i) => {
+                hideAllSteps(slide);
+                if (i === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+            updateProgressBar();
+            updateSlideshowScale();
+        }
+
+        function getClosestSlideIndexInBrowseMode() {
+            const viewportMid = window.scrollY + window.innerHeight * 0.35;
+            let bestIndex = 0;
+            let bestDistance = Infinity;
+            slides.forEach((slide, idx) => {
+                const top = slide.offsetTop;
+                const center = top + slide.offsetHeight / 2;
+                const dist = Math.abs(center - viewportMid);
+                if (dist < bestDistance) {
+                    bestDistance = dist;
+                    bestIndex = idx;
+                }
+            });
+            return bestIndex;
+        }
+
+        async function toggleFullScreenFromCurrent() {
+            if (!document.fullscreenElement) {
+                currentSlideIndex = getClosestSlideIndexInBrowseMode();
+                enterSlideshowMode(currentSlideIndex);
+                try {
+                    await document.documentElement.requestFullscreen();
+                } catch (err) {
+                    console.log(`全屏请求被拒绝: ${err.message}`);
+                    enterBrowseMode();
+                }
+            } else {
+                await document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                enterSlideshowMode(currentSlideIndex);
+            } else {
+                enterBrowseMode();
+            }
+        });
+
+        container.addEventListener('click', (e) => {
+            if (!isSlideshowMode) return;
+            if (e.target.closest('.hw-btn')) return;
+            advance();
+        });
+
+        document.addEventListener('keydown', async (e) => {
+            if (e.key === 'F5') {
+                e.preventDefault();
+                await toggleFullScreenFromCurrent();
+                return;
+            }
+
+            if (!isSlideshowMode) return;
+
+            if (['Space', 'ArrowRight', 'ArrowDown', 'Enter'].includes(e.code) || e.key === ' ') {
+                e.preventDefault();
+                advance();
+            } else if (['ArrowLeft', 'ArrowUp'].includes(e.code)) {
+                e.preventDefault();
+                goBack();
+            } else if (e.key === 'Escape' && document.fullscreenElement) {
+                e.preventDefault();
+                document.exitFullscreen();
+            }
+        });
+
+        window.addEventListener('resize', updateSlideshowScale);
+
+        enterBrowseMode();
+    });
+</script>
+
+</body>
+</html>
