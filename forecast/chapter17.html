@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>统计预测与决策 - 第17章 多目标决策</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&family=Noto+Serif+SC:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                tags: 'ams'
+            },
+            chtml: { scale: 1.05, displayAlign: 'center' }
+        };
+    </script>
+     <script id="MathJax-script" defer src="./mathjax/tex-mml-chtml.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; font-family: 'Noto Sans SC', sans-serif; background-color: #f8fafc; scroll-behavior: smooth; }
+
+        body.browse-mode { overflow-y: auto; overflow-x: hidden; min-height: 100vh; }
+        body.browse-mode #presentation-container {
+            position: relative; width: 1280px; margin: 24px auto 60px auto;
+            transform: none !important; height: auto; background: transparent; overflow: visible;
+        }
+        body.browse-mode .slide {
+            position: relative; width: 1280px; height: 720px; margin: 0 auto 28px auto;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 1 !important; pointer-events: auto !important;
+            background: #ffffff; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.12); overflow: hidden;
+        }
+        body.browse-mode .step { opacity: 1 !important; transform: none !important; transition: none !important; }
+        body.browse-mode .progress-bar, body.browse-mode .slide-counter { display: none; }
+
+        body.presentation-mode { background-color: #0f172a; width: 100vw; height: 100vh; overflow: hidden; }
+        body.presentation-mode #presentation-container {
+            position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px;
+            transform: translate(-50%, -50%); background-color: #ffffff;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.8); border-radius: 8px; overflow: hidden;
+        }
+        body.presentation-mode #presentation-container::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 8px;
+            background: linear-gradient(90deg, #14b8a6, #3b82f6, #8b5cf6); z-index: 100;
+        }
+        body.presentation-mode .slide {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; padding: 40px 60px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+            background-color: #ffffff;
+        }
+        body.presentation-mode .slide.active { opacity: 1; pointer-events: auto; z-index: 10; }
+
+        .step { opacity: 0; transform: translateY(20px); transition: opacity 0.4s ease, transform 0.4s ease; }
+        .step.visible { opacity: 1; transform: translateY(0); }
+
+        .slide-title {
+            font-family: 'Noto Serif SC', serif; font-size: 34px; color: #1e293b;
+            margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;
+            display: flex; align-items: center; gap: 15px; flex-shrink: 0;
+        }
+        .slide-title i { color: #3b82f6; }
+
+        .content-area { flex-grow: 1; display: flex; flex-direction: column; gap: 12px; justify-content: flex-start; overflow: visible; }
+        p { font-size: 19px; color: #334155; line-height: 1.6; margin: 0; }
+        ul { list-style: none; margin-left: 5px; }
+        li { position: relative; padding-left: 25px; margin-bottom: 8px; font-size: 18px; color: #475569; line-height: 1.5; }
+        li::before { content: "\f105"; font-family: "Font Awesome 6 Free"; font-weight: 900; position: absolute; left: 0; top: 3px; color: #3b82f6; font-size: 18px; }
+
+        .two-column { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
+        .three-column { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; align-items: stretch; }
+        .tile { background: #f8fafc; padding: 15px 20px; border-radius: 12px; border: 1px solid #cbd5e1; border-top: 5px solid #3b82f6; }
+        .tile h3 { font-size: 22px; color: #0f172a; margin-bottom: 10px; }
+
+        .math-center { text-align: center; width: 100%; margin: 5px 0; }
+        .math-box {
+            background: #f0fdf4; border-left: 5px solid #10b981; border-radius: 8px;
+            padding: 10px 20px; color: #000; font-size: 18px;
+            display: inline-block; width: fit-content; text-align: left; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: visible !important; white-space: normal;
+        }
+        mjx-container { overflow: visible !important; }
+
+        .info-box { background: #eff6ff; border-left: 6px solid #3b82f6; padding: 12px 20px; border-radius: 8px; margin: 5px 0; }
+        
+        .table-wrapper { width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; overflow-y: auto; background: white; margin: 5px 0; max-height: 280px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th, .data-table td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: center; color: #334155; }
+        .data-table th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; position: sticky; top: 0; z-index: 1; }
+        .data-table tr:nth-child(even) { background-color: #f8fafc; }
+
+        .svg-container { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%; position: relative;}
+        .path-anim { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: drawPath 3s ease-in-out forwards; }
+        @keyframes drawPath { to { stroke-dashoffset: 0; } }
+
+        .title-slide { background: #020617 !important; color: white; justify-content: center !important; align-items: center !important; text-align: center; padding: 0; position: relative; }
+        .title-slide::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px); background-size: 30px 30px; z-index: 1; opacity: 0.3;}
+        .glow-orb-1 { position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(16,185,129,0.2) 0%, transparent 70%); top: -200px; left: -200px; z-index: 2; }
+        .glow-orb-2 { position: absolute; width: 800px; height: 800px; background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%); bottom: -300px; right: -200px; z-index: 2; }
+        .title-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.7); padding: 60px 80px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(12px); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .title-content h1 { font-family: 'Noto Serif SC', serif; font-size: 56px; margin: 0 0 20px 0; color: #fff; }
+        .title-content h1 span { background: linear-gradient(to right, #34d399, #60a5fa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        .section-slide { background: linear-gradient(135deg, #0f172a 0%, #020617 100%) !important; color: #ffffff; justify-content: center !important; align-items: center !important; text-align: center; position: relative; }
+        .section-slide h2 { font-family: 'Noto Serif SC', serif; font-size: 48px; color: #ffffff; }
+        .section-slide hr { width: 100px; height: 6px; background: #3b82f6; border: none; margin: 20px 0; }
+
+        body.browse-mode .title-slide, body.browse-mode .section-slide { min-height: 720px; display: flex !important; }
+
+        .hw-btn { background: linear-gradient(135deg, #10b981, #3b82f6); color: white; padding: 12px 35px; border-radius: 50px; font-size: 22px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 15px; border: none; cursor: pointer; margin-top: 20px; transition: transform 0.2s; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);}
+        .hw-btn:hover { transform: translateY(-3px); }
+        .progress-bar { position: absolute; bottom: 0; left: 0; height: 6px; background: #10b981; transition: width 0.3s ease; z-index: 200; }
+        .slide-counter { position: absolute; bottom: 20px; right: 30px; font-size: 18px; font-weight: bold; color: #94a3b8; z-index: 100; }
+
+
+        /* ===== 补充页专用：状态空间示意图与动图 ===== */
+        .flow-card { background:#ffffff; border:1px solid #cbd5e1; border-radius:14px; padding:14px; box-shadow:0 6px 16px rgba(15,23,42,0.08); }
+        .flow-label { font-size:14px; font-weight:700; fill:#0f172a; }
+        .small-note { font-size:13px; color:#64748b; line-height:1.45; }
+        .pulse-dot { animation: pulseDot 1.6s ease-in-out infinite; transform-origin:center; }
+        @keyframes pulseDot {
+            0%,100% { opacity:0.55; transform:scale(0.92); }
+            50% { opacity:1; transform:scale(1.18); }
+        }
+        .move-packet { animation: movePacket 4s linear infinite; }
+        @keyframes movePacket {
+            0% { transform:translateX(0); opacity:0; }
+            10% { opacity:1; }
+            85% { opacity:1; }
+            100% { transform:translateX(320px); opacity:0; }
+        }
+        .vertical-packet { animation: verticalPacket 3.2s ease-in-out infinite; }
+        @keyframes verticalPacket {
+            0% { transform:translateY(0); opacity:0; }
+            15% { opacity:1; }
+            80% { opacity:1; }
+            100% { transform:translateY(125px); opacity:0; }
+        }
+        .fade-cycle-1 { animation: fadeCycle 4s ease-in-out infinite; }
+        .fade-cycle-2 { animation: fadeCycle 4s ease-in-out infinite; animation-delay:1.2s; }
+        .fade-cycle-3 { animation: fadeCycle 4s ease-in-out infinite; animation-delay:2.4s; }
+        @keyframes fadeCycle {
+            0%,100% { opacity:0.25; transform:scale(0.98); }
+            35%,65% { opacity:1; transform:scale(1); }
+        }
+        .matrix-chip { display:inline-block; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; padding:3px 8px; border-radius:999px; font-weight:700; }
+
+
+
+        /* ===== 新增章节：建模案例、卡尔曼滤波、方法评价 ===== */
+        .mini-grid-4 { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; align-items:stretch; }
+        .formula-note { font-size:13px; color:#64748b; line-height:1.45; }
+        .tag-pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; font-weight:700; font-size:13px; margin:2px 4px 2px 0; }
+        .mini-card { background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; padding:12px; box-shadow:0 4px 12px rgba(15,23,42,.06); }
+        .mini-card h4 { font-size:16px; color:#0f172a; margin-bottom:6px; }
+        .loop-spin { animation: loopSpin 8s linear infinite; transform-origin:center; }
+        @keyframes loopSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .blink-soft { animation: blinkSoft 1.6s ease-in-out infinite; }
+        @keyframes blinkSoft { 0%,100%{opacity:.35;} 50%{opacity:1;} }
+        .slide .compact-li li { font-size:15px; margin-bottom:5px; line-height:1.35; }
+        @media print {
+            @page { size: A4 landscape; margin: 0; }
+            body { background: white !important; margin: 0; padding: 0; overflow: visible !important; }
+            .progress-bar, .slide-counter { display: none !important; }
+            #presentation-container { padding: 0 !important; margin: 0 !important; width: 100vw !important; display: block !important; box-shadow: none !important; }
+            .slide { width: 100vw !important; height: 100vh !important; margin: 0 !important; box-shadow: none !important; page-break-after: always; page-break-inside: avoid; border: 1px solid transparent; }
+            .step { opacity: 1 !important; transform: none !important; transition: none !important;}
+        }
+
+        body.presentation-mode .slide:not(.active) svg animate {
+    display: none;
+}
+
+body.presentation-mode .slide.active svg animate {
+    display: inline;
+}
+    
+        .placeholder-img {height:100%; min-height:220px; border:2px dashed #94a3b8; border-radius:14px; background:linear-gradient(135deg,#f8fafc,#eef2ff); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#475569; text-align:center; padding:20px;}
+        .placeholder-img i {font-size:54px; color:#64748b; margin-bottom:12px;}
+        .decision-chip {display:inline-block; padding:4px 10px; border-radius:999px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-weight:700; font-size:14px; margin:2px 4px;}
+        .tiny-table {width:100%; border-collapse:collapse; font-size:13px;}
+        .tiny-table th,.tiny-table td{border:1px solid #cbd5e1; padding:5px 6px; text-align:center;}
+        .tiny-table th{background:#f1f5f9;}
+
+    </style>
+</head>
+
+<body class="browse-mode">
+
+<div id="presentation-container">
+    <div class="progress-bar" id="progress-bar"></div>
+    <div class="slide-counter" id="slide-counter"></div>
+
+<div class="slide title-slide active" id="slide-0">
+  <div class="glow-orb-1"></div><div class="glow-orb-2"></div>
+  <div class="title-content">
+    <div class="badge" style="background:rgba(16,185,129,0.2); border:1px solid #10b981; color:#34d399; padding:8px 20px; border-radius:50px; margin-bottom:20px; font-size:18px;">统计预测与决策</div>
+    <h1><span>第十七章 多目标决策</span></h1>
+    <p style="color:#94a3b8; font-size:24px; margin-top:10px;">当目标不止一个，决策就不再是简单排队</p>
+    <div class="step" style="margin-top:30px;background:rgba(0,0,0,0.4);padding:12px 25px;border-radius:12px;">
+      <p style="font-size:18px;color:#34d399;margin:0;"><i class="fas fa-desktop"></i> <strong>F5</strong> 开启全屏放映 | 单击鼠标步进讲解</p>
+    </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-chapter-intro">
+  <h2 class="slide-title"><i class="fas fa-compass"></i> 整章导入：为什么“最赚钱”不一定是“最优”？</h2>
+  <div class="content-area">
+    <div class="step tile">
+      <h3>现实决策很少只有一个目标</h3>
+      <p>企业选厂址，不只看成本，还要看交通、环保、员工通勤、政策支持；学校制定培养方案，不只看就业率，还要看学生能力、课程负担和长期发展。单目标决策像只盯着奶茶甜度，多目标决策还要管热量、价格、排队时长和钱包残血程度。</p>
+    </div>
+    <div class="step two-column" style="align-items:center;">
+      <div class="svg-container" style="height:340px;background:#f8fafc;">
+        <svg viewBox="0 0 720 300" style="width:100%;height:100%;">
+          <defs><marker id="introArr17" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs>
+          <circle cx="360" cy="150" r="54" fill="#0f172a"/>
+          <text x="360" y="143" text-anchor="middle" font-size="20" fill="#fff" font-weight="700">最优方案</text>
+          <text x="360" y="170" text-anchor="middle" font-size="14" fill="#cbd5e1">不是单项冠军</text>
+          <g>
+            <rect x="50" y="35" width="135" height="55" rx="14" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+            <text x="118" y="69" text-anchor="middle" font-size="16" fill="#047857" font-weight="700">经济效益</text>
+            <line x1="185" y1="62" x2="300" y2="120" stroke="#10b981" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#introArr17)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.1s" repeatCount="indefinite"/></line>
+          </g>
+          <g>
+            <rect x="535" y="35" width="135" height="55" rx="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+            <text x="603" y="69" text-anchor="middle" font-size="16" fill="#1d4ed8" font-weight="700">社会责任</text>
+            <line x1="535" y1="62" x2="420" y2="120" stroke="#3b82f6" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#introArr17)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.1s" repeatCount="indefinite"/></line>
+          </g>
+          <g>
+            <rect x="50" y="210" width="135" height="55" rx="14" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+            <text x="118" y="244" text-anchor="middle" font-size="16" fill="#b45309" font-weight="700">环境影响</text>
+            <line x1="185" y1="237" x2="300" y2="180" stroke="#f59e0b" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#introArr17)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.1s" repeatCount="indefinite"/></line>
+          </g>
+          <g>
+            <rect x="535" y="210" width="135" height="55" rx="14" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2"/>
+            <text x="603" y="244" text-anchor="middle" font-size="16" fill="#6d28d9" font-weight="700">长期发展</text>
+            <line x1="535" y1="237" x2="420" y2="180" stroke="#8b5cf6" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#introArr17)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.1s" repeatCount="indefinite"/></line>
+          </g>
+          <circle cx="360" cy="150" r="64" fill="none" stroke="#10b981" stroke-width="3" opacity=".5"><animate attributeName="r" values="58;74;58" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".7;.15;.7" dur="2s" repeatCount="indefinite"/></circle>
+        </svg>
+      </div>
+      <div class="tile" style="border-top-color:#8b5cf6;">
+        <h3>本章主线</h3>
+        <ul>
+          <li>先理解多目标决策的两个麻烦：不可公度与目标冲突。</li>
+          <li>再学习把复杂目标拆层、赋权、综合评价。</li>
+          <li>重点掌握 AHP、多属性效用、优劣系数、模糊决策。</li>
+          <li>最后能把“看起来都不错”的方案算出明确排序。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="slide section-slide" id="sec1"><div class="glow-orb-1"></div><h2>第一节 多目标决策概述</h2><hr><p class="step" style="font-size:24px;">多个目标同时出现，决策开始变得不听话</p></div>
+
+<div class="slide" id="slide-multi-goal-features">
+  <h2 class="slide-title"><i class="fas fa-scale-balanced"></i> 多目标决策的两个核心特点</h2>
+  <div class="content-area">
+    <div class="step two-column">
+      <div class="tile" style="border-top-color:#3b82f6;">
+        <h3>特点一：不可公度性</h3>
+        <p>多个目标没有统一的度量单位。利润可以用万元衡量，企业形象、环境责任、员工满意度却很难直接折成同一个单位。</p>
+        <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">经济效益 \(\neq\) 精神文明 \(\neq\) 环境质量</div></div>
+      </div>
+      <div class="tile" style="border-top-color:#ef4444;">
+        <h3>特点二：矛盾性</h3>
+        <p>一个目标改善，可能会损害另一个目标。比如扩大生产可能提高利润，却增加污染；降低成本可能提高收益，却影响服务质量。</p>
+        <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#ef4444;">利润上升 \(\Rightarrow\) 环境压力可能上升</div></div>
+      </div>
+    </div>
+    <div class="step svg-container" style="height:310px;background:#f8fafc;">
+      <svg viewBox="0 0 880 250" style="width:100%;height:100%;">
+        <defs><marker id="conflictArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs>
+        <rect x="60" y="80" width="170" height="80" rx="18" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+        <text x="145" y="115" text-anchor="middle" font-size="19" fill="#047857" font-weight="700">利润最大</text>
+        <text x="145" y="143" text-anchor="middle" font-size="13" fill="#64748b">经济目标</text>
+        <rect x="355" y="80" width="170" height="80" rx="18" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+        <text x="440" y="115" text-anchor="middle" font-size="19" fill="#b45309" font-weight="700">环境友好</text>
+        <text x="440" y="143" text-anchor="middle" font-size="13" fill="#64748b">社会目标</text>
+        <rect x="650" y="80" width="170" height="80" rx="18" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="735" y="115" text-anchor="middle" font-size="19" fill="#1d4ed8" font-weight="700">员工权益</text>
+        <text x="735" y="143" text-anchor="middle" font-size="13" fill="#64748b">组织目标</text>
+        <line x1="230" y1="120" x2="355" y2="120" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#conflictArr)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.1s" repeatCount="indefinite"/></line>
+        <line x1="525" y1="120" x2="650" y2="120" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#conflictArr)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.1s" repeatCount="indefinite"/></line>
+        <text x="440" y="210" text-anchor="middle" font-size="18" fill="#0f172a" font-weight="700">多目标决策不是找“完美方案”，而是找“综合更合理的方案”</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-goal-system-types">
+  <h2 class="slide-title"><i class="fas fa-sitemap"></i> 目标体系的三种结构</h2>
+  <div class="content-area">
+    <div class="step tile"><p>多目标决策的第一步不是急着算，而是先把目标体系画清楚。</p></div>
+    <div class="step three-column" style="height:470px;">
+     <div class="tile" style="border-top-color:#10b981;">
+    <h3>单层目标体系</h3>
+    <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+        <img src="F17-1.png" alt="图17-1：单层目标体系"
+             style="width:100%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+    </div>
+   
+</div>
+
+<div class="tile" style="border-top-color:#3b82f6;">
+    <h3>树形多层目标体系</h3>
+    <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+        <img src="F17-2.png" alt="图17-2：树形多层目标体系"
+             style="width:100%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+    </div>
+   
+</div>
+
+<div class="tile" style="border-top-color:#8b5cf6;">
+    <h3>非树形多层目标体系</h3>
+    <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+        <img src="F17-3.png" alt="图17-3：非树形多层目标体系"
+             style="width:100%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+    </div>
+   
+</div>
+    </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-multi-goal-principles">
+  <h2 class="slide-title"><i class="fas fa-filter"></i> 处理多目标问题的两个原则</h2>
+  <div class="content-area">
+    <div class="step two-column">
+      <div class="tile" style="border-top-color:#10b981;">
+        <h3>原则一：尽量减少目标个数</h3>
+        <ul>
+          <li>去掉从属目标，归并类似目标。</li>
+          <li>只要求达到一般标准的目标可转为约束。</li>
+          <li>能综合的目标尽量构造综合指数。</li>
+        </ul>
+      </div>
+      <div class="tile" style="border-top-color:#3b82f6;">
+        <h3>原则二：区分目标重要性</h3>
+        <ul>
+          <li>必须达成且重要的目标优先考虑。</li>
+          <li>次要目标可以后置或降低要求。</li>
+          <li>用权数表达重要性差异。</li>
+        </ul>
+      </div>
+    </div>
+    <div class="step svg-container" style="height:330px;background:#f8fafc;">
+      <svg viewBox="0 0 900 270" style="width:100%;height:100%;">
+        <defs><marker id="reduceArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs>
+        <rect x="45" y="50" width="190" height="155" rx="16" fill="#f8fafc" stroke="#94a3b8"/>
+        <text x="140" y="80" text-anchor="middle" font-size="18" fill="#334155" font-weight="700">一堆目标</text>
+        <text x="140" y="112" text-anchor="middle" font-size="14" fill="#64748b">利润、成本、质量、环保</text>
+        <text x="140" y="137" text-anchor="middle" font-size="14" fill="#64748b">满意度、形象、风险</text>
+        <text x="140" y="162" text-anchor="middle" font-size="14" fill="#64748b">市场份额、创新能力...</text>
+        <line x1="235" y1="128" x2="345" y2="128" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#reduceArr)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line>
+        <rect x="350" y="50" width="210" height="155" rx="16" fill="#ecfdf5" stroke="#10b981" stroke-width="2"/>
+        <text x="455" y="80" text-anchor="middle" font-size="18" fill="#047857" font-weight="700">筛选与合并</text>
+        <text x="455" y="120" text-anchor="middle" font-size="14" fill="#334155">保留核心目标</text>
+        <text x="455" y="148" text-anchor="middle" font-size="14" fill="#334155">次要目标转为约束</text>
+        <text x="455" y="176" text-anchor="middle" font-size="14" fill="#334155">相近目标合成指数</text>
+        <line x1="560" y1="128" x2="670" y2="128" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#reduceArr)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line>
+        <rect x="675" y="50" width="180" height="155" rx="16" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="765" y="80" text-anchor="middle" font-size="18" fill="#1d4ed8" font-weight="700">权重排序</text>
+        <text x="765" y="120" text-anchor="middle" font-size="14" fill="#334155">目标1：0.45</text>
+        <text x="765" y="148" text-anchor="middle" font-size="14" fill="#334155">目标2：0.30</text>
+        <text x="765" y="176" text-anchor="middle" font-size="14" fill="#334155">目标3：0.25</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-method-map">
+  <h2 class="slide-title"><i class="fas fa-map"></i> 多目标决策常用方法地图</h2>
+  <div class="content-area">
+    <div class="step tile"><p>多目标决策方法很多，本章重点介绍四类：层次分析法、多属性效用决策法、优劣系数法和模糊决策法。其他方法不是不存在，只是本章不打算把学生一口气塞进方法宇宙黑洞。</p></div>
+    <div class="step mini-grid-4">
+      <div class="mini-card"><h4>AHP 层次分析法</h4><p class="formula-note">把复杂目标分层，两两比较，计算权重与排序。</p></div>
+      <div class="mini-card"><h4>多属性效用法</h4><p class="formula-note">把不同属性转为效用值，再加权综合。</p></div>
+      <div class="mini-card"><h4>优劣系数法</h4><p class="formula-note">比较方案间优势数量、重要性和劣势程度。</p></div>
+      <div class="mini-card"><h4>模糊决策法</h4><p class="formula-note">处理“好、不太好、舒适”等模糊评价。</p></div>
+    </div>
+    <div class="step svg-container" style="height:300px;background:#f8fafc;">
+      <svg viewBox="0 0 900 230" style="width:100%;height:100%;">
+        <defs><marker id="methodArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs>
+        <rect x="40" y="85" width="145" height="60" rx="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/><text x="112" y="121" text-anchor="middle" font-size="16" fill="#1d4ed8" font-weight="700">多目标问题</text>
+        <line x1="185" y1="115" x2="270" y2="115" stroke="#334155" stroke-width="3" marker-end="url(#methodArr)" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line>
+        <rect x="275" y="45" width="130" height="45" rx="12" fill="#ecfdf5" stroke="#10b981"/><text x="340" y="73" text-anchor="middle" fill="#047857" font-weight="700">分层</text>
+        <rect x="275" y="140" width="130" height="45" rx="12" fill="#fff7ed" stroke="#f59e0b"/><text x="340" y="168" text-anchor="middle" fill="#b45309" font-weight="700">赋权</text>
+        <line x1="405" y1="68" x2="490" y2="105" stroke="#334155" stroke-width="3" marker-end="url(#methodArr)"/>
+        <line x1="405" y1="163" x2="490" y2="125" stroke="#334155" stroke-width="3" marker-end="url(#methodArr)"/>
+        <rect x="495" y="85" width="145" height="60" rx="14" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2"/><text x="568" y="121" text-anchor="middle" fill="#6d28d9" font-weight="700">综合评价</text>
+        <line x1="640" y1="115" x2="725" y2="115" stroke="#334155" stroke-width="3" marker-end="url(#methodArr)" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line>
+        <rect x="730" y="85" width="130" height="60" rx="14" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/><text x="795" y="121" text-anchor="middle" fill="#047857" font-weight="700">方案排序</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="slide section-slide" id="sec2"><div class="glow-orb-1"></div><h2>第二节 层次分析法 AHP</h2><hr><p class="step" style="font-size:24px;">把复杂问题拆成层，再把主观判断算成权重</p></div>
+
+<div class="slide" id="slide-ahp-intro">
+  <h2 class="slide-title"><i class="fas fa-layer-group"></i> AHP 导入：选校区建设方案怎么选？</h2>
+  <div class="content-area">
+    <div class="step two-column">
+      <div class="tile"><h3>基本思想</h3><p>层次分析法把复杂问题分解成总目标、准则层、方案层。每一层内部做两两比较，得到局部权重，再逐层合成总权重。它把“感觉哪个重要”变成“能计算、能检验”的权重。</p></div>
+      <div class="tile" style="border-top-color:#10b981;"><h3>典型流程</h3><ul><li>建立层次结构模型。</li><li>构造判断矩阵。</li><li>计算权重向量。</li><li>做一致性检验。</li><li>层次总排序。</li></ul></div>
+    </div>
+    <div class="step two-column" style="height:360px;">
+      <div class="svg-container" style="background:#f8fafc;">
+        <svg viewBox="0 0 560 300" style="width:100%;height:100%;">
+          <defs><marker id="ahpArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs>
+          <rect x="205" y="20" width="150" height="50" rx="14" fill="#0f172a"/><text x="280" y="52" text-anchor="middle" fill="#fff" font-weight="700" font-size="17">总目标</text>
+          <line x1="280" y1="70" x2="105" y2="115" stroke="#334155" stroke-width="2" marker-end="url(#ahpArr)"/>
+          <line x1="280" y1="70" x2="280" y2="115" stroke="#334155" stroke-width="2" marker-end="url(#ahpArr)"/>
+          <line x1="280" y1="70" x2="455" y2="115" stroke="#334155" stroke-width="2" marker-end="url(#ahpArr)"/>
+          <rect x="45" y="120" width="120" height="48" rx="12" fill="#eff6ff" stroke="#3b82f6"/><text x="105" y="150" text-anchor="middle" fill="#1d4ed8" font-weight="700">成本</text>
+          <rect x="220" y="120" width="120" height="48" rx="12" fill="#ecfdf5" stroke="#10b981"/><text x="280" y="150" text-anchor="middle" fill="#047857" font-weight="700">质量</text>
+          <rect x="395" y="120" width="120" height="48" rx="12" fill="#fff7ed" stroke="#f59e0b"/><text x="455" y="150" text-anchor="middle" fill="#b45309" font-weight="700">风险</text>
+          <line x1="105" y1="168" x2="185" y2="220" stroke="#334155" stroke-width="2" marker-end="url(#ahpArr)"/>
+          <line x1="280" y1="168" x2="280" y2="220" stroke="#334155" stroke-width="2" marker-end="url(#ahpArr)"/>
+          <line x1="455" y1="168" x2="375" y2="220" stroke="#334155" stroke-width="2" marker-end="url(#ahpArr)"/>
+          <rect x="120" y="225" width="100" height="45" rx="12" fill="#faf5ff" stroke="#8b5cf6"/><text x="170" y="253" text-anchor="middle" fill="#6d28d9" font-weight="700">方案甲</text>
+          <rect x="230" y="225" width="100" height="45" rx="12" fill="#faf5ff" stroke="#8b5cf6"/><text x="280" y="253" text-anchor="middle" fill="#6d28d9" font-weight="700">方案乙</text>
+          <rect x="340" y="225" width="100" height="45" rx="12" fill="#faf5ff" stroke="#8b5cf6"/><text x="390" y="253" text-anchor="middle" fill="#6d28d9" font-weight="700">方案丙</text>
+        </svg>
+      </div>
+      <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+
+        <img src="F17-4.png" alt="图17-4：企业目标决策层次结构图"
+
+             style="width:200%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+
+    </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==================== 新增：AHP 动态演示全过程 ==================== -->
+<div class="slide" id="slide-ahp-dynamic-process">
+    <h2 class="slide-title"><i class="fas fa-gears"></i> AHP 动态演示：从两两比较到方案排序</h2>
+    <div class="content-area">
+        <div class="step tile">
+            <h3>核心问题：主观判断怎样变成可计算的权重？</h3>
+            <p style="font-size:16px;">
+                层次分析法不是让专家“凭感觉拍脑袋”，而是把判断拆成一组组
+                <strong>两两比较</strong>，再写成判断矩阵，经过归一化、权重计算和一致性检验，
+                最后得到方案总排序。
+            </p>
+        </div>
+
+        <div class="step two-column" style="align-items:stretch;">
+            <!-- 左侧动态图 -->
+            <div class="svg-container" style="height:430px;background:#f8fafc;">
+                <svg viewBox="0 0 760 420" style="width:100%;height:100%;">
+                    <defs>
+                        <marker id="ahpFlowArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+                            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+                        </marker>
+                        <filter id="ahpShadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#64748b" flood-opacity="0.24"/>
+                        </filter>
+                    </defs>
+
+                    <!-- 流程标题 -->
+                    <rect x="190" y="10" width="380" height="32" rx="16" fill="#ffffff" stroke="#cbd5e1"/>
+                    <text x="380" y="32" text-anchor="middle" font-size="15" fill="#0f172a" font-weight="700">
+                        AHP：结构化判断 → 数量化权重 → 最终排序
+                    </text>
+
+                    <!-- 步骤节点 -->
+                    <rect x="35" y="70" width="150" height="58" rx="16" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" filter="url(#ahpShadow)"/>
+                    <text x="110" y="95" text-anchor="middle" font-size="14" fill="#1d4ed8" font-weight="700">① 建层次结构</text>
+                    <text x="110" y="116" text-anchor="middle" font-size="12" fill="#64748b">目标-准则-方案</text>
+
+                    <rect x="305" y="70" width="150" height="58" rx="16" fill="#ecfdf5" stroke="#10b981" stroke-width="2" filter="url(#ahpShadow)"/>
+                    <text x="380" y="95" text-anchor="middle" font-size="14" fill="#047857" font-weight="700">② 两两比较</text>
+                    <text x="380" y="116" text-anchor="middle" font-size="12" fill="#64748b">1,3,5,7,9 标度</text>
+
+                    <rect x="575" y="70" width="150" height="58" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2" filter="url(#ahpShadow)"/>
+                    <text x="650" y="95" text-anchor="middle" font-size="14" fill="#b45309" font-weight="700">③ 判断矩阵</text>
+                    <text x="650" y="116" text-anchor="middle" font-size="12" fill="#64748b">A=(aij)</text>
+
+                    <rect x="575" y="215" width="150" height="58" rx="16" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2" filter="url(#ahpShadow)"/>
+                    <text x="650" y="240" text-anchor="middle" font-size="14" fill="#6d28d9" font-weight="700">④ 计算权重</text>
+                    <text x="650" y="261" text-anchor="middle" font-size="12" fill="#64748b">归一化 + 行求和</text>
+
+                    <rect x="305" y="215" width="150" height="58" rx="16" fill="#fef2f2" stroke="#ef4444" stroke-width="2" filter="url(#ahpShadow)"/>
+                    <text x="380" y="240" text-anchor="middle" font-size="14" fill="#991b1b" font-weight="700">⑤ 一致性检验</text>
+                    <text x="380" y="261" text-anchor="middle" font-size="12" fill="#64748b">CR &lt; 0.1?</text>
+
+                    <rect x="35" y="215" width="150" height="58" rx="16" fill="#f0fdf4" stroke="#10b981" stroke-width="2" filter="url(#ahpShadow)"/>
+                    <text x="110" y="240" text-anchor="middle" font-size="14" fill="#047857" font-weight="700">⑥ 总排序</text>
+                    <text x="110" y="261" text-anchor="middle" font-size="12" fill="#64748b">选权重最大方案</text>
+
+                    <!-- 流程箭头 -->
+                    <line x1="185" y1="99" x2="305" y2="99"
+                          stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpFlowArr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="455" y1="99" x2="575" y2="99"
+                          stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpFlowArr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="650" y1="128" x2="650" y2="215"
+                          stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpFlowArr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="575" y1="244" x2="455" y2="244"
+                          stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpFlowArr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="305" y1="244" x2="185" y2="244"
+                          stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpFlowArr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+
+                    <!-- 回路：CR不通过，返回调整判断矩阵 -->
+                    <path d="M380 215 C390 165,525 160,620 128"
+                          fill="none" stroke="#ef4444" stroke-width="2.5"
+                          stroke-dasharray="7 6" marker-end="url(#ahpFlowArr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-26" dur="1.1s" repeatCount="indefinite"/>
+                    </path>
+                    <text x="505" y="165" text-anchor="middle" font-size="12" fill="#991b1b" font-weight="700">
+                        若不一致，返回调整
+                    </text>
+
+                    <!-- 两两比较小动画 -->
+                    <rect x="230" y="145" width="300" height="48" rx="16" fill="#ffffff" stroke="#cbd5e1"/>
+                    <text x="280" y="175" text-anchor="middle" font-size="14" fill="#1d4ed8" font-weight="700">成本</text>
+                    <text x="380" y="175" text-anchor="middle" font-size="14" fill="#0f172a" font-weight="700">vs</text>
+                    <text x="480" y="175" text-anchor="middle" font-size="14" fill="#047857" font-weight="700">质量</text>
+                    <circle cx="335" cy="170" r="6" fill="#3b82f6">
+                        <animate attributeName="cx" values="285;475;285" dur="2.4s" repeatCount="indefinite"/>
+                        <animate attributeName="opacity" values=".25;1;.25" dur="2.4s" repeatCount="indefinite"/>
+                    </circle>
+                    <text x="380" y="207" text-anchor="middle" font-size="12" fill="#64748b">
+                        每次只比较两个因素，别让大脑一次背一麻袋指标
+                    </text>
+
+                    <!-- 底部小矩阵 -->
+                    <rect x="235" y="305" width="290" height="86" rx="16" fill="#ffffff" stroke="#cbd5e1" filter="url(#ahpShadow)"/>
+                    <text x="380" y="328" text-anchor="middle" font-size="14" fill="#0f172a" font-weight="700">
+                        判断矩阵示意
+                    </text>
+                    <text x="285" y="352" text-anchor="middle" font-size="13" fill="#334155">1</text>
+                    <text x="380" y="352" text-anchor="middle" font-size="13" fill="#334155">3</text>
+                    <text x="475" y="352" text-anchor="middle" font-size="13" fill="#334155">5</text>
+                    <text x="285" y="374" text-anchor="middle" font-size="13" fill="#334155">1/3</text>
+                    <text x="380" y="374" text-anchor="middle" font-size="13" fill="#334155">1</text>
+                    <text x="475" y="374" text-anchor="middle" font-size="13" fill="#334155">2</text>
+
+                    <!-- 动态高亮列归一化 -->
+                    <rect x="260" y="337" width="50" height="45" rx="8" fill="#3b82f6" opacity="0.12">
+                        <animate attributeName="x" values="260;355;450;260" dur="3s" repeatCount="indefinite"/>
+                    </rect>
+                </svg>
+                
+            </div>
+
+            <!-- 右侧解释 -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div class="tile" style="border-top-color:#3b82f6;">
+                    <h3 style="font-size:18px;color:#1d4ed8;">第一步：把问题分层</h3>
+                    <p style="font-size:14px;">
+                        先把复杂问题拆成总目标、准则层和方案层。比如选校区建设方案：
+                        总目标是“选择最佳校区”，准则可以是成本、质量、风险、交通等。
+                    </p>
+                </div>
+                <div class="tile" style="border-top-color:#10b981;">
+                    <h3 style="font-size:18px;color:#047857;">第二步：两两比较</h3>
+                    <p style="font-size:14px;">
+                        对同一层的因素逐对比较，回答“谁更重要，重要多少”。
+                        比如成本比质量稍微重要，可写成 3；反过来就是 \(1/3\)。
+                    </p>
+                </div>
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3 style="font-size:18px;color:#6d28d9;">第三步：从矩阵得到权重</h3>
+                    <p style="font-size:14px;">
+                        将判断矩阵按列归一化，再按行求和并归一化，得到权重向量。
+                        这些权重就是各因素对上层目标的重要程度。
+                    </p>
+                </div>
+                <div class="tile" style="border-top-color:#ef4444;">
+                    <h3 style="font-size:18px;color:#991b1b;">第四步：检查是否自相矛盾</h3>
+                    <p style="font-size:14px;">
+                        用 \(CI\) 和 \(CR\) 做一致性检验。若 \(CR&lt;0.1\)，说明判断基本一致；
+                        若不通过，就要回去改判断矩阵。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    
+    </div>
+</div>
+
+
+<!-- ==================== 新增：AHP过程1：建立层次结构 ==================== -->
+<div class="slide" id="slide-ahp-process-1">
+    <h2 class="slide-title"><i class="fas fa-sitemap"></i> AHP 第一步：先把复杂问题分层</h2>
+    <div class="content-area">
+        <div class="step tile">
+            <h3>例子：选校区建设方案</h3>
+            <p style="font-size:16px;">
+                不要一上来就问“选哪个方案”，先把问题拆开：
+                最上面是总目标，中间是评价准则，最下面是备选方案。
+                AHP 的第一步就是把一团乱麻整理成层次结构。
+            </p>
+        </div>
+
+        <div class="step two-column" style="align-items:stretch;">
+            <div class="svg-container" style="height:420px;background:#f8fafc;">
+                <svg viewBox="0 0 700 390" style="width:100%;height:100%;">
+                    <defs>
+                        <marker id="ahpP1Arr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+                            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+                        </marker>
+                        <filter id="ahpP1Shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#64748b" flood-opacity="0.22"/>
+                        </filter>
+                    </defs>
+
+                    <!-- 总目标 -->
+                    <rect x="245" y="25" width="210" height="60" rx="18" fill="#0f172a" filter="url(#ahpP1Shadow)"/>
+                    <text x="350" y="50" text-anchor="middle" font-size="17" fill="#ffffff" font-weight="700">总目标 A</text>
+                    <text x="350" y="73" text-anchor="middle" font-size="14" fill="#cbd5e1">选择最佳校区建设方案</text>
+
+                    <!-- 准则层 -->
+                    <rect x="65" y="160" width="140" height="58" rx="16" fill="#eff6ff" stroke="#3b82f6" stroke-width="2" filter="url(#ahpP1Shadow)"/>
+                    <text x="135" y="194" text-anchor="middle" font-size="16" fill="#1d4ed8" font-weight="700">成本 B1</text>
+
+                    <rect x="280" y="160" width="140" height="58" rx="16" fill="#ecfdf5" stroke="#10b981" stroke-width="2" filter="url(#ahpP1Shadow)"/>
+                    <text x="350" y="194" text-anchor="middle" font-size="16" fill="#047857" font-weight="700">质量 B2</text>
+
+                    <rect x="495" y="160" width="140" height="58" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2" filter="url(#ahpP1Shadow)"/>
+                    <text x="565" y="194" text-anchor="middle" font-size="16" fill="#b45309" font-weight="700">风险 B3</text>
+
+                    <!-- 方案层 -->
+                    <rect x="140" y="300" width="120" height="54" rx="15" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2" filter="url(#ahpP1Shadow)"/>
+                    <text x="200" y="333" text-anchor="middle" font-size="15" fill="#6d28d9" font-weight="700">方案甲 C1</text>
+
+                    <rect x="290" y="300" width="120" height="54" rx="15" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2" filter="url(#ahpP1Shadow)"/>
+                    <text x="350" y="333" text-anchor="middle" font-size="15" fill="#6d28d9" font-weight="700">方案乙 C2</text>
+
+                    <rect x="440" y="300" width="120" height="54" rx="15" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2" filter="url(#ahpP1Shadow)"/>
+                    <text x="500" y="333" text-anchor="middle" font-size="15" fill="#6d28d9" font-weight="700">方案丙 C3</text>
+
+                    <!-- 箭头 -->
+                    <line x1="350" y1="85" x2="135" y2="160" stroke="#334155" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#ahpP1Arr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.2s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="350" y1="85" x2="350" y2="160" stroke="#334155" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#ahpP1Arr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.2s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="350" y1="85" x2="565" y2="160" stroke="#334155" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#ahpP1Arr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1.2s" repeatCount="indefinite"/>
+                    </line>
+
+                    <line x1="135" y1="218" x2="200" y2="300" stroke="#64748b" stroke-width="2"/>
+                    <line x1="350" y1="218" x2="350" y2="300" stroke="#64748b" stroke-width="2"/>
+                    <line x1="565" y1="218" x2="500" y2="300" stroke="#64748b" stroke-width="2"/>
+
+                    <!-- 层标签 -->
+                    <text x="35" y="60" font-size="15" fill="#0f172a" font-weight="700">目标层</text>
+                    <text x="35" y="192" font-size="15" fill="#0f172a" font-weight="700">准则层</text>
+                    <text x="35" y="330" font-size="15" fill="#0f172a" font-weight="700">方案层</text>
+                </svg>
+            </div>
+
+            <div class="tile" style="border-top-color:#3b82f6;">
+                <h3 style="font-size:23px;color:#1d4ed8;">层次结构的意义</h3>
+                <p style="font-size:21px;">
+                    分层让我们把复杂问题拆成小块，逐层分析。总目标是我们想要达到的结果，准则是评价方案的标准，方案是我们在选项中比较的对象。
+                    只有分清了层次，我们才能有针对性地进行两两比较和权重计算。
+                </p>
+            </div> 
+         </div>
+    </div>
+</div>
+
+
+<!-- ==================== 新增：AHP过程2：两两比较与判断矩阵 ==================== -->
+<div class="slide" id="slide-ahp-process-2">
+    <h2 class="slide-title"><i class="fas fa-scale-balanced"></i> AHP 第二步：两两比较，形成判断矩阵</h2>
+    <div class="content-area">
+        <div class="step tile">
+            <h3>为什么要两两比较？</h3>
+            <p style="font-size:16px;">
+                多目标之间没有统一单位，成本是万元，质量是分数，风险是等级。
+                直接比较会乱套。AHP 的办法很朴素：一次只比较两个因素，
+                问“谁更重要，重要多少”。
+            </p>
+        </div>
+
+        <div class="step two-column" style="align-items:stretch;">
+            <div class="svg-container" style="height:420px;background:#f8fafc;">
+                <svg viewBox="0 0 700 390" style="width:100%;height:100%;">
+                    <defs>
+                        <marker id="ahpP2Arr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+                            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+                        </marker>
+                        <filter id="ahpP2Shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#64748b" flood-opacity="0.22"/>
+                        </filter>
+                    </defs>
+
+                    <!-- 左：两两比较 -->
+                    <rect x="35" y="30" width="280" height="320" rx="18" fill="#ffffff" stroke="#cbd5e1" filter="url(#ahpP2Shadow)"/>
+                    <text x="175" y="62" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="700">两两比较</text>
+
+                    <rect x="75" y="95" width="90" height="42" rx="12" fill="#eff6ff" stroke="#3b82f6"/>
+                    <text x="120" y="122" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">成本</text>
+
+                    <rect x="190" y="95" width="90" height="42" rx="12" fill="#ecfdf5" stroke="#10b981"/>
+                    <text x="235" y="122" text-anchor="middle" font-size="15" fill="#047857" font-weight="700">质量</text>
+
+                    <text x="175" y="170" text-anchor="middle" font-size="15" fill="#334155" font-weight="700">
+                        成本 比 质量 稍微重要
+                    </text>
+                    <text x="175" y="200" text-anchor="middle" font-size="28" fill="#8b5cf6" font-weight="700">3</text>
+                    <text x="175" y="228" text-anchor="middle" font-size="13" fill="#64748b">
+                        所以 a12=3，a21=1/3
+                    </text>
+
+                    <circle cx="120" cy="116" r="7" fill="#3b82f6">
+                        <animate attributeName="r" values="7;14;7" dur="1.4s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="235" cy="116" r="7" fill="#10b981">
+                        <animate attributeName="r" values="7;14;7" dur="1.4s" begin=".4s" repeatCount="indefinite"/>
+                    </circle>
+
+                    <!-- 中间箭头 -->
+                    <line x1="315" y1="190" x2="375" y2="190" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpP2Arr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+
+                    <!-- 右：判断矩阵 -->
+                    <rect x="385" y="30" width="280" height="320" rx="18" fill="#ffffff" stroke="#cbd5e1" filter="url(#ahpP2Shadow)"/>
+                    <text x="525" y="62" text-anchor="middle" font-size="17" fill="#0f172a" font-weight="700">判断矩阵 A</text>
+
+                    <!-- 表格 -->
+                    <rect x="440" y="95" width="170" height="170" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+
+                    <line x1="440" y1="138" x2="610" y2="138" stroke="#94a3b8"/>
+                    <line x1="440" y1="181" x2="610" y2="181" stroke="#94a3b8"/>
+                    <line x1="440" y1="224" x2="610" y2="224" stroke="#94a3b8"/>
+                    <line x1="483" y1="95" x2="483" y2="265" stroke="#94a3b8"/>
+                    <line x1="526" y1="95" x2="526" y2="265" stroke="#94a3b8"/>
+                    <line x1="569" y1="95" x2="569" y2="265" stroke="#94a3b8"/>
+
+                    <text x="504" y="122" text-anchor="middle" font-size="13" fill="#334155">B1</text>
+                    <text x="547" y="122" text-anchor="middle" font-size="13" fill="#334155">B2</text>
+                    <text x="590" y="122" text-anchor="middle" font-size="13" fill="#334155">B3</text>
+
+                    <text x="462" y="164" text-anchor="middle" font-size="13" fill="#334155">B1</text>
+                    <text x="462" y="207" text-anchor="middle" font-size="13" fill="#334155">B2</text>
+                    <text x="462" y="250" text-anchor="middle" font-size="13" fill="#334155">B3</text>
+
+                    <text x="504" y="164" text-anchor="middle" font-size="15" fill="#0f172a">1</text>
+                    <text x="547" y="164" text-anchor="middle" font-size="15" fill="#8b5cf6" font-weight="700">3</text>
+                    <text x="590" y="164" text-anchor="middle" font-size="15" fill="#0f172a">5</text>
+
+                    <text x="504" y="207" text-anchor="middle" font-size="15" fill="#8b5cf6" font-weight="700">1/3</text>
+                    <text x="547" y="207" text-anchor="middle" font-size="15" fill="#0f172a">1</text>
+                    <text x="590" y="207" text-anchor="middle" font-size="15" fill="#0f172a">2</text>
+
+                    <text x="504" y="250" text-anchor="middle" font-size="15" fill="#0f172a">1/5</text>
+                    <text x="547" y="250" text-anchor="middle" font-size="15" fill="#0f172a">1/2</text>
+                    <text x="590" y="250" text-anchor="middle" font-size="15" fill="#0f172a">1</text>
+
+                    <!-- 高亮互反位置 -->
+                    <rect x="529" y="142" width="36" height="34" rx="6" fill="#8b5cf6" opacity="0.18">
+                        <animate attributeName="opacity" values=".12;.35;.12" dur="1.4s" repeatCount="indefinite"/>
+                    </rect>
+                    <rect x="486" y="185" width="36" height="34" rx="6" fill="#8b5cf6" opacity="0.18">
+                        <animate attributeName="opacity" values=".35;.12;.35" dur="1.4s" repeatCount="indefinite"/>
+                    </rect>
+
+                    <text x="525" y="305" text-anchor="middle" font-size="13" fill="#64748b">
+                        对角线为 1，互反位置互为倒数
+                    </text>
+                </svg>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3>判断矩阵怎么填？</h3>
+                    <ul class="compact-li">
+                        <li>同样重要：填 1。</li>
+                        <li>稍微重要：填 3。</li>
+                        <li>明显重要：填 5。</li>
+                        <li>重要得多：填 7。</li>
+                        <li>极端重要：填 9。</li>
+                        <li>反过来比较：填倒数。</li>
+                    </ul>
+                </div>
+
+                <div class="math-center">
+                    <div class="math-box" style="font-size:16px;border-left-color:#8b5cf6;">
+                        \[
+                        A=
+                        \begin{pmatrix}
+                        1&3&5\\
+                        1/3&1&2\\
+                        1/5&1/2&1
+                        \end{pmatrix}
+                        \]
+                    </div>
+                </div>
+
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="slide" id="slide-ahp-scale">
+  <h2 class="slide-title"><i class="fas fa-ruler-combined"></i> 判断矩阵：把“两两比较”写成矩阵</h2>
+  <div class="content-area">
+    <div class="step tile"><p>判断矩阵是 AHP 的核心。元素 \(a_{ij}\) 表示第 \(i\) 个目标相对第 \(j\) 个目标的重要程度。它必须满足 \(a_{ii}=1\)，且 \(a_{ij}=1/a_{ji}\)。也就是说，你不能一边说 A 比 B 重要 3 倍，又说 B 比 A 重要 5 倍，除非你想让矩阵报警。</p></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:17px;">\[A=\begin{pmatrix}1&a_{12}&\cdots&a_{1n}\\a_{21}&1&\cdots&a_{2n}\\\vdots&\vdots&\ddots&\vdots\\a_{n1}&a_{n2}&\cdots&1\end{pmatrix},\qquad a_{ij}=\frac{W_i}{W_j}\]</div></div>
+      <div class="table-wrapper" style="max-height:280px;"><table class="data-table"><tr><th>\(a_{ij}\)</th><th>两目标相比</th></tr><tr><td>1</td><td>同样重要</td></tr><tr><td>3</td><td>稍微重要</td></tr><tr><td>5</td><td>明显重要</td></tr><tr><td>7</td><td>重要得多</td></tr><tr><td>9</td><td>极端重要</td></tr><tr><td>2,4,6,8</td><td>介于相邻判断之间</td></tr><tr><td>倒数</td><td>反过来比较</td></tr></table></div>
+    </div>
+    <div class="step info-box"><p><strong>课堂提醒：</strong>判断矩阵不是“随便填分数”，而是把专家判断翻译成可计算的相对重要性。</p></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-ahp-example-matrix">
+  <h2 class="slide-title"><i class="fas fa-table-cells"></i> 例 17-1：构造判断矩阵</h2>
+  <div class="content-area">
+    <div class="step tile"><h3>题意整理</h3><p>某层有三个子目标：子目标1比子目标2稍微重要，取 3；子目标1比子目标3明显重要，取 5；子目标2与子目标3介于同样重要和稍微重要之间，取 2。</p></div>
+    <div class="step two-column">
+      <div class="tile" style="border-top-color:#3b82f6;"><h3>两两比较关系</h3><ul><li>\(a_{12}=3,\;a_{21}=1/3\)</li><li>\(a_{13}=5,\;a_{31}=1/5\)</li><li>\(a_{23}=2,\;a_{32}=1/2\)</li><li>主对角线均为 1</li></ul></div>
+      <div class="math-center"><div class="math-box" style="font-size:20px;">\[A=\begin{pmatrix}1&3&5\\\frac13&1&2\\\frac15&\frac12&1\end{pmatrix}\]</div></div>
+    </div>
+    <div class="step svg-container" style="height:220px;background:#f8fafc;">
+      <svg viewBox="0 0 880 170" style="width:100%;height:100%;"><defs><marker id="pairArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs><rect x="75" y="55" width="150" height="55" rx="14" fill="#eff6ff" stroke="#3b82f6"/><text x="150" y="90" text-anchor="middle" fill="#1d4ed8" font-weight="700">目标1</text><rect x="365" y="55" width="150" height="55" rx="14" fill="#ecfdf5" stroke="#10b981"/><text x="440" y="90" text-anchor="middle" fill="#047857" font-weight="700">目标2</text><rect x="655" y="55" width="150" height="55" rx="14" fill="#fff7ed" stroke="#f59e0b"/><text x="730" y="90" text-anchor="middle" fill="#b45309" font-weight="700">目标3</text><line x1="225" y1="82" x2="365" y2="82" stroke="#334155" stroke-width="3" marker-end="url(#pairArr)"/><text x="295" y="65" text-anchor="middle" font-size="14">3倍</text><line x1="225" y1="120" x2="655" y2="120" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#pairArr)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line><text x="440" y="145" text-anchor="middle" font-size="14">5倍</text><line x1="515" y1="82" x2="655" y2="82" stroke="#334155" stroke-width="3" marker-end="url(#pairArr)"/><text x="585" y="65" text-anchor="middle" font-size="14">2倍</text></svg>
+    </div>
+  </div>
+</div>
+
+
+<!-- ==================== 新增：AHP过程3：归一化、权重、一致性检验 ==================== -->
+<div class="slide" id="slide-ahp-process-3">
+    <h2 class="slide-title"><i class="fas fa-calculator"></i> AHP 第三步：从判断矩阵算出权重</h2>
+    <div class="content-area">
+        <div class="step tile">
+            <h3>计算路线很固定</h3>
+            <p style="font-size:16px;">
+                判断矩阵填好后，接下来做三件事：
+                <strong>列归一化 → 行求和并归一化 → 一致性检验。</strong>
+                这样就把主观判断转成了权重。终于从“我觉得”变成“我算得”，人类文明短暂进步了一小步。
+            </p>
+        </div>
+
+        <div class="step three-column" style="align-items:stretch;">
+            <div class="tile" style="border-top-color:#3b82f6;">
+                <h3>① 列归一化</h3>
+                <p style="font-size:14px;">每个元素除以所在列的合计。</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">
+                        \[
+                        \bar a_{ij}
+                        =
+                        \frac{a_{ij}}{\sum_{k=1}^{n}a_{kj}}
+                        \]
+                    </div>
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color:#10b981;">
+                <h3>② 行求和再归一化</h3>
+                <p style="font-size:14px;">每一行求和，再除以总和。</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size:15px;border-left-color:#10b981;">
+                        \[
+                        M_i=\sum_j\bar a_{ij},
+                        \qquad
+                        W_i=\frac{M_i}{\sum_iM_i}
+                        \]
+                    </div>
+                </div>
+            </div>
+
+            <div class="tile" style="border-top-color:#ef4444;">
+                <h3>③ 一致性检验</h3>
+                <p style="font-size:14px;">判断是否基本自洽。</p>
+                <div class="math-center">
+                    <div class="math-box" style="font-size:15px;border-left-color:#ef4444;">
+                        \[
+                        CI=\frac{\lambda_{\max}-n}{n-1},
+                        \qquad
+                        CR=\frac{CI}{RI}
+                        \]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="step two-column" style="align-items:stretch;">
+            <div class="svg-container" style="height:300px;background:#f8fafc;">
+                <svg viewBox="0 0 700 270" style="width:100%;height:100%;">
+                    <defs>
+                        <marker id="ahpP3Arr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+                            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+                        </marker>
+                        <filter id="ahpP3Shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#64748b" flood-opacity="0.22"/>
+                        </filter>
+                    </defs>
+
+                    <!-- 判断矩阵 -->
+                    <rect x="35" y="5" width="150" height="145" rx="16" fill="#ffffff" stroke="#3b82f6" filter="url(#ahpP3Shadow)"/>
+                    <text x="110" y="32" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">判断矩阵 A</text>
+                    <text x="110" y="66" text-anchor="middle" font-size="14" fill="#334155">1　3　5</text>
+                    <text x="110" y="96" text-anchor="middle" font-size="14" fill="#334155">1/3　1　2</text>
+                    <text x="110" y="126" text-anchor="middle" font-size="14" fill="#334155">1/5　1/2　1</text>
+
+                    <!-- 归一化矩阵 -->
+                    <rect x="275" y="5" width="150" height="145" rx="16" fill="#ffffff" stroke="#10b981" filter="url(#ahpP3Shadow)"/>
+                    <text x="350" y="32" text-anchor="middle" font-size="15" fill="#047857" font-weight="700">归一化矩阵</text>
+                    <text x="350" y="66" text-anchor="middle" font-size="14" fill="#334155">0.652　0.667　0.625</text>
+                    <text x="350" y="96" text-anchor="middle" font-size="14" fill="#334155">0.217　0.222　0.250</text>
+                    <text x="350" y="126" text-anchor="middle" font-size="14" fill="#334155">0.130　0.111　0.125</text>
+
+                    <!-- 权重 -->
+                    <rect x="515" y="5" width="150" height="145" rx="16" fill="#ffffff" stroke="#8b5cf6" filter="url(#ahpP3Shadow)"/>
+                    <text x="590" y="32" text-anchor="middle" font-size="15" fill="#6d28d9" font-weight="700">权重 W</text>
+                    <text x="590" y="70" text-anchor="middle" font-size="16" fill="#334155">0.6480</text>
+                    <text x="590" y="100" text-anchor="middle" font-size="16" fill="#334155">0.2299</text>
+                    <text x="590" y="130" text-anchor="middle" font-size="16" fill="#334155">0.1222</text>
+
+                    <!-- 箭头 -->
+                    <line x1="185" y1="78" x2="275" y2="78" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpP3Arr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="425" y1="78" x2="515" y2="78" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ahpP3Arr)">
+                        <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+                    </line>
+
+                    <!-- 高亮列扫描 -->
+                    <rect x="52" y="51" width="32" height="88" rx="6" fill="#3b82f6" opacity="0.14">
+                        <animate attributeName="x" values="52;96;140;52" dur="3s" repeatCount="indefinite"/>
+                    </rect>
+
+                    <!-- 底部结果 -->
+                    <rect x="210" y="175" width="280" height="34" rx="17" fill="#f0fdf4" stroke="#10b981"/>
+                    <text x="350" y="198" text-anchor="middle" font-size="15" fill="#047857" font-weight="700">
+                        CR = 0.0032 &lt; 0.1，通过一致性检验
+                    </text>
+                </svg>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:10px;">
+                <div class="tile" style="border-top-color:#8b5cf6;">
+                    <h3>例 17-2 的结果</h3>
+                    <p style="font-size:15px;">
+                        对判断矩阵计算后得到权重：
+                    </p>
+                    <div class="math-center">
+                        <div class="math-box" style="font-size:16px;border-left-color:#8b5cf6;">
+                            \[
+                            W=(0.6480,\;0.2299,\;0.1222)^T
+                            \]
+                        </div>
+                    </div>
+                    <p style="font-size:15px;">
+                        说明子目标 1 最重要，其次是子目标 2，最后是子目标 3。
+                    </p>
+                </div>
+
+                <div class="info-box" style="background:#fef2f2;border-left-color:#ef4444;">
+                    <p style="font-size:15px;color:#991b1b;">
+                        <strong>一致性检验：</strong>
+                        若 \(CR<0.1\)，判断矩阵可以接受；若不通过，就说明前面的比较存在明显矛盾，需要重新调整。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+<div class="slide" id="slide-ahp-weight-step1">
+  <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 17-2：和积法求权重（1）列归一化</h2>
+  <div class="content-area">
+    <div class="step tile"><p>和积法的第一步：每一列分别求和，再用该列每个元素除以列和。列归一化之后，每一列的合计都等于 1。</p></div>
+    <div class="step math-center"><div class="math-box" style="font-size:17px;">\[A=\begin{pmatrix}1&3&5\\\frac13&1&2\\\frac15&\frac12&1\end{pmatrix}\]</div></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[\begin{aligned}S_1&=1+\frac13+\frac15=\frac{23}{15}\approx1.5333,\\S_2&=3+1+\frac12=4.5,\\S_3&=5+2+1=8.\end{aligned}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[A'=\begin{pmatrix}0.6522&0.6667&0.6250\\0.2174&0.2222&0.2500\\0.1304&0.1111&0.1250\end{pmatrix}\]</div></div>
+    </div>
+    <div class="step info-box"><p><strong>例如：</strong>\(\bar a_{11}=1/(23/15)=0.6522\)，\(\bar a_{21}=(1/3)/(23/15)=0.2174\)。别把列归一化做成行归一化。</p></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-ahp-weight-step2">
+  <h2 class="slide-title"><i class="fas fa-weight-hanging"></i> 例 17-2：和积法求权重（2）行求和与归一化</h2>
+  <div class="content-area">
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">\[\begin{aligned}M_1&=0.6522+0.6667+0.6250=1.9439,\\M_2&=0.2174+0.2222+0.2500=0.6896,\\M_3&=0.1304+0.1111+0.1250=0.3665.\end{aligned}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#10b981;">\[\sum M_i=3\]\[W=\begin{pmatrix}1.9439/3\\0.6896/3\\0.3665/3\end{pmatrix}=\begin{pmatrix}0.6480\\0.2299\\0.1222\end{pmatrix}\]</div></div>
+    </div>
+    <div class="step svg-container" style="height:300px;background:#f8fafc;">
+      <svg viewBox="0 0 850 240" style="width:100%;height:100%;"><rect x="70" y="45" width="170" height="145" rx="14" fill="#eff6ff" stroke="#3b82f6"/><text x="155" y="78" text-anchor="middle" fill="#1d4ed8" font-weight="700">目标1</text><rect x="95" y="105" width="120" height="55" fill="#3b82f6" opacity=".85"><animate attributeName="height" values="35;70;35" dur="2s" repeatCount="indefinite"/><animate attributeName="y" values="125;90;125" dur="2s" repeatCount="indefinite"/></rect><text x="155" y="212" text-anchor="middle" font-size="15">0.6480</text><rect x="340" y="45" width="170" height="145" rx="14" fill="#ecfdf5" stroke="#10b981"/><text x="425" y="78" text-anchor="middle" fill="#047857" font-weight="700">目标2</text><rect x="365" y="135" width="120" height="25" fill="#10b981" opacity=".85"/><text x="425" y="212" text-anchor="middle" font-size="15">0.2299</text><rect x="610" y="45" width="170" height="145" rx="14" fill="#fff7ed" stroke="#f59e0b"/><text x="695" y="78" text-anchor="middle" fill="#b45309" font-weight="700">目标3</text><rect x="635" y="145" width="120" height="15" fill="#f59e0b" opacity=".85"/><text x="695" y="212" text-anchor="middle" font-size="15">0.1222</text></svg>
+    </div>
+    <div class="step info-box"><p><strong>解释：</strong>权重最大的目标 1，约占 64.8%；目标 2 约占 23.0%；目标 3 约占 12.2%。</p></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-ahp-consistency">
+  <h2 class="slide-title"><i class="fas fa-check-double"></i> 例 17-3：一致性检验</h2>
+  <div class="content-area">
+    <div class="step tile"><p>AHP 允许人的判断有一点不一致，但不能乱到离谱。所以要计算最大特征根、CI 和 CR。一般 \(CR \lt 0.1\) 时，认为判断矩阵具有满意一致性。</p></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[AW=\begin{pmatrix}1&3&5\\\frac13&1&2\\\frac15&\frac12&1\end{pmatrix}\begin{pmatrix}0.6480\\0.2299\\0.1222\end{pmatrix}=\begin{pmatrix}1.9487\\0.6903\\0.3668\end{pmatrix}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[\lambda_{\max}=\frac{1.9487}{3\times0.6480}+\frac{0.6903}{3\times0.2299}+\frac{0.3668}{3\times0.1222}=3.0038\]\[CI=\frac{3.0038-3}{2}=0.0019,\quad CR=\frac{0.0019}{0.58}=0.0032\lt0.1\]</div></div>
+    </div>
+    <div class="step table-wrapper"><table class="data-table"><tr><th>阶数</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr><tr><th>RI</th><td>0.58</td><td>0.90</td><td>1.12</td><td>1.24</td><td>1.32</td><td>1.41</td><td>1.45</td></tr></table></div>
+    <div class="step info-box" style="background:#f0fdf4;border-left-color:#10b981;"><p><strong>结论：</strong>本例 \(CR=0.0032\lt0.1\)，判断矩阵通过一致性检验，权重结果可用于后续决策。</p></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-ahp-enterprise-app">
+  <h2 class="slide-title"><i class="fas fa-building"></i> AHP 应用：企业政策方案选择</h2>
+  <div class="content-area">
+    <div class="step tile"><p>设企业目标分为经济目标和非经济目标，下设 \(C_1,C_2,C_3,C_4\) 四个具体目标，并有甲、乙、丙三项政策方案。通过各层判断矩阵与一致性检验，得到局部权重矩阵。</p></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[W^{(0)}=(0.6667,\;0.3333)\]\[W^{(1)}=\begin{pmatrix}0.2243&0.6196&0.1560&0\\0.3929&0.3340&0.1528&0.1149\end{pmatrix}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[W^{(2)}=\begin{pmatrix}0.5390&0.2972&0.1638\\0.1429&0.5714&0.2857\\0.1744&0.1919&0.6337\\0.1222&0.6480&0.2299\end{pmatrix}\]</div></div>
+    </div>
+    <div class="step math-center"><div class="math-box" style="font-size:18px;border-left-color:#8b5cf6;">\[W=W^{(0)}W^{(1)}W^{(2)}=(0.2579,\;0.4376,\;0.3026)\]</div></div>
+    <div class="step three-column"><div class="tile"><h3>政策甲</h3><p style="font-size:28px;color:#64748b;font-weight:700;">0.2579</p></div><div class="tile" style="border-top-color:#10b981;"><h3>政策乙</h3><p style="font-size:32px;color:#047857;font-weight:700;">0.4376</p></div><div class="tile"><h3>政策丙</h3><p style="font-size:28px;color:#64748b;font-weight:700;">0.3026</p></div></div>
+    <div class="step info-box"><p><strong>结论：</strong>政策乙权重最大，应选择政策乙。目标重要性权重为 \((0.2805,0.5240,0.1549,0.0383)\)，其中目标2最重要。</p></div>
+  </div>
+</div>
+
+<div class="slide section-slide" id="sec3"><div class="glow-orb-1"></div><h2>第三节 多属性效用决策法</h2><hr><p class="step" style="font-size:24px;">先把不同属性转成效用，再做综合判断</p></div>
+
+<div class="slide" id="slide-mau-concept">
+  <h2 class="slide-title"><i class="fas fa-chart-line"></i> 多属性效用：把多个目标转成一个综合效用</h2>
+  <div class="content-area">
+    <div class="step tile"><p>多属性效用决策把目标值转化为效用值，再进行加权综合。这样一来，市场占有率、投资回报率、成本、质量这些单位不同的东西，就能在“效用”这条统一轨道上比较。</p></div>
+    <div class="step math-center"><div class="math-box" style="font-size:20px;">\[U=U(DV_1,DV_2,\cdots,DV_n)\]</div></div>
+    <div class="step two-column">
+      <div class="tile" style="border-top-color:#3b82f6;"><h3>加性效用函数</h3>
+        <p>若两个属性 \(X,Y\) 效用相互独立，则可写成：</p><div class="math-center">
+          <div class="math-box" style="font-size:17px;border-left-color:#3b82f6;">
+            \[U(X,Y)=k_1U_1(X)+k_2U_2(Y)\]
+          </div>
+        </div>
+        <h3>可修正形式</h3>
+        <p>若两属性存在交互影响，可加入交互项：</p>
+        <div class="math-center">
+          <div class="math-box" style="font-size:16px;border-left-color:#8b5cf6;">
+             \[U(X,Y)=k_1U_1(X)+k_2U_2(Y)+k_3U_1(X)U_2(Y)\]
+          </div>
+       </div>
+      </div>
+         <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+           <img src="F17-5.png" alt="图17-5"
+             style="width:100%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+        </div>
+   </div>
+   
+      <div class="step info-box" style="background:#f0fdf4;border-left-color:#10b981;"><p><strong>注意：</strong>效用函数的形式和参数需要根据实际情况确定，不能随便套公式。</p></div>
+  </div>
+</div>
+
+
+<div class="slide" id="slide-mau-concept">
+  <h2 class="slide-title"><i class="fas fa-chart-line"></i> 多属性效用：把多个目标转成一个综合效用</h2>
+  <div class="content-area">
+   
+    <div class="step two-column" style="height:470px;">
+
+         <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+           <img src="F17-6.png" alt="图17-6"
+             style="width:100%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+        </div>
+   
+ 
+
+       <div class="placeholder-img" style="padding:10px; background:#f8fafc;">
+          <img src="F17-7.png" alt="图17-7"
+             style="width:100%; height:100%; max-height:260px; object-fit:contain; border-radius:12px; display:block;">
+      </div>
+   </div>
+
+
+    
+  </div>
+  
+</div>
+
+<div class="slide" id="slide-mau-example-175">
+  <h2 class="slide-title"><i class="fas fa-bullhorn"></i> 例 17-5：价格与广告策略的期望效用</h2>
+  <div class="content-area">
+    <div class="step table-wrapper"><table class="data-table"><tr><th>方案</th><th>市场占有率 X(%)</th><th>投资回报率 Y(%)</th><th>概率</th><th>属性效用</th><th>综合效用</th></tr><tr><td>1</td><td>4</td><td>12</td><td>0.6</td><td>U1=0.75, U2=0.92</td><td>2.59</td></tr><tr><td>1</td><td>6</td><td>6</td><td>0.4</td><td>U1=1, U2=0</td><td>1.00</td></tr><tr><td>2</td><td>5</td><td>8</td><td>0.3</td><td>U1=0.92, U2=0.46</td><td>1.84</td></tr><tr><td>2</td><td>3</td><td>13</td><td>0.5</td><td>U1=0, U2=1</td><td>2.00</td></tr><tr><td>2</td><td>4</td><td>8</td><td>0.2</td><td>U1=0.75, U2=0.46</td><td>1.67</td></tr></table></div>
+    <div class="step tile"><p>投资回报率比市场占有率重要，设 \(k_2=2k_1\)，取 \(k_1=1,k_2=2\)，则 \(U(X,Y)=U_1(X)+2U_2(Y)\)。</p></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#3b82f6;">\[\begin{aligned}U_1&=1\times0.75+2\times0.92=2.59,\\U_2&=1\times1+2\times0=1,\\EU(方案1)&=0.6\times2.59+0.4\times1=1.954.\end{aligned}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:15px;border-left-color:#10b981;">\[\begin{aligned}U_3&=0.92+2\times0.46=1.84,\\U_4&=0+2\times1=2,\\U_5&=0.75+2\times0.46=1.67,\\EU(方案2)&=0.3\times1.84+0.5\times2+0.2\times1.67=1.886.\end{aligned}\]</div></div>
+    </div>
+    <div class="step info-box" style="background:#f0fdf4;border-left-color:#10b981;"><p><strong>结论：</strong>方案 1 的期望效用 1.954 大于方案 2 的 1.886，因此选择方案 1。</p></div>
+  </div>
+</div>
+
+<!-- ==================== 例17-6 权重计算过程 1：问题与属性 ==================== -->
+<div class="slide" id="slide-car-weight-step-1">
+  <h2 class="slide-title"><i class="fas fa-car-side"></i> 例 17-6：先明确要比较什么</h2>
+  <div class="content-area">
+
+    <div class="step tile">
+      <h3>问题背景：三辆车价格接近，不能只看价格</h3>
+      <p style="font-size:16px;">
+        某企业准备购买一辆新车，三种品牌的设计和价格差不多，都符合基本要求。
+        这时决策关键就变成：哪辆车在多个属性上的综合表现最好？
+      </p>
+    </div>
+
+    <div class="step two-column" style="align-items:stretch;">
+      <div class="tile" style="border-top-color:#3b82f6;">
+        <h3>七个评价属性</h3>
+        <ul class="compact-li" style="font-size:15px;">
+          <li>\(X_1\)：舒适</li>
+          <li>\(X_2\)：性能</li>
+          <li>\(X_3\)：节能</li>
+          <li>\(X_4\)：造型</li>
+          <li>\(X_5\)：特点</li>
+          <li>\(X_6\)：引擎质量</li>
+          <li>\(X_7\)：功率</li>
+        </ul>
+      </div>
+
+      <div class="svg-container" style="height:330px;background:#f8fafc;">
+        <svg viewBox="0 0 620 300" style="width:100%;height:100%;">
+          <defs>
+            <marker id="carAttrArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+              <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+            </marker>
+          </defs>
+
+          <rect x="245" y="25" width="130" height="55" rx="16" fill="#0f172a"/>
+          <text x="310" y="58" text-anchor="middle" font-size="17" fill="#ffffff" font-weight="700">购车决策</text>
+
+          <g font-size="13" font-weight="700">
+            <rect x="40" y="125" width="90" height="42" rx="12" fill="#eff6ff" stroke="#3b82f6"/>
+            <text x="85" y="151" text-anchor="middle" fill="#1d4ed8">舒适</text>
+
+            <rect x="145" y="125" width="90" height="42" rx="12" fill="#ecfdf5" stroke="#10b981"/>
+            <text x="190" y="151" text-anchor="middle" fill="#047857">性能</text>
+
+            <rect x="250" y="125" width="90" height="42" rx="12" fill="#fff7ed" stroke="#f59e0b"/>
+            <text x="295" y="151" text-anchor="middle" fill="#b45309">节能</text>
+
+            <rect x="355" y="125" width="90" height="42" rx="12" fill="#faf5ff" stroke="#8b5cf6"/>
+            <text x="400" y="151" text-anchor="middle" fill="#6d28d9">造型</text>
+
+            <rect x="460" y="125" width="90" height="42" rx="12" fill="#fef2f2" stroke="#ef4444"/>
+            <text x="505" y="151" text-anchor="middle" fill="#991b1b">特点</text>
+
+            <rect x="145" y="215" width="120" height="42" rx="12" fill="#ecfeff" stroke="#06b6d4"/>
+            <text x="205" y="241" text-anchor="middle" fill="#0e7490">引擎质量</text>
+
+            <rect x="355" y="215" width="90" height="42" rx="12" fill="#f0fdf4" stroke="#22c55e"/>
+            <text x="400" y="241" text-anchor="middle" fill="#15803d">功率</text>
+          </g>
+
+          <line x1="310" y1="80" x2="85" y2="125" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="310" y1="80" x2="190" y2="125" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="310" y1="80" x2="295" y2="125" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="310" y1="80" x2="400" y2="125" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="310" y1="80" x2="505" y2="125" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="310" y1="80" x2="205" y2="215" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+          <line x1="310" y1="80" x2="400" y2="215" stroke="#334155" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#carAttrArr)">
+            <animate attributeName="stroke-dashoffset" from="0" to="-24" dur="1s" repeatCount="indefinite"/>
+          </line>
+        </svg>
+      </div>
+    </div>
+
+    <div class="step info-box" style="background:#fefce8;border-left-color:#eab308;">
+      <p style="font-size:15px;color:#854d0e;">
+        <strong>记住：</strong>
+        多属性效用决策的第一步，是把“我想买哪辆车”拆成一组可评价的属性。
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== 例17-6 权重计算过程 2：两两重要性关系 ==================== -->
+<div class="slide" id="slide-car-weight-step-2">
+  <h2 class="slide-title"><i class="fas fa-scale-balanced"></i> 例 17-6：两两比较得到权重关系</h2>
+  <div class="content-area">
+
+    <div class="step tile">
+      <h3>负责人不是直接给权重，而是先给“相对重要性”</h3>
+      <p style="font-size:16px;">
+        权重来自一组两两比较判断。比如“节能的重要性是功率的 2 倍”，
+        就可以写成 \(k_3=2k_7\)。
+      </p>
+    </div>
+
+    <div class="step two-column" style="align-items:stretch;">
+      <div class="tile" style="border-top-color:#3b82f6;">
+        <h3>相对重要性判断</h3>
+        <ul class="compact-li" style="font-size:15px;">
+          <li>节能的重要性是功率的 2 倍。</li>
+          <li>舒适与节能同等重要。</li>
+          <li>舒适的重要性是引擎质量的 1.5 倍。</li>
+          <li>造型与功率同等重要。</li>
+          <li>特点与引擎质量同等重要。</li>
+          <li>性能的重要性是功率的 1.5 倍。</li>
+        </ul>
+      </div>
+
+      <div class="tile" style="border-top-color:#8b5cf6;">
+        <h3>翻译成权重关系</h3>
+        <div class="math-center">
+          <div class="math-box" style="font-size:16px;border-left-color:#8b5cf6;">
+            \[
+            \begin{array}{lll}
+            k_3=2k_7, & k_1=k_3, & k_1=1.5k_6,\\
+            k_4=k_7, & k_5=k_6, & k_2=1.5k_7.
+            \end{array}
+            \]
+          </div>
+        </div>
+        <p style="font-size:14px;color:#64748b;">
+          这里按属性编号理解：\(k_1\) 舒适，\(k_2\) 性能，\(k_3\) 节能，\(k_4\) 造型，
+          \(k_5\) 特点，\(k_6\) 引擎质量，\(k_7\) 功率。
+        </p>
+      </div>
+    </div>
+
+    <div class="step svg-container" style="height:260px;background:#f8fafc;">
+      <svg viewBox="0 0 900 230" style="width:100%;height:100%;">
+        <defs>
+          <marker id="carRelArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+          </marker>
+        </defs>
+
+        <rect x="40" y="70" width="120" height="50" rx="14" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+        <text x="100" y="101" text-anchor="middle" font-size="15" fill="#b45309" font-weight="700">节能 k3</text>
+
+        <rect x="255" y="70" width="120" height="50" rx="14" fill="#f0fdf4" stroke="#22c55e" stroke-width="2"/>
+        <text x="315" y="101" text-anchor="middle" font-size="15" fill="#15803d" font-weight="700">功率 k7</text>
+
+        <line x1="160" y1="95" x2="255" y2="95" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#carRelArr)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+        </line>
+        <text x="207" y="82" text-anchor="middle" font-size="14" fill="#0f172a" font-weight="700">2 倍</text>
+
+        <rect x="500" y="70" width="120" height="50" rx="14" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="560" y="101" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">舒适 k1</text>
+
+        <rect x="715" y="70" width="120" height="50" rx="14" fill="#ecfeff" stroke="#06b6d4" stroke-width="2"/>
+        <text x="775" y="101" text-anchor="middle" font-size="15" fill="#0e7490" font-weight="700">引擎 k6</text>
+
+        <line x1="620" y1="95" x2="715" y2="95" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#carRelArr)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+        </line>
+        <text x="667" y="82" text-anchor="middle" font-size="14" fill="#0f172a" font-weight="700">1.5 倍</text>
+
+        <rect x="235" y="160" width="430" height="38" rx="19" fill="#ffffff" stroke="#cbd5e1"/>
+        <text x="450" y="184" text-anchor="middle" font-size="15" fill="#0f172a" font-weight="700">
+          两两比较的作用：把“偏好判断”转成“权重方程”
+        </text>
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==================== 例17-6 权重计算过程 3：设基准推出初步权重 ==================== -->
+<div class="slide" id="slide-car-weight-step-3">
+  <h2 class="slide-title"><i class="fas fa-calculator"></i> 例 17-6：设一个基准，推出初步权重</h2>
+  <div class="content-area">
+
+    <div class="step tile">
+      <h3>为什么要设基准？</h3>
+      <p style="font-size:16px;">
+        权重关系说明“谁是几倍”，没有确定具体数值。
+        所以可以先指定一个属性为基准，例如令引擎质量权重为 \(k_6=1\)，
+        再根据前面比例关系推出其他权重。
+      </p>
+    </div>
+
+    <div class="step two-column" style="align-items:stretch;">
+      <div class="tile" style="border-top-color:#f59e0b;">
+        <h3>设定基准</h3>
+        <div class="math-center">
+          <div class="math-box" style="font-size:20px;border-left-color:#f59e0b;">
+            \[
+            k_6=1
+            \]
+          </div>
+        </div>
+        <p style="font-size:15px;">
+          即把“引擎质量”的重要性作为 1 个单位。
+        </p>
+      </div>
+
+      <div class="tile" style="border-top-color:#10b981;">
+        <h3>根据比例关系逐步推出</h3>
+        <div class="math-center">
+          <div class="math-box" style="font-size:16px;border-left-color:#10b981;">
+            \[
+            \begin{aligned}
+            k_1&=1.5k_6=1.5,
+            k_3=k_1=1.5,
+            k_5=k_6=1,\\
+            k_7&=\frac{k_3}{2}=0.75,
+            k_4=k_7=0.75,
+            k_2=1.5k_7=1.125.
+            \end{aligned}
+            \]
+          </div>
+        </div>
+      </div>
+    </div>
+
+   
+
+    <div class="step table-wrapper">
+      <table class="data-table">
+        <tr><th>属性</th><th>含义</th><th>初步权重示意</th></tr>
+        <tr><td>\(k_1\)</td><td>舒适</td><td>1.5</td></tr>
+        <tr><td>\(k_2\)</td><td>性能</td><td>1.125</td></tr>
+        <tr><td>\(k_3\)</td><td>节能</td><td>1.5</td></tr>
+        <tr><td>\(k_4\)</td><td>造型</td><td>0.75</td></tr>
+        <tr><td>\(k_5\)</td><td>特点</td><td>1.0</td></tr>
+        <tr><td>\(k_6\)</td><td>引擎质量</td><td>1.0</td></tr>
+        <tr><td>\(k_7\)</td><td>功率</td><td>0.75</td></tr>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ==================== 例17-6 权重计算过程 4：最终权重与效用函数 ==================== -->
+<div class="slide" id="slide-car-weight-step-4">
+  <h2 class="slide-title"><i class="fas fa-list-check"></i> 例 17-6：最终权重与加权效用函数</h2>
+  <div class="content-area">
+
+    <div class="step tile">
+      <h3>教材采用的最终权重</h3>
+      <p style="font-size:16px;">
+        经过进一步两两比较，并为了保持比较的一致性，最终确定七个属性的权重如下。
+        这些权重将直接用于后面的三辆车综合效用计算。
+      </p>
+    </div>
+
+    <div class="step table-wrapper">
+      <table class="data-table">
+        <tr><th>属性</th><th>舒适 \(X_1\)</th><th>性能 \(X_2\)</th><th>节能 \(X_3\)</th><th>造型 \(X_4\)</th><th>特点 \(X_5\)</th><th>引擎质量 \(X_6\)</th><th>功率 \(X_7\)</th></tr>
+        <tr><td>权重</td><td>1.8</td><td>1.5</td><td>2.2</td><td>1.0</td><td>1.33</td><td>1.0</td><td>1.4</td></tr>
+      </table>
+    </div>
+
+    <div class="step two-column" style="align-items:stretch;">
+      <div class="math-center">
+        <div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">
+          \[
+          U(Y_i)
+          =
+          1.8X_1+1.5X_2+2.2X_3+1X_4+1.33X_5+1X_6+1.4X_7
+          \]
+        </div>
+      </div>
+
+      <div class="tile" style="border-top-color:#10b981;">
+        <h3>怎么用？</h3>
+        <p style="font-size:15px;">
+          对每一辆车，把它在七个属性上的评分代入这个公式。
+          得分越高，说明该车在决策者偏好下的综合效用越高。
+        </p>
+      </div>
+    </div>
+
+    <div class="step svg-container" style="height:250px;background:#f8fafc;">
+      <svg viewBox="0 0 860 220" style="width:100%;height:100%;">
+        <defs>
+          <marker id="carFinalArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+          </marker>
+        </defs>
+
+        <rect x="40" y="80" width="170" height="60" rx="16" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="125" y="115" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">属性评分</text>
+
+        <rect x="330" y="80" width="170" height="60" rx="16" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+        <text x="415" y="115" text-anchor="middle" font-size="15" fill="#b45309" font-weight="700">乘以权重</text>
+
+        <rect x="620" y="80" width="170" height="60" rx="16" fill="#f0fdf4" stroke="#10b981" stroke-width="2"/>
+        <text x="705" y="115" text-anchor="middle" font-size="15" fill="#047857" font-weight="700">综合效用</text>
+
+        <line x1="210" y1="110" x2="330" y2="110" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#carFinalArr)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+        </line>
+        <line x1="500" y1="110" x2="620" y2="110" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#carFinalArr)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+        </line>
+
+        <circle cx="255" cy="110" r="7" fill="#3b82f6">
+          <animate attributeName="cx" values="230;315;230" dur="1.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".2;1;.2" dur="1.8s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="545" cy="110" r="7" fill="#10b981">
+          <animate attributeName="cx" values="520;605;520" dur="1.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values=".2;1;.2" dur="1.8s" repeatCount="indefinite"/>
+        </circle>
+
+        <text x="430" y="185" text-anchor="middle" font-size="15" fill="#0f172a" font-weight="700">
+          下一页：分别计算 \(U(Y_1),U(Y_2),U(Y_3)\)，选综合效用最高的汽车
+        </text>
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== 例17-6 最后一页：加权评分计算与结论 ==================== -->
+<div class="slide" id="slide-car-weighted-scoring">
+  <h2 class="slide-title"><i class="fas fa-car-side"></i> 例 17-6：代入评分，计算三辆车的综合效用</h2>
+  <div class="content-area">
+
+    <div class="step tile">
+      <h3>最后一步：评分 × 权重，然后求和</h3>
+      <p style="font-size:16px;">
+        前面已经确定七个属性的最终权重。现在把每辆车在七个属性上的评分代入加权效用函数，
+        分别计算综合效用值。效用值最高的汽车，就是本例的最优选择。
+      </p>
+    </div>
+
+    
+
+  
+  
+      <div class="tile" style="border-top-color:#3b82f6;">
+        <h3>汽车 \(Y_1\), 汽车\(Y_2\), 汽车\(Y_3\):
+          \[
+          U(Y_1)=63.81, \quad U(Y_2)
+          =67.68, \quad U(Y_3)=73.47
+          \]
+        </h3>
+      </div>
+
+      
+
+      
+
+    <div class="step svg-container" style="height:250px;background:#f8fafc;">
+      <svg viewBox="0 0 900 220" style="width:100%;height:100%;">
+        <defs>
+          <marker id="carRankArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto">
+            <polygon points="0 0,10 4,0 8" fill="#334155"></polygon>
+          </marker>
+        </defs>
+
+        <rect x="80" y="130" width="150" height="42" rx="12" fill="#eff6ff" stroke="#3b82f6" stroke-width="2"/>
+        <text x="155" y="157" text-anchor="middle" font-size="15" fill="#1d4ed8" font-weight="700">
+          Y1=63.81
+        </text>
+
+        <rect x="375" y="105" width="150" height="42" rx="12" fill="#fff7ed" stroke="#f59e0b" stroke-width="2"/>
+        <text x="450" y="132" text-anchor="middle" font-size="15" fill="#b45309" font-weight="700">
+          Y2=67.68
+        </text>
+
+        <rect x="670" y="60" width="150" height="48" rx="12" fill="#f0fdf4" stroke="#10b981" stroke-width="3"/>
+        <text x="745" y="90" text-anchor="middle" font-size="16" fill="#047857" font-weight="700">
+          Y3=73.47
+        </text>
+
+        <line x1="230" y1="151" x2="375" y2="126" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#carRankArr)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+        </line>
+
+        <line x1="525" y1="126" x2="670" y2="84" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#carRankArr)">
+          <animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/>
+        </line>
+
+        <circle cx="745" cy="84" r="8" fill="#10b981">
+          <animate attributeName="r" values="8;18;8" dur="1.4s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="1;.35;1" dur="1.4s" repeatCount="indefinite"/>
+        </circle>
+
+        <text x="450" y="35" text-anchor="middle" font-size="18" fill="#0f172a" font-weight="700">
+          综合效用排序：\(Y_3>Y_2>Y_1\)
+        </text>
+
+        <rect x="260" y="175" width="380" height="34" rx="17" fill="#ffffff" stroke="#cbd5e1"/>
+        <text x="450" y="198" text-anchor="middle" font-size="15" fill="#047857" font-weight="700">
+          结论：选择第三种牌号汽车 \(Y_3\)
+        </text>
+      </svg>
+    </div>
+
+    <div class="step info-box" style="background:#f0fdf4;border-left-color:#10b981;">
+      <p style="font-size:15px;color:#047857;">
+        <strong>最终结论：</strong>
+        三辆车的综合效用分别约为 \(63.81,67.68,73.47\)，
+        第三种牌号汽车 \(Y_3\) 的综合效用最高，因此应选择 \(Y_3\)。
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="slide section-slide" id="sec4"><div class="glow-orb-1"></div><h2>第四节 优劣系数法</h2><hr><p class="step" style="font-size:24px;">不只看谁赢，还看赢了多少、输了多少</p></div>
+
+<div class="slide" id="slide-superiority-intro">
+  <h2 class="slide-title"><i class="fas fa-ranking-star"></i> 优劣系数法：从多指标比较到逐步淘汰</h2>
+  <div class="content-area">
+    <div class="step tile"><p>优劣系数法用于多个方案、多项指标的比较。先确定目标权数，再把不同单位的指标标准化，之后计算方案之间的优系数和劣系数，最后逐步淘汰不理想方案。</p></div>
+    <div class="step two-column">
+      <div class="tile" style="border-top-color:#10b981;"><h3>优系数</h3><p>表示一个方案优于另一个方案的目标权数之和占全部权数的比例。它看的是“赢在哪些目标上，以及这些目标有多重要”。</p></div>
+      <div class="tile" style="border-top-color:#ef4444;"><h3>劣系数</h3><p>比较优势目标的最大差距与劣势目标的最大差距，反映“输了的程度有多严重”。</p></div>
+    </div>
+    <div class="step svg-container" style="height:330px;background:#f8fafc;">
+      <svg viewBox="0 0 900 260" style="width:100%;height:100%;"><defs><marker id="supArr" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs><rect x="50" y="95" width="145" height="60" rx="14" fill="#eff6ff" stroke="#3b82f6"/><text x="122" y="132" text-anchor="middle" fill="#1d4ed8" font-weight="700">原始指标</text><line x1="195" y1="125" x2="285" y2="125" stroke="#334155" stroke-width="3" marker-end="url(#supArr)" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line><rect x="290" y="95" width="145" height="60" rx="14" fill="#ecfdf5" stroke="#10b981"/><text x="362" y="132" text-anchor="middle" fill="#047857" font-weight="700">标准化</text><line x1="435" y1="125" x2="525" y2="125" stroke="#334155" stroke-width="3" marker-end="url(#supArr)"/><rect x="530" y="95" width="145" height="60" rx="14" fill="#fff7ed" stroke="#f59e0b"/><text x="602" y="132" text-anchor="middle" fill="#b45309" font-weight="700">优劣系数</text><line x1="675" y1="125" x2="765" y2="125" stroke="#334155" stroke-width="3" marker-end="url(#supArr)" stroke-dasharray="8 6"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line><rect x="770" y="95" width="100" height="60" rx="14" fill="#faf5ff" stroke="#8b5cf6"/><text x="820" y="132" text-anchor="middle" fill="#6d28d9" font-weight="700">淘汰</text></svg>
+    </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-target-values-standardize">
+  <h2 class="slide-title"><i class="fas fa-industry"></i> 例 17-7 / 17-8：建厂方案指标与标准化</h2>
+  <div class="content-area">
+    <div class="step table-wrapper" style="max-height:235px;"><table class="data-table"><tr><th>目标</th><th>单位</th><th>方案1</th><th>方案2</th><th>方案3</th><th>方向</th></tr><tr><td>建厂投资</td><td>万元</td><td>1000</td><td>860</td><td>750</td><td>越小越好</td></tr><tr><td>建成年限</td><td>年</td><td>5</td><td>4</td><td>3</td><td>越小越好</td></tr><tr><td>流动资金</td><td>万元</td><td>458</td><td>333</td><td>385</td><td>越小越好</td></tr><tr><td>年产值</td><td>万元</td><td>2600</td><td>1960</td><td>2200</td><td>越大越好</td></tr><tr><td>产值利税率</td><td>%</td><td>12</td><td>15</td><td>12.5</td><td>越大越好</td></tr><tr><td>环境污染</td><td>评分</td><td>3</td><td>6</td><td>5</td><td>越大越好</td></tr></table></div>
+    <div class="step two-column">
+      <div class="math-center">
+        <div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">
+          \(X=\frac{99(C-B)}{A-B}+1,  A=\text{最好目标值}, B=\text{最坏目标值}, C=\text{待评价值}\)
+        </div>
+      </div>
+      <div class="math-center">
+        <div class="math-box" style="font-size:16px;border-left-color:#10b981;">投资目标：方案3最好 \(A=750\)，方案1最差 \(B=1000\)
+          \(X_2=\frac{99(860-1000)}{750-1000}+1=56.44\)
+        </div>
+      </div>
+    </div>
+    <div class="step table" style="max-height:210px;"><table class="data-table"><tr><th>目标</th><th>方案1</th><th>方案2</th><th>方案3</th></tr><tr><td>建厂投资</td><td>1</td><td>56.44</td><td>100</td></tr><tr><td>建成年限</td><td>1</td><td>50.5</td><td>100</td></tr><tr><td>流动资金</td><td>1</td><td>100</td><td>58.816</td></tr><tr><td>年产值</td><td>100</td><td>1</td><td>38.125</td></tr><tr><td>产值利税率</td><td>1</td><td>100</td><td>17.5</td></tr><tr><td>环境污染</td><td>1</td><td>100</td><td>67</td></tr></table></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-superiority-inferiority">
+  <h2 class="slide-title"><i class="fas fa-scale-balanced"></i> 优系数与劣系数的详细计算</h2>
+  <div class="content-area">
+    <div class="step two-column">
+      <div class="tile"><h3>权重来自优序图</h3><p>目标权数分别为：</p><div class="math-center"><div class="math-box" style="font-size:15px;">\[(0.2533,0.2133,0.1333,0.0667,0.1867,0.1467)\]</div></div><p style="font-size:14px;">原表总分为 75，因此也可直接用行合计数 19,16,10,5,14,11 来计算优系数。</p></div>
+      <div class="tile" style="border-top-color:#10b981;"><h3>方案1 对方案2 的优系数</h3><p>方案1 只在“年产值”上优于方案2，该目标原始优序图合计为 5。</p><div class="math-center"><div class="math-box" style="font-size:17px;border-left-color:#10b981;">\[P_{12}=5/75=0.0667\]</div></div></div>
+    </div>
+    <div class="step two-column">
+      <div class="table-wrapper"><table class="data-table"><tr><th></th><th>方案1</th><th>方案2</th><th>方案3</th></tr><tr><th>方案1</th><td></td><td>0.0667</td><td>0.0667</td></tr><tr><th>方案2</th><td>0.9333</td><td></td><td>0.4667</td></tr><tr><th>方案3</th><td>0.9333</td><td>0.5333</td><td></td></tr></table></div>
+      <div class="table-wrapper"><table class="data-table"><tr><th></th><th>方案1</th><th>方案2</th><th>方案3</th></tr><tr><th>方案1</th><td></td><td>0.5</td><td>0.6154</td></tr><tr><th>方案2</th><td>0.5</td><td></td><td>0.375</td></tr><tr><th>方案3</th><td>0.3846</td><td>0.625</td><td></td></tr></table></div>
+    </div>
+    <div class="step math-center"><div class="math-box" style="font-size:15px;border-left-color:#ef4444;">方案2 与方案3 相比：优极差 \(=\max(41.184,82.5,33)=82.5\)，劣极差 \(=\max(43.56,49.5,37.125)=49.5\)。\[劣系数=\frac{49.5}{49.5+82.5}=0.375\]</div></div>
+    <div class="step info-box"><p><strong>决策：</strong>先取较高优系数标准淘汰方案1；再比较方案2 与方案3，方案2 的劣系数较低，因此最终选择方案2。</p></div>
+  </div>
+</div>
+
+<div class="slide section-slide" id="sec5"><div class="glow-orb-1"></div><h2>第五节 模糊决策法</h2><hr><p class="step" style="font-size:24px;">当“好”“舒适”“美观”不能用硬边界切开</p></div>
+
+<div class="slide" id="slide-fuzzy-basic">
+  <h2 class="slide-title"><i class="fas fa-cloud"></i> 模糊集合与隶属度</h2>
+  <div class="content-area">
+    <div class="step tile"><p>现实中很多概念边界并不清楚，例如“高个子”“舒适”“美观”“价格合理”。模糊集合用隶属度 \(\mu_A(x)\in[0,1]\) 表示某元素属于某概念的程度。</p></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:17px;border-left-color:#3b82f6;">\[\underset{\sim}{A}=\sum_{i=1}^n\frac{\mu_A(x_i)}{x_i}\]\[0\leq \mu_A(x_i)\leq 1\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:17px;border-left-color:#10b981;">若 \(a,b,c,d\) 属于“高个子”的程度分别为 0.8,0.5,0.6,0.2：\[\underset{\sim}{A}=\frac{0.8}{a}+\frac{0.5}{b}+\frac{0.6}{c}+\frac{0.2}{d}\]</div></div>
+    </div>
+    <div class="step info-box"><p><strong>注意：</strong>这里的“+”只是查德符号，表示元素并列，不是真的把人加起来。</p></div>
+    <div class="step svg-container" style="height:265px;background:#f8fafc;"><svg viewBox="0 0 860 210" style="width:100%;height:100%;"><line x1="70" y1="160" x2="790" y2="160" stroke="#94a3b8"/><line x1="70" y1="160" x2="70" y2="40" stroke="#94a3b8"/><path d="M80 155 C200 150,260 120,350 80 S560 40,760 45" fill="none" stroke="#3b82f6" stroke-width="4"/><text x="70" y="30" fill="#334155">隶属度</text><text x="790" y="184" fill="#334155">身高</text><circle cx="350" cy="80" r="7" fill="#10b981"><animate attributeName="r" values="6;13;6" dur="1.6s" repeatCount="indefinite"/></circle><text x="350" y="65" text-anchor="middle" fill="#047857" font-weight="700">不是非黑即白</text></svg></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-fuzzy-example-matrices">
+  <h2 class="slide-title"><i class="fas fa-shirt"></i> 例 17-10：产品型号的模糊综合评价</h2>
+  <div class="content-area">
+    <div class="step tile"><p>产品功能集合为 \(X=\{舒适性,耐磨性,美观性\}\)，评级域为 \(V=\{很好,好,不太好,不好\}\)。顾客评价得到两个方案的评价矩阵。</p></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">\[R_A=\begin{pmatrix}0.3&0.6&0.1&0\\0.3&0.6&0.1&0\\0.4&0.3&0.2&0.1\end{pmatrix}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#f59e0b;">\[R_B=\begin{pmatrix}0.1&0.2&0.6&0.1\\0.1&0.3&0.5&0.1\\0.2&0.2&0.3&0.3\end{pmatrix}\]</div></div>
+    </div>
+    <div class="step math-center"><div class="math-box" style="font-size:18px;border-left-color:#10b981;">功能权重：\[W=(0.3,0.3,0.4)\]</div></div>
+    <div class="step info-box"><p><strong>解释：</strong>舒适性、耐磨性、美观性的权重分别为 0.3、0.3、0.4，说明美观性在本决策中略更重要。</p></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-fuzzy-maxmin">
+  <h2 class="slide-title"><i class="fas fa-calculator"></i> 模糊综合评价：最大最小规则</h2>
+  <div class="content-area">
+    <div class="step tile"><p>用最大最小合成规则计算 \(B=W\times R\)：先对每个评价等级取 \(\min(W_i,r_{ij})\)，再对这些最小值取最大值。</p></div>
+    <div class="step two-column">
+      <div class="tile" style="border-top-color:#3b82f6;"><h3>方案 A 的第一个分量</h3><div class="math-center"><div class="math-box" style="font-size:15px;">\[\begin{aligned}b_1&=(0.3\wedge0.3)\vee(0.3\wedge0.3)\vee(0.4\wedge0.4)\\&=0.3\vee0.3\vee0.4=0.4\end{aligned}\]</div></div></div>
+      <div class="tile" style="border-top-color:#10b981;"><h3>综合评价结果</h3><div class="math-center"><div class="math-box" style="font-size:16px;">\[B_A=(0.4,0.3,0.2,0.1)\]\[B_B=(0.2,0.3,0.4,0.3)\]</div></div><p style="font-size:14px;">方案 B 合计为 1.2，需归一化。</p></div>
+    </div>
+    <div class="step math-center"><div class="math-box" style="font-size:17px;border-left-color:#f59e0b;">\[B_B=\frac{(0.2,0.3,0.4,0.3)}{1.2}=(0.17,0.25,0.33,0.25)\]</div></div>
+    <div class="step svg-container" style="height:250px;background:#f8fafc;">
+      <svg viewBox="0 0 850 200" style="width:100%;height:100%;">
+      <rect x="80" y="50" width="180" height="55" rx="14" fill="#eff6ff" stroke="#3b82f6"/>
+      <text x="170" y="84" text-anchor="middle" fill="#1d4ed8" font-weight="700">权重 W</text>
+      <rect x="335" y="50" width="180" height="55" rx="14" fill="#fff7ed" stroke="#f59e0b"/>
+      <text x="425" y="84" text-anchor="middle" fill="#b45309" font-weight="700">评价矩阵 R</text>
+      <rect x="590" y="50" width="180" height="55" rx="14" fill="#ecfdf5" stroke="#10b981"/>
+      <text x="680" y="84" text-anchor="middle" fill="#047857" font-weight="700">综合评价 B</text>
+      <text x="298" y="84" text-anchor="middle" font-size="26" fill="#334155">×</text>
+      <text x="552" y="84" text-anchor="middle" font-size="26" fill="#334155">→</text>
+      <circle cx="552" cy="78" r="8" fill="#10b981"><animate attributeName="cx" values="540;580;540" dur="1.5s" repeatCount="indefinite"/></circle>
+    </svg>
+  </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-fuzzy-final-decision">
+  <h2 class="slide-title"><i class="fas fa-check-circle"></i> 模糊决策：结合损益值做最终选择</h2>
+  <div class="content-area">
+    <div class="step table-wrapper"><table class="data-table"><tr><th colspan="2">自然状态</th><th>很好 V1</th><th>好 V2</th><th>不太好 V3</th><th>不好 V4</th></tr><tr><th rowspan="2">状态概率</th><td>方案A</td><td>0.4</td><td>0.3</td><td>0.2</td><td>0.1</td></tr><tr><td>方案B</td><td>0.17</td><td>0.25</td><td>0.33</td><td>0.25</td></tr><tr><th rowspan="2">损益值</th><td>方案A</td><td>1000</td><td>800</td><td>300</td><td>-300</td></tr><tr><td>方案B</td><td>800</td><td>700</td><td>200</td><td>-200</td></tr></table></div>
+    <div class="step two-column">
+      <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#3b82f6;">\[\begin{aligned}E_A&=0.4\times1000+0.3\times800+0.2\times300+0.1\times(-300)\\&=400+240+60-30=670\text{ 万元}\end{aligned}\]</div></div>
+      <div class="math-center"><div class="math-box" style="font-size:16px;border-left-color:#10b981;">\[\begin{aligned}E_B&=0.17\times800+0.25\times700+0.33\times200+0.25\times(-200)\\&=136+175+66-50=327\text{ 万元}\end{aligned}\]</div></div>
+    </div>
+    <div class="step info-box" style="background:#f0fdf4;border-left-color:#10b981;"><p><strong>结论：</strong>方案 A 的期望损益值 670 万元大于方案 B 的 327 万元，应生产产品型号甲。</p></div>
+  </div>
+</div>
+
+<div class="slide" id="slide-chapter-logic-summary">
+  <h2 class="slide-title"><i class="fas fa-diagram-project"></i> 本章逻辑总图</h2>
+  <div class="content-area">
+    <div class="step svg-container" style="height:520px;background:#f8fafc;">
+      <svg viewBox="0 0 1080 430" style="width:100%;height:100%;">
+        <defs><marker id="sumArr17" markerWidth="10" markerHeight="8" refX="10" refY="4" orient="auto"><polygon points="0 0,10 4,0 8" fill="#334155"/></marker></defs>
+        <rect x="430" y="25" width="220" height="55" rx="16" fill="#0f172a"/><text x="540" y="60" text-anchor="middle" fill="#fff" font-size="20" font-weight="700">多目标决策问题</text>
+        <line x1="540" y1="80" x2="190" y2="135" stroke="#334155" stroke-width="3" marker-end="url(#sumArr17)"/>
+        <line x1="540" y1="80" x2="420" y2="135" stroke="#334155" stroke-width="3" marker-end="url(#sumArr17)"/>
+        <line x1="540" y1="80" x2="660" y2="135" stroke="#334155" stroke-width="3" marker-end="url(#sumArr17)"/>
+        <line x1="540" y1="80" x2="890" y2="135" stroke="#334155" stroke-width="3" marker-end="url(#sumArr17)"/>
+        <rect x="70" y="140" width="240" height="92" rx="16" fill="#eff6ff" stroke="#3b82f6"/><text x="190" y="172" text-anchor="middle" fill="#1d4ed8" font-size="18" font-weight="700">AHP</text><text x="190" y="202" text-anchor="middle" fill="#334155" font-size="14">分层 + 两两比较 + 一致性检验</text>
+        <rect x="330" y="140" width="240" height="92" rx="16" fill="#ecfdf5" stroke="#10b981"/><text x="450" y="172" text-anchor="middle" fill="#047857" font-size="18" font-weight="700">多属性效用</text><text x="450" y="202" text-anchor="middle" fill="#334155" font-size="14">属性效用化 + 加权综合</text>
+        <rect x="590" y="140" width="240" height="92" rx="16" fill="#fff7ed" stroke="#f59e0b"/><text x="710" y="172" text-anchor="middle" fill="#b45309" font-size="18" font-weight="700">优劣系数法</text><text x="710" y="202" text-anchor="middle" fill="#334155" font-size="14">标准化 + 优系数 + 劣系数</text>
+        <rect x="850" y="140" width="180" height="92" rx="16" fill="#faf5ff" stroke="#8b5cf6"/><text x="940" y="172" text-anchor="middle" fill="#6d28d9" font-size="18" font-weight="700">模糊决策</text><text x="940" y="202" text-anchor="middle" fill="#334155" font-size="14">隶属度 + 综合评价</text>
+        <line x1="190" y1="232" x2="540" y2="330" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#sumArr17)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line>
+        <line x1="450" y1="232" x2="540" y2="330" stroke="#334155" stroke-width="3" marker-end="url(#sumArr17)"/>
+        <line x1="710" y1="232" x2="540" y2="330" stroke="#334155" stroke-width="3" marker-end="url(#sumArr17)"/>
+        <line x1="940" y1="232" x2="540" y2="330" stroke="#334155" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#sumArr17)"><animate attributeName="stroke-dashoffset" from="0" to="-28" dur="1s" repeatCount="indefinite"/></line>
+        <rect x="395" y="335" width="290" height="65" rx="20" fill="#0f172a"/><text x="540" y="362" text-anchor="middle" fill="#fff" font-size="19" font-weight="700">输出：方案排序与最优选择</text><text x="540" y="388" text-anchor="middle" fill="#cbd5e1" font-size="14">不是消灭冲突，而是有理有据地权衡冲突</text>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<div class="slide" id="slide-summary">
+  <h2 class="slide-title"><i class="fas fa-flag-checkered"></i> 本章小结</h2>
+  <div class="content-area">
+    <div class="step tile"><h3>1. 多目标决策的本质</h3><p>多目标决策是多个目标同时参与的决策问题，核心困难是目标之间不可公度、目标之间存在矛盾。</p></div>
+    <div class="step tile"><h3>2. 处理原则</h3><p>在满足决策需要的前提下减少目标个数；分析目标重要性并赋予权重，把注意力集中到重要目标上。</p></div>
+    <div class="step tile"><h3>3. 四类方法</h3><ul><li>AHP：分层、两两比较、计算权重、一致性检验、总排序。</li><li>多属性效用：把目标值转化为效用值，再构造综合效用函数。</li><li>优劣系数：用优系数和劣系数逐步淘汰方案。</li><li>模糊决策：用隶属度处理模糊评价，再结合损益或综合评价决策。</li></ul></div>
+    <div class="step info-box"><p><strong>一句话收束：</strong>多目标决策不是让所有目标都满意，那是童话；它是用权重、效用、标准化和模糊评价，把冲突目标变成可解释、可计算、可选择的方案排序。</p></div>
+    <div class="step math-center" style="margin-top:20px;"><button class="hw-btn" onclick="alert('即将跳转至网络作业库：第17章 课后练习');"><i class="fas fa-laptop-code"></i> 本章作业 (Homework)</button></div>
+  </div>
+</div>
+
+</div>
+
+<!-- 放映逻辑 -->
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const body = document.body;
+    const container = document.getElementById('presentation-container');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+
+    let currentSlideIndex = 0;
+    let isPresentationMode = false;
+
+    function refreshMath() { if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise(); }
+
+    function showSlide(index) {
+        slides.forEach((s, i) => s.classList.toggle('active', i === index));
+        currentSlideIndex = index;
+        refreshMath();
+    }
+
+    function enterPresentationMode(startIndex = 0) {
+        isPresentationMode = true;
+        body.classList.remove('browse-mode'); body.classList.add('presentation-mode');
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.remove('visible')));
+        showSlide(startIndex);
+        const scale = Math.min(window.innerWidth / 1280, window.innerHeight / 720);
+        container.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    function exitPresentationMode() {
+        isPresentationMode = false;
+        body.classList.remove('presentation-mode'); body.classList.add('browse-mode');
+        container.style.transform = 'none';
+        slides.forEach(s => s.classList.remove('active'));
+        slides[currentSlideIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+
+    function advance() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const hiddenSteps = currentSlide.querySelectorAll('.step:not(.visible)');
+
+        if (hiddenSteps.length > 0) {
+            hiddenSteps[0].classList.add('visible');
+            refreshMath();
+        } else if (currentSlideIndex < slides.length - 1) {
+            showSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function goBack() {
+        if (!isPresentationMode) return;
+        const currentSlide = slides[currentSlideIndex];
+        const visibleSteps = currentSlide.querySelectorAll('.step.visible');
+        if (visibleSteps.length > 0) {
+            visibleSteps[visibleSteps.length - 1].classList.remove('visible');
+            refreshMath();
+        } else if (currentSlideIndex > 0) {
+            showSlide(currentSlideIndex - 1);
+            slides[currentSlideIndex].querySelectorAll('.step').forEach(st => st.classList.add('visible'));
+        }
+    }
+
+    document.addEventListener('click', (e) => { if (isPresentationMode && !e.target.closest('.hw-btn')) advance(); });
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'F5') { 
+            e.preventDefault(); 
+            let startIndex = currentSlideIndex;
+            if(!isPresentationMode) {
+                let bestIndex = 0, minDist = Infinity;
+                slides.forEach((s, i) => {
+                    const dist = Math.abs(s.getBoundingClientRect().top);
+                    if(dist < minDist) { minDist = dist; bestIndex = i; }
+                });
+                startIndex = bestIndex;
+            }
+            enterPresentationMode(startIndex); 
+            document.documentElement.requestFullscreen().catch(()=>{}); 
+        }
+        if (e.key === 'Escape' && isPresentationMode) { 
+            e.preventDefault();
+            document.exitFullscreen().catch(()=>{});
+            exitPresentationMode(); 
+        }
+        if (isPresentationMode) {
+            if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'Enter') advance();
+            if (e.key === 'ArrowLeft') goBack();
+        }
+    });
+
+    window.addEventListener('resize', () => { if(isPresentationMode) enterPresentationMode(currentSlideIndex); });
+    
+    // 初始化浏览模式下所有 step 可见
+    if(!isPresentationMode){
+        slides.forEach(s => s.querySelectorAll('.step').forEach(st => st.classList.add('visible')));
+    }
+});
+</script>
+
+</body>
+</html>
